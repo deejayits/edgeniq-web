@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { AppNav } from "@/components/app-nav";
+import { BrandMark } from "@/components/brand";
 import { UserMenu } from "@/components/user-menu";
 
 // Protected dashboard shell. Middleware already gates /app/** but we
@@ -29,8 +30,8 @@ export default async function AppLayout({
       <header className="border-b border-border/50 bg-background/80 backdrop-blur-sm sticky top-0 z-30">
         <div className="mx-auto max-w-7xl px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-8">
-            <Link href="/app" className="font-semibold tracking-tight">
-              Edge<span className="text-primary">Niq</span>
+            <Link href="/app">
+              <BrandMark />
             </Link>
             <AppNav />
           </div>

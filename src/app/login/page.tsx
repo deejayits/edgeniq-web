@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
+import { BrandMark } from "@/components/brand";
 import { TelegramLoginButton } from "@/components/telegram-login-button";
 import { env } from "@/env";
 
@@ -18,8 +19,8 @@ export default async function LoginPage({
     <div className="flex flex-col min-h-screen">
       <header className="border-b border-border/50">
         <div className="mx-auto max-w-6xl px-6 h-14 flex items-center">
-          <Link href="/" className="font-semibold tracking-tight">
-            Edge<span className="text-primary">Niq</span>
+          <Link href="/">
+            <BrandMark />
           </Link>
         </div>
       </header>

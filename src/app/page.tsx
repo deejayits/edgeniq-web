@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { BrandMark } from "@/components/brand";
 import { ArrowRight, BarChart3, BellRing, ShieldCheck } from "lucide-react";
 
 // Marketing landing page. Public; no auth required. Renders at /.
@@ -24,8 +25,8 @@ function SiteHeader() {
   return (
     <header className="border-b border-border/50 backdrop-blur-sm sticky top-0 z-50 bg-background/80">
       <div className="mx-auto max-w-6xl px-6 h-14 flex items-center justify-between">
-        <Link href="/" className="font-semibold tracking-tight">
-          Edge<span className="text-primary">Niq</span>
+        <Link href="/">
+          <BrandMark />
         </Link>
         <nav className="flex items-center gap-6 text-sm">
           <Link
@@ -242,7 +243,9 @@ function SiteFooter() {
   return (
     <footer className="border-t border-border/40 py-8 text-sm text-muted-foreground">
       <div className="mx-auto max-w-6xl px-6 flex items-center justify-between">
-        <div>© {new Date().getFullYear()} EdgeNiq</div>
+        <div className="flex items-center gap-1.5">
+          © {new Date().getFullYear()} <BrandMark className="text-[13px]" />
+        </div>
         <div className="flex gap-6">
           <Link href="/legal/terms" className="hover:text-foreground">
             Terms
