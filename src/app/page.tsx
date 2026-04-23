@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { BrandMark } from "@/components/brand";
+import { BrandLockup, BrandMark } from "@/components/brand";
 import {
   ArrowRight,
   BarChart3,
@@ -43,9 +43,9 @@ export default function LandingPage() {
 function SiteHeader() {
   return (
     <header className="border-b border-border/50 backdrop-blur-sm sticky top-0 z-50 bg-background/80">
-      <div className="mx-auto max-w-6xl px-6 h-14 flex items-center justify-between">
-        <Link href="/">
-          <BrandMark />
+      <div className="mx-auto max-w-6xl px-6 h-16 flex items-center justify-between">
+        <Link href="/" aria-label="EdgeNiq home">
+          <BrandLockup iconSize={30} textClassName="text-lg" />
         </Link>
         <nav className="flex items-center gap-6 text-sm">
           <Link
