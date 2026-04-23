@@ -142,7 +142,7 @@ function SignalMock() {
             <div>
               <span className="text-2xl font-semibold tabular-nums">NVDA</span>
               <span className="ml-2 text-sm text-muted-foreground font-mono">
-                $952.34
+                $195.40
               </span>
             </div>
             <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
@@ -160,7 +160,7 @@ function SignalMock() {
           </div>
           <div className="flex items-center justify-between text-xs font-mono border-t border-border/50 pt-3">
             <span className="text-muted-foreground">Stop</span>
-            <span className="text-destructive">$914.24 (-4%)</span>
+            <span className="text-destructive">$187.58 (-4%)</span>
           </div>
         </div>
       </Card>

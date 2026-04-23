@@ -10,10 +10,18 @@ import { env } from "@/env";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; error?: string }>;
+  searchParams: Promise<{
+    next?: string;
+    error?: string;
+    reason?: string;
+    tg_id?: string;
+  }>;
 }) {
   const params = await searchParams;
-  const errorMsg = errorMessage(params.error);
+  const errorMsg = errorMessage(params.error, {
+    reason: params.reason,
+    tgId: params.tg_id,
+  });
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -71,9 +79,22 @@ export default async function LoginPage({
   );
 }
 
-function errorMessage(code: string | undefined): string | null {
+function errorMessage(
+  code: string | undefined,
+  ctx: { reason?: string; tgId?: string },
+): string | null {
   if (!code) return null;
   switch (code) {
+    case "telegram_hash":
+      return `Telegram signature didn't validate${ctx.reason ? ` (${ctx.reason})` : ""}. The Login Widget payload may be stale — refresh and try again.`;
+    case "supabase":
+      return `Database error while looking up your account${ctx.reason ? `: ${ctx.reason}` : ""}. Try again; if it persists, ping the admin.`;
+    case "no_bot_account":
+      return `No bot account found for Telegram ID ${ctx.tgId ?? "?"}. You need to /start the bot on Telegram at least once before you can sign in here.`;
+    case "account_deleted":
+      return "This account is soft-deleted. Contact the admin to restore it.";
+    case "signin_failed":
+      return `Sign-in failed${ctx.reason ? `: ${ctx.reason}` : ""}. Try again.`;
     case "telegram_auth_failed":
       return "Telegram sign-in failed. Your session may be stale — try again.";
     case "CredentialsSignin":
