@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 const BASE_NAV = [
   { href: "/app", label: "Today" },
   { href: "/app/portfolio", label: "Portfolio" },
+  { href: "/app/broker", label: "Auto-trade" },
   { href: "/app/history", label: "History" },
   { href: "/app/commands", label: "Commands" },
   { href: "/app/settings", label: "Settings" },
