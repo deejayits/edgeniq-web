@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BrandLockup, BrandMark } from "@/components/brand";
+import { TelegramStartDialog } from "@/components/telegram-start-dialog";
 import {
   ArrowRight,
   BarChart3,
@@ -17,14 +18,9 @@ import {
   Zap,
 } from "lucide-react";
 
-// Primary signup surface — Telegram, not the website. Every "Get
-// started" CTA routes here so new visitors start the bot before
-// (or instead of) hitting the web login widget.
-// Plain t.me URL — the ?start=web suffix previously here required
-// clicking a "START BOT" button that only worked if Telegram Desktop
-// was installed. Bare URL opens the bot directly in the app on mobile
-// and shows the bot preview on desktop, which is the expected behavior.
-const TELEGRAM_START_URL = "https://t.me/edgeniq_alerts_bot";
+// Telegram handoff now goes through <TelegramStartDialog /> which
+// presents QR + app deep-link + Telegram Web fallback. Plain t.me URL
+// is kept in that component's module scope.
 
 // Marketing landing page. Public; no auth required. Renders at /.
 // Session-aware: if the user is already logged in (cookie present from
@@ -125,16 +121,14 @@ function Hero() {
             making money — without the guru noise.
           </p>
           <div className="mt-8 flex items-center gap-3 flex-wrap">
-            <Button asChild size="lg">
-              <a
-                href={TELEGRAM_START_URL}
-                target="_blank"
-                rel="noreferrer"
-              >
-                <MessageSquare className="h-4 w-4" />
-                Start on Telegram
-              </a>
-            </Button>
+            <TelegramStartDialog
+              trigger={
+                <Button size="lg">
+                  <MessageSquare className="h-4 w-4" />
+                  Start on Telegram
+                </Button>
+              }
+            />
             <Button asChild variant="outline" size="lg">
               <Link href="/login">Log in</Link>
             </Button>
@@ -743,12 +737,14 @@ function FooterCTA() {
         a minute, then come back here to see your dashboard.
       </p>
       <div className="flex items-center justify-center gap-3 flex-wrap">
-        <Button asChild size="lg">
-          <a href={TELEGRAM_START_URL} target="_blank" rel="noreferrer">
-            <MessageSquare className="h-4 w-4" />
-            Start on Telegram <ArrowRight className="h-4 w-4" />
-          </a>
-        </Button>
+        <TelegramStartDialog
+          trigger={
+            <Button size="lg">
+              <MessageSquare className="h-4 w-4" />
+              Start on Telegram <ArrowRight className="h-4 w-4" />
+            </Button>
+          }
+        />
         <Button asChild variant="ghost" size="lg">
           <Link href="/login">I already have an account</Link>
         </Button>

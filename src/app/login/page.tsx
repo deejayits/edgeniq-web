@@ -5,14 +5,11 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BrandLockup } from "@/components/brand";
 import { TelegramLoginButton } from "@/components/telegram-login-button";
+import { TelegramStartDialog } from "@/components/telegram-start-dialog";
 import { env } from "@/env";
 import { MessageSquare, ArrowRight } from "lucide-react";
 
-// Bare t.me link — the ?start=web suffix required a "START BOT" click
-// in Telegram's web preview that only actually opens the bot if the
-// user already has Telegram Desktop installed. Plain URL opens the
-// native app directly (mobile) and shows a useful preview (desktop).
-const TELEGRAM_START_URL = "https://t.me/edgeniq_alerts_bot";
+// Telegram handoff now goes through <TelegramStartDialog />.
 
 // Login page. Public. Renders the Telegram Login Widget which redirects
 // to /api/auth/telegram/callback on success. `next` query param lets us
@@ -90,16 +87,19 @@ export default async function LoginPage({
               pick a risk profile, accept the terms. Then come back
               here to sign in.
             </p>
-            <Button asChild size="sm" className="w-full">
-              <a
-                href={TELEGRAM_START_URL}
-                target="_blank"
-                rel="noreferrer"
-              >
-                <MessageSquare className="h-4 w-4" />
-                Open @edgeniq_alerts_bot <ArrowRight className="h-3.5 w-3.5" />
-              </a>
-            </Button>
+            <TelegramStartDialog
+              trigger={
+                <Button size="sm" className="w-full">
+                  <MessageSquare className="h-4 w-4" />
+                  Open @edgeniq_alerts_bot{" "}
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
+              }
+            />
+            <p className="mt-3 text-[11px] text-muted-foreground text-center">
+              Works on any device — phone, Telegram Desktop, or Telegram
+              Web.
+            </p>
           </div>
         </Card>
       </main>
