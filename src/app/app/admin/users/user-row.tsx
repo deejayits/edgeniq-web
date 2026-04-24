@@ -148,7 +148,13 @@ export function AdminUserRow({ u }: { u: AdminUserRowData }) {
 
       {/* Subscription status */}
       <td className="px-4 py-3">
-        {u.subStatus === "trial" ? (
+        {isAdmin ? (
+          // Admins bypass tier gating entirely — any trial/expired
+          // flag on their row is leftover from onboarding and doesn't
+          // affect anything. Render em-dash so the table isn't
+          // misleading ("admin with 30d left" is meaningless).
+          <span className="text-xs text-muted-foreground">—</span>
+        ) : u.subStatus === "trial" ? (
           <Badge className="bg-emerald-400/15 text-emerald-300 border border-emerald-400/30">
             trial · {days !== null && days >= 0 ? `${days}d left` : "—"}
           </Badge>
