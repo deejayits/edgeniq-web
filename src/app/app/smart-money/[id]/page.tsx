@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ExternalLink, Info } from "lucide-react";
+import { ArrowLeft, ExternalLink, Info, Clock, HardDriveDownload } from "lucide-react";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { ActivityChart } from "../activity-chart";
 import { FollowControls } from "../follow-controls";
@@ -278,9 +278,7 @@ export default async function TargetDetailPage({
           <h2 className="text-sm font-medium">Recent trades</h2>
         </div>
         {trades.length === 0 ? (
-          <div className="p-8 text-center text-sm text-muted-foreground">
-            No trades on file yet.
-          </div>
+          <EmptyTradesState targetType={target.target_type} />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -361,6 +359,77 @@ export default async function TargetDetailPage({
           real-time activity.
         </AlertDescription>
       </Alert>
+    </div>
+  );
+}
+
+// Differentiated empty state for the trades table. Politicians get a
+// "Coming soon" treatment — we don't have a data source wired yet so
+// the empty isn't going to resolve on its own. Funds get a shorter
+// "Data ingestion pending" message — the SEC cron will populate on
+// its next run, so the empty is genuinely temporary.
+function EmptyTradesState({ targetType }: { targetType: TargetType }) {
+  if (targetType === "politician") {
+    return (
+      <div className="px-6 py-12 text-center space-y-3">
+        <div className="h-12 w-12 rounded-full bg-violet-400/10 border border-violet-400/30 flex items-center justify-center mx-auto">
+          <Clock className="h-5 w-5 text-violet-300" />
+        </div>
+        <div>
+          <Badge className="bg-violet-400/15 text-violet-300 border border-violet-400/30 mb-2">
+            Coming soon
+          </Badge>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
+            Congressional trade ingestion isn&rsquo;t live yet — STOCK
+            Act disclosure data requires a paid API subscription that
+            we&rsquo;ll add once the user base justifies the cost. The
+            profile and follow button work today; alerts will turn on
+            once data lands.
+          </p>
+        </div>
+        <p className="text-[11px] text-muted-foreground max-w-sm mx-auto">
+          In the meantime: hedge funds ({">"}13F filings) already
+          populate nightly — browse those for actionable data.
+        </p>
+      </div>
+    );
+  }
+  if (targetType === "insider" || targetType === "activist") {
+    return (
+      <div className="px-6 py-12 text-center space-y-3">
+        <div className="h-12 w-12 rounded-full bg-amber-400/10 border border-amber-400/30 flex items-center justify-center mx-auto">
+          <Clock className="h-5 w-5 text-amber-300" />
+        </div>
+        <div>
+          <Badge className="bg-amber-400/15 text-amber-300 border border-amber-400/30 mb-2">
+            Coming soon
+          </Badge>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
+            {targetType === "insider"
+              ? "Form 4 insider-trade ingestion is planned for a future release. Form 4 has a 2-day filing deadline so this would be our fastest-latency data source."
+              : "Activist 13D/13G filings — reported within 10 days of a 5%+ stake — are on the roadmap."}
+          </p>
+        </div>
+      </div>
+    );
+  }
+  // fund_13f — ingestion IS wired but may not have run yet
+  return (
+    <div className="px-6 py-12 text-center space-y-3">
+      <div className="h-12 w-12 rounded-full bg-emerald-400/10 border border-emerald-400/30 flex items-center justify-center mx-auto">
+        <HardDriveDownload className="h-5 w-5 text-emerald-300" />
+      </div>
+      <div>
+        <Badge className="bg-emerald-400/15 text-emerald-300 border border-emerald-400/30 mb-2">
+          Ingestion pending
+        </Badge>
+        <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
+          13F ingestion runs nightly against SEC EDGAR. Positions for
+          this fund will appear after the next cron tick. If this has
+          been empty more than 48 hours, the fund may not have filed a
+          13F-HR in the current reporting window.
+        </p>
+      </div>
     </div>
   );
 }

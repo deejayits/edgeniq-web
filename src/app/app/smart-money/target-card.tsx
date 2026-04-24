@@ -104,16 +104,28 @@ export function TargetCard({ target }: { target: TargetWithStats }) {
             )}
 
             <div className="flex items-center gap-3 mt-3 text-xs text-muted-foreground">
-              <span>
-                <b className="text-foreground tabular-nums">
-                  {target.trade_count_30d}
-                </b>{" "}
-                trade{target.trade_count_30d === 1 ? "" : "s"} · 30d
-              </span>
-              {target.top_symbols.length > 0 && (
-                <span className="font-mono truncate">
-                  {target.top_symbols.slice(0, 3).join(" · ")}
+              {target.trade_count_30d > 0 ? (
+                <>
+                  <span>
+                    <b className="text-foreground tabular-nums">
+                      {target.trade_count_30d}
+                    </b>{" "}
+                    trade{target.trade_count_30d === 1 ? "" : "s"} · 30d
+                  </span>
+                  {target.top_symbols.length > 0 && (
+                    <span className="font-mono truncate">
+                      {target.top_symbols.slice(0, 3).join(" · ")}
+                    </span>
+                  )}
+                </>
+              ) : target.target_type === "politician" ||
+                target.target_type === "insider" ||
+                target.target_type === "activist" ? (
+                <span className="italic">
+                  Data ingestion coming soon
                 </span>
+              ) : (
+                <span className="italic">Pending next SEC cron</span>
               )}
             </div>
           </div>
