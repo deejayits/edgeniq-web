@@ -7,9 +7,12 @@ import {
   ArrowRight,
   BarChart3,
   BellRing,
+  Check,
+  Eye,
   ShieldCheck,
   Target,
   TrendingUp,
+  Zap,
 } from "lucide-react";
 
 // Marketing landing page. Public; no auth required. Renders at /.
@@ -30,6 +33,7 @@ export default function LandingPage() {
         <Hero />
         <StatsStrip />
         <Features />
+        <WhyDifferent />
         <DashboardPreview />
         <HowItWorks />
         <Pricing />
@@ -407,49 +411,293 @@ function HowItWorks() {
   );
 }
 
+// Why-we're-different section — positions EdgeNiq against the generic
+// "trading alerts" / "buy signals" crowd. Keeps it honest: no claims
+// of magical returns, just structural advantages.
+function WhyDifferent() {
+  const points = [
+    {
+      icon: Eye,
+      title: "You see the losers too",
+      body: "Most signal services quietly hide the bad calls. Your dashboard shows every trade — wins, stops, expireds. Real win rate, no highlight reel.",
+    },
+    {
+      icon: Zap,
+      title: "Per-user target ladders",
+      body: "Everyone else broadcasts a single price. We compute YOUR targets from YOUR entry when you confirm. A $100 ladder doesn't work if you got in at $103.",
+    },
+    {
+      icon: BellRing,
+      title: "Telegram-native, not Yet-Another-App",
+      body: "You already have Telegram open. Signals, confirmations, target-hit alerts — all in the chat you're in all day. No new login, no new notification spam.",
+    },
+    {
+      icon: ShieldCheck,
+      title: "Strategy filters that actually filter",
+      body: "Six preset strategies (momentum, mean-reversion, trend-following, post-earnings drift, high-conviction) with rule-based gating. Not vibes-based labels.",
+    },
+  ];
+  return (
+    <section className="mx-auto max-w-6xl px-6 py-20 border-t border-border/40">
+      <div className="max-w-2xl mb-12">
+        <div className="text-xs font-mono text-muted-foreground uppercase tracking-wider mb-3">
+          Why EdgeNiq
+        </div>
+        <h2 className="text-3xl md:text-4xl font-semibold tracking-tight">
+          Built different — because the category deserves it.
+        </h2>
+      </div>
+      <div className="grid md:grid-cols-2 gap-6">
+        {points.map((p) => (
+          <Card key={p.title} className="p-6 border-border/60 bg-card/50">
+            <div className="flex items-start gap-4">
+              <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-emerald-400/15 to-violet-400/15 border border-border/60 flex items-center justify-center shrink-0">
+                <p.icon className="h-4 w-4 text-foreground" />
+              </div>
+              <div>
+                <h3 className="font-medium mb-1.5">{p.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {p.body}
+                </p>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// Three-tier pricing with a full feature matrix below.
+// Prices shown monthly; annual-toggle can come later.
 function Pricing() {
+  const tiers = [
+    {
+      name: "Free",
+      tag: "Beta-tester slot",
+      price: "$0",
+      priceSub: "forever",
+      cta: "Start free",
+      ctaVariant: "outline" as const,
+      ctaHref: "/login",
+      highlights: [
+        "5 stock signals / day",
+        "1 risk profile",
+        "Web dashboard + Telegram bot",
+        "Basic signal history",
+      ],
+      featured: false,
+      badge: null,
+    },
+    {
+      name: "Pro",
+      tag: "Serious trading",
+      price: "$29",
+      priceSub: "/ month",
+      cta: "Coming soon",
+      ctaVariant: "default" as const,
+      ctaHref: "/login",
+      highlights: [
+        "Unlimited signals",
+        "All 4 risk profiles + 6 strategy templates",
+        "Portfolio advisor w/ concentration warnings",
+        "Earnings calendar alerts",
+        "Live position monitor",
+      ],
+      featured: true,
+      badge: "Most popular",
+    },
+    {
+      name: "Founding Member",
+      tag: "First 50 only",
+      price: "$499",
+      priceSub: "one-time",
+      cta: "Apply",
+      ctaVariant: "outline" as const,
+      ctaHref: "/login",
+      highlights: [
+        "Everything in Pro — forever",
+        "Direct line to the founder",
+        "Early access to new features",
+        "Private member channel",
+        "Locked-in pricing (even after we raise)",
+      ],
+      featured: false,
+      badge: "Lifetime",
+    },
+  ];
+
   return (
     <section
       id="pricing"
       className="mx-auto max-w-6xl px-6 py-20 border-t border-border/40"
     >
       <div className="text-center mb-12">
-        <h2 className="text-3xl font-semibold tracking-tight">Pricing</h2>
-        <p className="mt-3 text-muted-foreground">
-          Open beta. Invite-only today — pricing launches when the queue
-          opens.
+        <div className="text-xs font-mono text-muted-foreground uppercase tracking-wider mb-3">
+          Pricing
+        </div>
+        <h2 className="text-3xl md:text-4xl font-semibold tracking-tight">
+          Built for traders who want a system.
+        </h2>
+        <p className="mt-4 text-muted-foreground max-w-xl mx-auto">
+          Open beta today. Pro rolls out when billing is wired —
+          Founding Member pricing is available now for the first 50
+          committed users.
         </p>
       </div>
-      <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-        <Card className="p-8 border-border/60 bg-card/50">
-          <h3 className="text-lg font-medium mb-1">Free</h3>
-          <p className="text-sm text-muted-foreground mb-6">
-            Beta-tester slot
-          </p>
-          <ul className="text-sm space-y-2 text-muted-foreground">
-            <li>5 signals / day</li>
-            <li>Core risk profiles</li>
-            <li>Web dashboard access</li>
-          </ul>
-        </Card>
-        <Card className="p-8 border-primary/40 bg-card/50 relative">
-          <span className="absolute top-4 right-4 text-xs px-2 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
-            Coming soon
-          </span>
-          <h3 className="text-lg font-medium mb-1">Pro</h3>
-          <p className="text-sm text-muted-foreground mb-6">
-            Unlimited signals + advanced features
-          </p>
-          <ul className="text-sm space-y-2 text-muted-foreground">
-            <li>Unlimited signals</li>
-            <li>Strategy templates</li>
-            <li>Portfolio advisor</li>
-            <li>Custom risk profile</li>
-            <li>Earnings calendar alerts</li>
-          </ul>
-        </Card>
+      <div className="grid md:grid-cols-3 gap-6 mb-16">
+        {tiers.map((tier) => (
+          <Card
+            key={tier.name}
+            className={`p-7 flex flex-col relative ${
+              tier.featured
+                ? "border-primary/40 bg-card/80 md:-my-2 md:py-9"
+                : "border-border/60 bg-card/50"
+            }`}
+          >
+            {tier.badge && (
+              <span
+                className={`absolute top-4 right-4 text-[10px] px-2 py-0.5 rounded-full border ${
+                  tier.featured
+                    ? "bg-primary/10 text-primary border-primary/30"
+                    : "bg-muted/40 text-muted-foreground border-border/60"
+                }`}
+              >
+                {tier.badge}
+              </span>
+            )}
+            <h3 className="text-lg font-medium">{tier.name}</h3>
+            <p className="text-xs text-muted-foreground mb-5">{tier.tag}</p>
+            <div className="flex items-baseline gap-1 mb-6">
+              <span className="text-4xl font-semibold tabular-nums">
+                {tier.price}
+              </span>
+              <span className="text-sm text-muted-foreground">
+                {tier.priceSub}
+              </span>
+            </div>
+            <ul className="space-y-2.5 text-sm mb-8 flex-1">
+              {tier.highlights.map((h) => (
+                <li key={h} className="flex items-start gap-2">
+                  <Check className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <span className="text-muted-foreground leading-relaxed">
+                    {h}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <Button asChild variant={tier.ctaVariant} className="w-full">
+              <Link href={tier.ctaHref}>{tier.cta}</Link>
+            </Button>
+          </Card>
+        ))}
       </div>
+
+      <FeatureMatrix />
     </section>
+  );
+}
+
+// Full feature-by-tier comparison table. Scoped to the pricing page
+// because the tier cards above necessarily elide detail.
+function FeatureMatrix() {
+  const rows: Array<{
+    label: string;
+    free: string | boolean;
+    pro: string | boolean;
+    founding: string | boolean;
+  }> = [
+    { label: "Stock signals per day", free: "5", pro: "Unlimited", founding: "Unlimited" },
+    { label: "Risk profiles", free: "Moderate only", pro: "Conservative · Moderate · Aggressive · Custom", founding: "All + custom" },
+    { label: "Strategy templates", free: "Balanced (default)", pro: "All 6", founding: "All 6 + bespoke" },
+    { label: "Per-user target ladders", free: true, pro: true, founding: true },
+    { label: "Live position monitor", free: false, pro: true, founding: true },
+    { label: "Portfolio advisor", free: false, pro: true, founding: true },
+    { label: "Earnings calendar alerts", free: false, pro: true, founding: true },
+    { label: "Prediction markets (Kalshi/Polymarket)", free: false, pro: true, founding: true },
+    { label: "Watchlist (size)", free: "5 tickers", pro: "Unlimited", founding: "Unlimited" },
+    { label: "Signal history retention", free: "30 days", pro: "Forever", founding: "Forever" },
+    { label: "Priority signal delivery", free: false, pro: true, founding: true },
+    { label: "Direct access to founder", free: false, pro: false, founding: true },
+    { label: "Early feature access", free: false, pro: false, founding: true },
+    { label: "Locked-in pricing", free: "n/a", pro: false, founding: true },
+  ];
+
+  return (
+    <div>
+      <div className="text-xs font-mono text-muted-foreground uppercase tracking-wider mb-4 text-center">
+        Full feature comparison
+      </div>
+      <Card className="border-border/60 bg-card/40 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border/60 bg-muted/20">
+                <th className="text-left px-5 py-3 font-medium text-muted-foreground">
+                  Feature
+                </th>
+                <th className="text-center px-4 py-3 font-medium">Free</th>
+                <th className="text-center px-4 py-3 font-medium text-primary">
+                  Pro
+                </th>
+                <th className="text-center px-4 py-3 font-medium">
+                  Founding
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr
+                  key={row.label}
+                  className="border-b border-border/40 last:border-0"
+                >
+                  <td className="px-5 py-3 text-muted-foreground">
+                    {row.label}
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <MatrixCell v={row.free} />
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <MatrixCell v={row.pro} featured />
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <MatrixCell v={row.founding} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function MatrixCell({
+  v,
+  featured,
+}: {
+  v: string | boolean;
+  featured?: boolean;
+}) {
+  if (v === true) {
+    return (
+      <Check
+        className={`inline h-4 w-4 ${
+          featured ? "text-primary" : "text-emerald-400"
+        }`}
+      />
+    );
+  }
+  if (v === false) {
+    return <span className="text-muted-foreground/40">—</span>;
+  }
+  return (
+    <span
+      className={`text-xs ${featured ? "text-foreground" : "text-muted-foreground"}`}
+    >
+      {v}
+    </span>
   );
 }
 
