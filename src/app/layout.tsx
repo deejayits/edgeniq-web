@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "EdgeNiq — your trading signals, organized",
   description:
-    "AI-scored stock signals delivered to Telegram. Live portfolio, target ladders, and performance analytics — no noise.",
+    "AI-scored signals for stocks, options, and prediction markets, delivered to Telegram. Smart Money tracking, personal target ladders, and one-tap auto-trade via Alpaca.",
 };
 
 export default function RootLayout({

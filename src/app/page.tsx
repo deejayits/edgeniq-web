@@ -116,10 +116,10 @@ function Hero() {
             <span className="text-muted-foreground">organized.</span>
           </h1>
           <p className="mt-5 md:mt-6 text-base md:text-lg text-muted-foreground max-w-xl leading-relaxed">
-            AI-scored stock signals delivered to Telegram the moment they
-            fire. Per-user target ladders, personal trade tracking, and a
-            web dashboard that actually tells you whether you&rsquo;re
-            making money — without the guru noise.
+            AI-scored signals for stocks, options, and prediction
+            markets delivered to Telegram. Personal target ladders,
+            Smart Money tracking, and one-tap auto-trade via Alpaca —
+            all in one dashboard. No guru noise.
           </p>
           <div className="mt-8 flex items-center gap-3 flex-wrap">
             <TelegramStartDialog
