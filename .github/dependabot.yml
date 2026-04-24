@@ -1,0 +1,48 @@
+# Dependabot — weekly dependency security scans.
+# Auto-opens PRs for vulnerability fixes + minor version bumps.
+# Security alerts (separate from these PRs) fire immediately when a
+# CVE is published against a pinned dependency.
+version: 2
+updates:
+  # npm — Next.js, Auth.js, Supabase client, shadcn deps
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 8
+    labels:
+      - "dependencies"
+      - "security"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    # Group minor + patch bumps into weekly combined PRs so the inbox
+    # isn't 40 separate bumps. Major bumps still open individual PRs
+    # (they need manual review anyway).
+    groups:
+      npm-minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+      # Next.js + React are tightly coupled — bump them together so
+      # we never land a mismatched pair.
+      next-react:
+        patterns:
+          - "next"
+          - "next-*"
+          - "@next/*"
+          - "react"
+          - "react-*"
+          - "@types/react*"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - "dependencies"
+      - "ci"
