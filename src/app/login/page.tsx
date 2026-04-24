@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { BrandLockup } from "@/components/brand";
 import { TelegramLoginButton } from "@/components/telegram-login-button";
 import { TelegramStartDialog } from "@/components/telegram-start-dialog";
+import { ClearTelegramCacheButton } from "@/components/clear-telegram-cache-button";
 import { env } from "@/env";
 import { MessageSquare, ArrowRight } from "lucide-react";
 
@@ -76,26 +77,18 @@ export default async function LoginPage({
             />
           </div>
 
-          {/* "Not you?" helper — addresses the common confusion where
-              the Telegram widget remembers the previously-signed-in
-              account. That state lives in cookies on Telegram's own
-              domain (oauth.telegram.org), so we can't clear it
-              ourselves; point users at the settings path that does. */}
-          <details className="mt-3 text-xs text-muted-foreground group">
-            <summary className="cursor-pointer select-none hover:text-foreground transition">
-              Seeing someone else&rsquo;s Telegram account above?
-            </summary>
-            <div className="mt-2 pl-4 leading-relaxed border-l border-border/60">
-              The Telegram Login Widget remembers the last account that
-              authorized the bot. That&rsquo;s stored by Telegram, not
-              EdgeNiq — signing out of EdgeNiq doesn&rsquo;t clear it.
-              To switch accounts: open Telegram &rarr; <b>Settings
-              &rarr; Privacy &amp; Security &rarr; Devices</b> (or{" "}
-              <b>Active Sessions</b>), find <code>EdgeNiq</code> or{" "}
-              <code>@edgeniq_alerts_bot</code>, and revoke it. Then
-              refresh this page.
-            </div>
-          </details>
+          {/* "Not you?" — clears the Telegram Login Widget's cached
+              identity without requiring the user to open their phone.
+              Opens oauth.telegram.org in a new tab where they can
+              click Telegram's own Log out button, then a reload
+              button here forces the widget to re-read the cleared
+              cookie. */}
+          <div className="mt-4 space-y-2">
+            <p className="text-xs text-muted-foreground text-center">
+              Seeing someone else&rsquo;s Telegram account?
+            </p>
+            <ClearTelegramCacheButton />
+          </div>
 
           {/* Divider */}
           <div className="relative my-8">
