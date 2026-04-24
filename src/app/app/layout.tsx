@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { AppNav } from "@/components/app-nav";
 import { BrandLockup } from "@/components/brand";
+import { CommandPalette } from "@/components/command-palette";
 import { UserMenu } from "@/components/user-menu";
 
 // Protected dashboard shell. Middleware already gates /app/** but we
@@ -47,6 +48,8 @@ export default async function AppLayout({
       <main className="flex-1 mx-auto w-full max-w-7xl px-6 py-8">
         {children}
       </main>
+
+      <CommandPalette />
     </div>
   );
 }

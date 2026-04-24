@@ -468,62 +468,61 @@ function WhyDifferent() {
   );
 }
 
-// Three-tier pricing with a full feature matrix below.
-// Prices shown monthly; annual-toggle can come later.
+// Three-tier subscription pricing. Benchmarked against Discord trading
+// communities ($15–40/mo is the typical band). No lifetime/one-time
+// options — we rely on MRR and low churn, not lump-sum bets.
 function Pricing() {
   const tiers = [
     {
       name: "Free",
-      tag: "Beta-tester slot",
+      tag: "Try it out",
       price: "$0",
-      priceSub: "forever",
+      priceSub: "",
       cta: "Start free",
       ctaVariant: "outline" as const,
       ctaHref: "/login",
       highlights: [
-        "5 stock signals / day",
-        "1 risk profile",
+        "Up to 5 stock signals per day",
+        "Moderate risk profile",
         "Web dashboard + Telegram bot",
-        "Basic signal history",
       ],
       featured: false,
       badge: null,
     },
     {
       name: "Pro",
-      tag: "Serious trading",
-      price: "$29",
-      priceSub: "/ month",
-      cta: "Coming soon",
+      tag: "Active traders",
+      price: "$19",
+      priceSub: "/ mo",
+      cta: "Join Pro",
       ctaVariant: "default" as const,
       ctaHref: "/login",
       highlights: [
-        "Unlimited signals",
+        "Unlimited stock + prediction-market signals",
         "All 4 risk profiles + 6 strategy templates",
-        "Portfolio advisor w/ concentration warnings",
+        "Portfolio advisor (concentration, streak, stale warnings)",
         "Earnings calendar alerts",
-        "Live position monitor",
+        "Live position monitor on the dashboard",
       ],
       featured: true,
       badge: "Most popular",
     },
     {
-      name: "Founding Member",
-      tag: "First 50 only",
-      price: "$499",
-      priceSub: "one-time",
+      name: "Founding Pro",
+      tag: "First 50 members — $9/mo locked in forever",
+      price: "$9",
+      priceSub: "/ mo",
       cta: "Apply",
       ctaVariant: "outline" as const,
       ctaHref: "/login",
       highlights: [
-        "Everything in Pro — forever",
-        "Direct line to the founder",
-        "Early access to new features",
-        "Private member channel",
-        "Locked-in pricing (even after we raise)",
+        "Full Pro — $9/mo locked in, even after price rises",
+        "Direct DM to the founder on Telegram",
+        "Vote on the feature roadmap",
+        "Private member-only announcements",
       ],
       featured: false,
-      badge: "Lifetime",
+      badge: "50% off",
     },
   ];
 
@@ -608,19 +607,18 @@ function FeatureMatrix() {
     founding: string | boolean;
   }> = [
     { label: "Stock signals per day", free: "5", pro: "Unlimited", founding: "Unlimited" },
-    { label: "Risk profiles", free: "Moderate only", pro: "Conservative · Moderate · Aggressive · Custom", founding: "All + custom" },
-    { label: "Strategy templates", free: "Balanced (default)", pro: "All 6", founding: "All 6 + bespoke" },
+    { label: "Risk profiles", free: "Moderate", pro: "All 4", founding: "All 4" },
+    { label: "Strategy templates", free: "Balanced only", pro: "All 6", founding: "All 6" },
     { label: "Per-user target ladders", free: true, pro: true, founding: true },
     { label: "Live position monitor", free: false, pro: true, founding: true },
     { label: "Portfolio advisor", free: false, pro: true, founding: true },
     { label: "Earnings calendar alerts", free: false, pro: true, founding: true },
-    { label: "Prediction markets (Kalshi/Polymarket)", free: false, pro: true, founding: true },
-    { label: "Watchlist (size)", free: "5 tickers", pro: "Unlimited", founding: "Unlimited" },
-    { label: "Signal history retention", free: "30 days", pro: "Forever", founding: "Forever" },
-    { label: "Priority signal delivery", free: false, pro: true, founding: true },
-    { label: "Direct access to founder", free: false, pro: false, founding: true },
-    { label: "Early feature access", free: false, pro: false, founding: true },
-    { label: "Locked-in pricing", free: "n/a", pro: false, founding: true },
+    { label: "Prediction markets (Kalshi · Polymarket)", free: false, pro: true, founding: true },
+    { label: "Session briefings (pre-market · EOD · Sunday prep)", free: false, pro: true, founding: true },
+    { label: "Watchlist size", free: "5 tickers", pro: "Unlimited", founding: "Unlimited" },
+    { label: "Direct DM to founder", free: false, pro: false, founding: true },
+    { label: "Vote on feature roadmap", free: false, pro: false, founding: true },
+    { label: "Locked-in price forever", free: "n/a", pro: false, founding: true },
   ];
 
   return (
