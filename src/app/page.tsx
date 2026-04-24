@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BrandLockup, BrandMark } from "@/components/brand";
 import { TelegramStartDialog } from "@/components/telegram-start-dialog";
+import { PlanCheckoutButton } from "@/components/plan-checkout-button";
 import {
   ArrowRight,
   BarChart3,
@@ -505,9 +506,12 @@ function Pricing() {
       tag: "7-day trial — full Elite access",
       price: "$0",
       priceSub: "for 7 days",
+      // Free tier CTA always goes to /login (Telegram signup flow) —
+      // doesn't touch Stripe even when billing is live.
       cta: "Start free trial",
       ctaVariant: "outline" as const,
       ctaHref: "/login",
+      stripePlan: null as "pro" | "elite" | null,
       highlights: [
         "Full Elite features for 7 days",
         "See every signal the bot can fire — stocks, options, predictions, whales",
@@ -525,6 +529,7 @@ function Pricing() {
       cta: "Join Pro",
       ctaVariant: "default" as const,
       ctaHref: "/login",
+      stripePlan: "pro" as "pro" | "elite" | null,
       highlights: [
         "Stock signals — only for tickers on your watchlist",
         "Up to 5 tickers on your watchlist",
@@ -543,6 +548,7 @@ function Pricing() {
       cta: "Go Elite",
       ctaVariant: "outline" as const,
       ctaHref: "/login",
+      stripePlan: "elite" as "pro" | "elite" | null,
       highlights: [
         "Everything in Pro",
         "Unlimited watchlist",
@@ -615,9 +621,17 @@ function Pricing() {
                 </li>
               ))}
             </ul>
-            <Button asChild variant={tier.ctaVariant} className="w-full">
-              <Link href={tier.ctaHref}>{tier.cta}</Link>
-            </Button>
+            {tier.stripePlan ? (
+              <PlanCheckoutButton
+                plan={tier.stripePlan}
+                label={tier.cta}
+                variant={tier.ctaVariant}
+              />
+            ) : (
+              <Button asChild variant={tier.ctaVariant} className="w-full">
+                <Link href={tier.ctaHref}>{tier.cta}</Link>
+              </Button>
+            )}
           </Card>
         ))}
       </div>
