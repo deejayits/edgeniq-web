@@ -22,6 +22,7 @@ export default async function LoginPage({
     error?: string;
     reason?: string;
     tg_id?: string;
+    loggedout?: string;
   }>;
 }) {
   // If the user already has a valid session (e.g. they signed in on
@@ -37,6 +38,7 @@ export default async function LoginPage({
     reason: params.reason,
     tgId: params.tg_id,
   });
+  const justLoggedOut = params.loggedout === "1";
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -60,6 +62,12 @@ export default async function LoginPage({
               {errorMsg}
             </div>
           )}
+          {justLoggedOut && !errorMsg && (
+            <div className="mb-6 rounded-md border border-emerald-400/30 bg-emerald-400/5 px-4 py-3 text-sm text-emerald-200/90">
+              You&rsquo;re signed out. Tap the button below to sign
+              back in.
+            </div>
+          )}
 
           <div className="flex justify-center py-4">
             <TelegramLoginButton
@@ -67,6 +75,27 @@ export default async function LoginPage({
               next={params.next}
             />
           </div>
+
+          {/* "Not you?" helper — addresses the common confusion where
+              the Telegram widget remembers the previously-signed-in
+              account. That state lives in cookies on Telegram's own
+              domain (oauth.telegram.org), so we can't clear it
+              ourselves; point users at the settings path that does. */}
+          <details className="mt-3 text-xs text-muted-foreground group">
+            <summary className="cursor-pointer select-none hover:text-foreground transition">
+              Seeing someone else&rsquo;s Telegram account above?
+            </summary>
+            <div className="mt-2 pl-4 leading-relaxed border-l border-border/60">
+              The Telegram Login Widget remembers the last account that
+              authorized the bot. That&rsquo;s stored by Telegram, not
+              EdgeNiq — signing out of EdgeNiq doesn&rsquo;t clear it.
+              To switch accounts: open Telegram &rarr; <b>Settings
+              &rarr; Privacy &amp; Security &rarr; Devices</b> (or{" "}
+              <b>Active Sessions</b>), find <code>EdgeNiq</code> or{" "}
+              <code>@edgeniq_alerts_bot</code>, and revoke it. Then
+              refresh this page.
+            </div>
+          </details>
 
           {/* Divider */}
           <div className="relative my-8">

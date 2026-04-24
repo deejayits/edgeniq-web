@@ -10,13 +10,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import {
-  ArrowRight,
-  Download,
-  ExternalLink,
-  MessageSquare,
-  Smartphone,
-} from "lucide-react";
+import { Download, Smartphone } from "lucide-react";
 
 // Telegram Start dialog — replaces the naive "open t.me/..." external
 // link with explicit choices. The bare t.me URL dead-ends for anyone
@@ -31,7 +25,6 @@ import {
 
 const BOT_USERNAME = "edgeniq_alerts_bot";
 const BOT_LINK = `https://t.me/${BOT_USERNAME}`;
-const DEEP_LINK = `tg://resolve?domain=${BOT_USERNAME}`;
 const QR_URL =
   `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(BOT_LINK)}&color=ffffff&bgcolor=111113&qzone=2`;
 
@@ -49,21 +42,28 @@ export function TelegramStartDialog({
         <DialogHeader>
           <DialogTitle>Start on Telegram</DialogTitle>
           <DialogDescription>
-            Signup happens inside the bot. Pick whichever option matches
-            where you are.
+            Signup happens inside the bot. Scan the QR below with your
+            phone — Telegram opens the bot and you can hit <code>/start</code>.
           </DialogDescription>
         </DialogHeader>
 
-        {/* Mobile — scan the QR */}
+        {/* Scan the QR from any phone — primary and only path. The
+            old "On this computer" buttons (tg:// deep link + t.me
+            fallback) dead-ended for users without Telegram Desktop
+            installed, so we removed them. Mobile-first is the reliable
+            path for everyone. */}
         <div className="rounded-lg border border-border/60 bg-card/60 p-5">
           <div className="flex items-start gap-4">
             <div className="h-9 w-9 rounded-md bg-gradient-to-br from-emerald-400/15 to-violet-400/15 border border-border/60 flex items-center justify-center shrink-0">
               <Smartphone className="h-4 w-4" />
             </div>
             <div className="flex-1">
-              <h3 className="font-medium text-sm mb-0.5">On your phone</h3>
+              <h3 className="font-medium text-sm mb-0.5">
+                Scan with your phone
+              </h3>
               <p className="text-xs text-muted-foreground mb-3">
-                Scan this with any camera. Telegram opens the bot.
+                Point any camera at the QR. Telegram opens the bot;
+                send <code>/start</code> to begin.
               </p>
             </div>
           </div>
@@ -77,38 +77,18 @@ export function TelegramStartDialog({
               className="rounded-md border border-border/60 bg-[#111113]"
             />
           </div>
-        </div>
-
-        {/* Desktop — direct open */}
-        <div className="rounded-lg border border-border/60 bg-card/60 p-5 space-y-3">
-          <div className="flex items-start gap-4">
-            <div className="h-9 w-9 rounded-md bg-gradient-to-br from-emerald-400/15 to-violet-400/15 border border-border/60 flex items-center justify-center shrink-0">
-              <MessageSquare className="h-4 w-4" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-medium text-sm mb-0.5">
-                On this computer
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                If Telegram Desktop is installed, this opens the bot
-                directly.
-              </p>
-            </div>
-          </div>
-          <div className="flex flex-col gap-2">
-            <Button asChild className="w-full">
-              <a href={DEEP_LINK}>
-                <MessageSquare className="h-4 w-4" />
-                Open in Telegram app <ArrowRight className="h-3.5 w-3.5" />
-              </a>
-            </Button>
-            <Button asChild variant="outline" className="w-full">
-              <a href={BOT_LINK} target="_blank" rel="noreferrer">
-                <ExternalLink className="h-4 w-4" />
-                Open t.me/{BOT_USERNAME}
-              </a>
-            </Button>
-          </div>
+          <p className="text-center text-xs text-muted-foreground mt-3">
+            or open{" "}
+            <a
+              href={BOT_LINK}
+              target="_blank"
+              rel="noreferrer"
+              className="underline hover:text-foreground"
+            >
+              t.me/{BOT_USERNAME}
+            </a>{" "}
+            in any browser
+          </p>
         </div>
 
         {/* No Telegram installed yet */}

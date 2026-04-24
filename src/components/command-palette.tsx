@@ -123,7 +123,7 @@ export function CommandPalette() {
           <CommandItem
             onSelect={() => {
               setOpen(false);
-              signOut({ callbackUrl: "/" });
+              signOut({ callbackUrl: "/login?loggedout=1" });
             }}
           >
             <LogOut className="h-4 w-4" />

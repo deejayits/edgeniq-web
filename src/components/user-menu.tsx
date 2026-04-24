@@ -63,7 +63,9 @@ export function UserMenu({
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/" })}>
+        <DropdownMenuItem
+          onClick={() => signOut({ callbackUrl: "/login?loggedout=1" })}
+        >
           <LogOut className="h-4 w-4" /> Log out
         </DropdownMenuItem>
       </DropdownMenuContent>
