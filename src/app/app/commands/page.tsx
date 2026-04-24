@@ -65,7 +65,21 @@ const RESEARCH: Command[] = [
   { cmd: "/earnings [TICKER]", desc: "upcoming earnings calendar" },
   { cmd: "/tradedetail ID", desc: "full breakdown of one trade" },
   { cmd: "/cancel", desc: "cancel a pending multi-step flow" },
-  { cmd: "/connect", desc: "link a broker (coming soon)" },
+  {
+    cmd: "/connect",
+    desc: "link your Alpaca account for auto-trading",
+    tier: "elite",
+  },
+  {
+    cmd: "/autotrade [on|off]",
+    desc: "auto-trade status / quick toggle across signal types",
+    tier: "elite",
+  },
+  {
+    cmd: "/kill YES",
+    desc: "emergency stop: cancel all open orders + disable auto-trade",
+    tier: "elite",
+  },
 ];
 
 const PERSONALIZE: Command[] = [
