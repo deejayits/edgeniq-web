@@ -40,8 +40,21 @@ export const {
         hash: {},
       },
       async authorize(raw) {
+        // Strict allowlist — Auth.js signIn() sometimes leaks redirect /
+        // redirectTo / csrfToken into the credentials, which would
+        // pollute the HMAC data-check-string and break hash verification.
+        const TG_FIELDS = [
+          "id",
+          "first_name",
+          "last_name",
+          "username",
+          "photo_url",
+          "auth_date",
+          "hash",
+        ] as const;
         const payload: Record<string, string> = {};
-        for (const [k, v] of Object.entries(raw ?? {})) {
+        for (const k of TG_FIELDS) {
+          const v = (raw as Record<string, unknown> | null)?.[k];
           if (typeof v === "string" && v.length > 0) payload[k] = v;
         }
         const verified = verifyTelegramAuth(payload, env.TELEGRAM_BOT_TOKEN);
@@ -49,6 +62,8 @@ export const {
           console.warn(
             "[auth] Telegram payload rejected:",
             verified.reason,
+            "payload keys:",
+            Object.keys(payload).join(","),
           );
           return null;
         }
