@@ -192,7 +192,13 @@ export default async function TargetDetailPage({
                 className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-2"
               >
                 <ExternalLink className="h-3 w-3" />
-                Source filings
+                {target.target_type === "politician"
+                  ? "Official congress.gov profile"
+                  : target.target_type === "fund_13f"
+                    ? "SEC EDGAR filings"
+                    : target.target_type === "insider"
+                      ? "SEC Form 4 filings"
+                      : "Public filings"}
               </a>
             )}
           </div>
