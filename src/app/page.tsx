@@ -556,6 +556,7 @@ function Pricing() {
         "Options alerts (unusual volume, block prints, OTM spikes)",
         "Prediction markets (Kalshi + Polymarket)",
         "Whale trade alerts + cross-venue HIGH CONVICTION",
+        "Smart Money tracker — follow Congress + hedge fund filings",
         "Auto-trade via Alpaca (paper) — connect your broker, set rules, kill switch",
       ],
       featured: false,
@@ -637,8 +638,71 @@ function Pricing() {
         ))}
       </div>
 
+      <AddOnCard />
+
       <FeatureMatrix />
     </section>
+  );
+}
+
+// Optional live-trading add-on for Elite subscribers. Pitched as the
+// graduation step after 30-45 days of successful paper trading —
+// message deliberately discourages skipping paper. Priced +$49.99/mo
+// on top of Elite, for $149.98/mo total.
+function AddOnCard() {
+  return (
+    <Card className="p-7 border-emerald-400/30 bg-gradient-to-br from-emerald-400/5 to-violet-400/5 mb-10">
+      <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <Badge className="bg-emerald-400/15 text-emerald-300 border border-emerald-400/30">
+              Add-on
+            </Badge>
+            <Badge variant="outline" className="text-[10px]">
+              requires Elite
+            </Badge>
+          </div>
+          <h3 className="text-xl font-semibold tracking-tight">
+            Live Trading
+          </h3>
+          <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-xl">
+            Upgrade your Alpaca connection from paper to live. Real
+            orders on real money. Opt in <b>only after 30-45 days of
+            positive paper P&amp;L</b> — if the signals work for you
+            in paper, they&rsquo;ll work in live. If they don&rsquo;t,
+            you saved yourself the loss.
+          </p>
+          <ul className="space-y-1.5 text-sm text-muted-foreground mt-4">
+            <li className="flex items-start gap-2">
+              <Check className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+              <span>Unlocks <code>mode=live</code> on your Alpaca connection</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <Check className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+              <span>Enables Smart Money <b>mirror</b> mode (auto-shadow politicians &amp; funds)</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <Check className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+              <span>Same risk rails + kill switch — every guardrail still applies</span>
+            </li>
+          </ul>
+        </div>
+        <div className="flex flex-col items-end gap-3 shrink-0">
+          <div className="text-right">
+            <div className="flex items-baseline gap-1 justify-end">
+              <span className="text-3xl font-semibold tabular-nums">
+                +$49.99
+              </span>
+              <span className="text-sm text-muted-foreground">/ mo</span>
+            </div>
+            <p className="text-xs text-muted-foreground">on top of Elite</p>
+          </div>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/login">Start with paper first</Link>
+          </Button>
+        </div>
+      </div>
+    </Card>
   );
 }
 
@@ -660,7 +724,9 @@ function FeatureMatrix() {
     { label: "Whale trade alerts", free: true, pro: false, elite: true },
     { label: "HIGH CONVICTION cross-venue signals", free: true, pro: false, elite: true },
     { label: "Alpaca auto-trade (paper mode)", free: true, pro: false, elite: true },
-    { label: "Alpaca auto-trade (live mode)", free: false, pro: false, elite: "Coming soon" },
+    { label: "Alpaca auto-trade (live mode)", free: false, pro: false, elite: "Add-on +$49.99/mo" },
+    { label: "Smart Money tracker (Congress + 13F)", free: true, pro: false, elite: true },
+    { label: "Smart Money mirror (auto-shadow trades)", free: false, pro: false, elite: "Add-on +$49.99/mo" },
     { label: "Risk profiles", free: "All 4", pro: "All 4", elite: "All 4" },
     { label: "Strategy templates", free: "All 6", pro: "All 6", elite: "All 6" },
     { label: "Per-user target ladders", free: true, pro: true, elite: true },

@@ -40,6 +40,17 @@ const RESEARCH: Command[] = [
     example: "/market bitcoin",
   },
   { cmd: "/whale", desc: "top whale wallet activity", tier: "elite" },
+  {
+    cmd: "/congress",
+    desc: "browse Smart Money — politicians + hedge funds + insiders",
+    tier: "elite",
+  },
+  {
+    cmd: "/congress <name>",
+    desc: "one target's recent trades + follow/unfollow inline",
+    example: "/congress pelosi",
+    tier: "elite",
+  },
   { cmd: "/marketstatus", desc: "current market conditions" },
   { cmd: "/today", desc: "all signals fired today + live status" },
   { cmd: "/eod", desc: "today's end-of-day summary (on demand)" },
