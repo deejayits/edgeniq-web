@@ -514,16 +514,14 @@ function EmptyTradesState({ targetType }: { targetType: TargetType }) {
             Coming soon
           </Badge>
           <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
-            Congressional trade ingestion isn&rsquo;t live yet — STOCK
-            Act disclosure data requires a paid API subscription that
-            we&rsquo;ll add once the user base justifies the cost. The
-            profile and follow button work today; alerts will turn on
-            once data lands.
+            Congressional trade ingestion is on the roadmap. Your
+            profile and follow button work today — alerts will turn
+            on once data lands.
           </p>
         </div>
         <p className="text-[11px] text-muted-foreground max-w-sm mx-auto">
-          In the meantime: hedge funds ({">"}13F filings) already
-          populate nightly — browse those for actionable data.
+          In the meantime, hedge fund 13F filings already populate —
+          browse those for live data.
         </p>
       </div>
     );
