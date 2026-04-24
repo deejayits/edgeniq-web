@@ -31,11 +31,14 @@ type Props = {
 
 export function ActivityChart({ trades, height = 200 }: Props) {
   const data: Point[] = useMemo(() => {
-    // Bucket trades by calendar day for the last 30 days; fill empty
-    // days with zeros so the chart shows a continuous timeline.
+    // Bucket trades by calendar day for the last 90 days. 13F filings
+    // report quarterly with a 45-day lag, so a 30-day window misses
+    // every fund disclosure; 90 days captures a full quarter of
+    // activity while still being tight enough that older, stale data
+    // doesn't clutter the view.
     const buckets = new Map<string, Point>();
     const end = new Date();
-    for (let i = 29; i >= 0; i--) {
+    for (let i = 89; i >= 0; i--) {
       const d = new Date(end);
       d.setDate(end.getDate() - i);
       const key = d.toISOString().slice(0, 10);

@@ -47,7 +47,7 @@ export function CompareChart({
     // so the chart shows who has more trade activity over the window.
     const dates: string[] = [];
     const end = new Date();
-    for (let i = 29; i >= 0; i--) {
+    for (let i = 89; i >= 0; i--) {
       const d = new Date(end);
       d.setDate(end.getDate() - i);
       dates.push(d.toISOString().slice(0, 10));

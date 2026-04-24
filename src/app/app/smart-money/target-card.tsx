@@ -110,7 +110,7 @@ export function TargetCard({ target }: { target: TargetWithStats }) {
                     <b className="text-foreground tabular-nums">
                       {target.trade_count_30d}
                     </b>{" "}
-                    trade{target.trade_count_30d === 1 ? "" : "s"} · 30d
+                    trade{target.trade_count_30d === 1 ? "" : "s"} · 90d
                   </span>
                   {target.top_symbols.length > 0 && (
                     <span className="font-mono truncate">

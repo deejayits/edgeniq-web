@@ -93,9 +93,16 @@ export default async function SmartMoneyPage({
     );
   }
 
-  // Load targets + 30d trade counts + user's follows in parallel.
+  // Load targets + recent trade counts + user's follows in parallel.
+  //
+  // Window = 90 days, not 30. 13F filings are quarterly with a 45-day
+  // filing lag — at a 30-day horizon, every 13F position appears
+  // "expired" the day after landing. 90 days captures a full quarter's
+  // disclosed activity, which matches the actual cadence of the data
+  // source. Congressional filings (when they ingest) also report with
+  // up to 45-day STOCK Act delay, so 90d is the right window there too.
   const since = new Date();
-  since.setDate(since.getDate() - 30);
+  since.setDate(since.getDate() - 90);
 
   const [targetsRes, tradesRes, followsRes] = await Promise.all([
     supabase

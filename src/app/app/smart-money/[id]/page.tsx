@@ -231,7 +231,7 @@ export default async function TargetDetailPage({
         <Card className="p-5 border-border/60 bg-card/40">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-sm font-medium">30-day activity</h2>
+              <h2 className="text-sm font-medium">Recent activity</h2>
               <p className="text-xs text-muted-foreground">
                 Trade count by day · buys (green) vs sells (red)
               </p>

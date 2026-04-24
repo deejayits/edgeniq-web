@@ -85,7 +85,8 @@ export default async function ComparePage({
   }
 
   const since = new Date();
-  since.setDate(since.getDate() - 30);
+  // 90-day window so quarterly 13F positions (45d filing lag) land in view.
+  since.setDate(since.getDate() - 90);
 
   const [targetsRes, selectedTradesRes] = await Promise.all([
     supabase
@@ -203,7 +204,7 @@ export default async function ComparePage({
           {/* Activity rhythm chart */}
           <Card className="p-5 border-border/60 bg-card/40">
             <h2 className="text-sm font-medium mb-1">
-              Cumulative activity — last 30 days
+              Cumulative activity — last 90 days
             </h2>
             <p className="text-xs text-muted-foreground mb-4">
               Running total of disclosed trades over the window.
