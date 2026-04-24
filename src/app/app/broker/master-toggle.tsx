@@ -47,54 +47,57 @@ export function AutoTradeMasterToggle({
 
   return (
     <Card
-      className={`p-6 flex items-center justify-between gap-4 ${
+      className={`px-5 py-4 flex items-center gap-4 max-w-2xl ${
         enabled
           ? "border-emerald-400/30 bg-emerald-400/5"
           : "border-border/60 bg-card/40"
       }`}
     >
-      <div className="flex items-start gap-4 flex-1">
-        <div
-          className={`h-10 w-10 rounded-md flex items-center justify-center shrink-0 border ${
-            enabled
-              ? "bg-emerald-400/15 border-emerald-400/30"
-              : "bg-muted/40 border-border/60"
-          }`}
-        >
+      <div
+        className={`h-9 w-9 rounded-md flex items-center justify-center shrink-0 border ${
+          enabled
+            ? "bg-emerald-400/15 border-emerald-400/30"
+            : "bg-muted/40 border-border/60"
+        }`}
+      >
+        {enabled ? (
+          <Zap className="h-4 w-4 text-emerald-300" />
+        ) : (
+          <Power className="h-4 w-4 text-muted-foreground" />
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <h2 className="font-medium text-sm">Auto-trade</h2>
           {enabled ? (
-            <Zap className="h-5 w-5 text-emerald-300" />
+            <Badge className="bg-emerald-400/15 text-emerald-300 border border-emerald-400/30 text-[10px] py-0 h-4">
+              ON
+            </Badge>
           ) : (
-            <Power className="h-5 w-5 text-muted-foreground" />
+            <Badge
+              variant="outline"
+              className="text-[10px] py-0 h-4 text-muted-foreground"
+            >
+              OFF
+            </Badge>
           )}
-        </div>
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <h2 className="font-medium">Auto-trade</h2>
-            {enabled ? (
-              <Badge className="bg-emerald-400/15 text-emerald-300 border border-emerald-400/30 text-[10px] py-0 h-5">
-                ON
-              </Badge>
-            ) : (
-              <Badge
-                variant="outline"
-                className="text-[10px] py-0 h-5 text-muted-foreground"
-              >
-                OFF
-              </Badge>
-            )}
-          </div>
-          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+          <span className="text-[11px] text-muted-foreground">
             {enabled
-              ? `${activeCount} of ${totalCount} rules active. Signals that pass your rules + risk rails will submit bracket orders to Alpaca.`
-              : "Master switch. Flip on to let rules execute automatically when signals fire. Individual rule modes still apply — this just unblocks them."}
-          </p>
+              ? `${activeCount}/${totalCount} rules active`
+              : "All rules paused"}
+          </span>
         </div>
+        <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+          {enabled
+            ? "Orders will submit to Alpaca when signals pass your rules + rails."
+            : "Flip on to let rules execute automatically when signals fire."}
+        </p>
       </div>
       <Switch
         checked={enabled}
         onCheckedChange={handleToggle}
         disabled={isPending}
-        className="scale-125"
+        className="shrink-0"
       />
     </Card>
   );

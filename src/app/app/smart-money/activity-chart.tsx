@@ -19,6 +19,10 @@ type Point = {
   date: string;   // YYYY-MM-DD
   buys: number;
   sells: number;
+  /** Positions with side='other' — 13F holdings snapshots. Plotted as
+   *  a single area since a 13F doesn't tell us buy vs sell directly. */
+  positions: number;
+  total: number;
 };
 
 type Props = {
@@ -32,26 +36,49 @@ type Props = {
 export function ActivityChart({ trades, height = 200 }: Props) {
   const data: Point[] = useMemo(() => {
     // Bucket trades by calendar day for the last 90 days. 13F filings
-    // report quarterly with a 45-day lag, so a 30-day window misses
-    // every fund disclosure; 90 days captures a full quarter of
-    // activity while still being tight enough that older, stale data
-    // doesn't clutter the view.
+    // are quarterly with a 45-day lag, so 90 days captures a full
+    // quarter of activity. Three separate series:
+    //   buys / sells — directional trades (politicians, insiders)
+    //   positions     — 'other'-side entries (13F holdings snapshots)
+    //   total         — sum of everything, used as the baseline line
+    //                   so funds with only 'other' trades still show
+    //                   a visible spike on their filing date.
     const buckets = new Map<string, Point>();
     const end = new Date();
     for (let i = 89; i >= 0; i--) {
       const d = new Date(end);
       d.setDate(end.getDate() - i);
       const key = d.toISOString().slice(0, 10);
-      buckets.set(key, { date: key, buys: 0, sells: 0 });
+      buckets.set(key, {
+        date: key,
+        buys: 0,
+        sells: 0,
+        positions: 0,
+        total: 0,
+      });
     }
     for (const t of trades) {
       const b = buckets.get(t.trade_date);
       if (!b) continue;
       if (t.side === "buy") b.buys++;
       else if (t.side === "sell") b.sells++;
+      else b.positions++;
+      b.total++;
     }
     return [...buckets.values()];
   }, [trades]);
+
+  // Detect whether we have directional (buy/sell) data OR only 13F
+  // snapshots (positions). Changes which series render — showing a
+  // flat zero line for buys/sells on a 13F-only target looks broken.
+  const hasDirectional = useMemo(
+    () => data.some((d) => d.buys > 0 || d.sells > 0),
+    [data],
+  );
+  const hasPositions = useMemo(
+    () => data.some((d) => d.positions > 0),
+    [data],
+  );
 
   return (
     <div style={{ width: "100%", height }}>
@@ -68,6 +95,10 @@ export function ActivityChart({ trades, height = 200 }: Props) {
             <linearGradient id="sells-gradient" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#fb7185" stopOpacity={0.4} />
               <stop offset="100%" stopColor="#fb7185" stopOpacity={0} />
+            </linearGradient>
+            <linearGradient id="positions-gradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#a78bfa" stopOpacity={0.5} />
+              <stop offset="100%" stopColor="#a78bfa" stopOpacity={0} />
             </linearGradient>
           </defs>
           <CartesianGrid
@@ -100,22 +131,36 @@ export function ActivityChart({ trades, height = 200 }: Props) {
             cursor={{ stroke: "rgb(63,63,70)", strokeWidth: 1 }}
             labelFormatter={(v) => v}
           />
-          <Area
-            type="monotone"
-            dataKey="buys"
-            name="Buys"
-            stroke="#34d399"
-            strokeWidth={2}
-            fill="url(#buys-gradient)"
-          />
-          <Area
-            type="monotone"
-            dataKey="sells"
-            name="Sells"
-            stroke="#fb7185"
-            strokeWidth={2}
-            fill="url(#sells-gradient)"
-          />
+          {hasDirectional && (
+            <>
+              <Area
+                type="monotone"
+                dataKey="buys"
+                name="Buys"
+                stroke="#34d399"
+                strokeWidth={2}
+                fill="url(#buys-gradient)"
+              />
+              <Area
+                type="monotone"
+                dataKey="sells"
+                name="Sells"
+                stroke="#fb7185"
+                strokeWidth={2}
+                fill="url(#sells-gradient)"
+              />
+            </>
+          )}
+          {hasPositions && (
+            <Area
+              type="monotone"
+              dataKey="positions"
+              name="Positions disclosed"
+              stroke="#a78bfa"
+              strokeWidth={2}
+              fill="url(#positions-gradient)"
+            />
+          )}
         </AreaChart>
       </ResponsiveContainer>
     </div>

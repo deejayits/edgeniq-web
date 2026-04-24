@@ -233,7 +233,9 @@ export default async function TargetDetailPage({
             <div>
               <h2 className="text-sm font-medium">Recent activity</h2>
               <p className="text-xs text-muted-foreground">
-                Trade count by day · buys (green) vs sells (red)
+                {target.target_type === "fund_13f"
+                  ? "13F positions disclosed by day — purple spike marks the quarterly filing"
+                  : "Trades by day — buys (green) vs sells (red)"}
               </p>
             </div>
           </div>
@@ -272,82 +274,21 @@ export default async function TargetDetailPage({
         </Card>
       )}
 
-      {/* Trade log */}
-      <Card className="p-0 border-border/60 bg-card/40 overflow-hidden">
-        <div className="px-5 py-4 border-b border-border/60">
-          <h2 className="text-sm font-medium">Recent trades</h2>
-        </div>
-        {trades.length === 0 ? (
-          <EmptyTradesState targetType={target.target_type} />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border/60 bg-muted/20 text-left text-xs text-muted-foreground">
-                  <th className="px-5 py-2 font-medium">Symbol</th>
-                  <th className="px-4 py-2 font-medium">Side</th>
-                  <th className="px-4 py-2 font-medium">Size</th>
-                  <th className="px-4 py-2 font-medium">Traded</th>
-                  <th className="px-4 py-2 font-medium">Filed</th>
-                  <th className="px-4 py-2 font-medium">Source</th>
-                </tr>
-              </thead>
-              <tbody>
-                {trades.map((t) => {
-                  const size =
-                    t.size_estimate_usd != null
-                      ? fmtMoney(t.size_estimate_usd)
-                      : t.size_bucket ?? "—";
-                  return (
-                    <tr
-                      key={t.id}
-                      className="border-b border-border/40 last:border-0"
-                    >
-                      <td className="px-5 py-2.5 font-mono">{t.symbol}</td>
-                      <td className="px-4 py-2.5">
-                        <Badge
-                          variant="outline"
-                          className={
-                            t.side === "buy"
-                              ? "border-emerald-400/40 text-emerald-300 text-[10px] py-0 h-5"
-                              : t.side === "sell"
-                                ? "border-rose-400/40 text-rose-300 text-[10px] py-0 h-5"
-                                : "text-[10px] py-0 h-5"
-                          }
-                        >
-                          {t.side}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-2.5 tabular-nums">{size}</td>
-                      <td className="px-4 py-2.5 text-xs text-muted-foreground">
-                        {t.trade_date} ({daysAgo(t.trade_date)})
-                      </td>
-                      <td className="px-4 py-2.5 text-xs text-muted-foreground">
-                        {t.filed_date ?? "pending"}
-                      </td>
-                      <td className="px-4 py-2.5 text-xs">
-                        {t.source_url ? (
-                          <a
-                            href={t.source_url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-primary hover:underline inline-flex items-center gap-1"
-                          >
-                            <ExternalLink className="h-3 w-3" />
-                            link
-                          </a>
-                        ) : (
-                          "—"
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Card>
+      {/* Trade log — layout differs by target type because 13Fs and
+          directional trades have different data semantics:
+            fund_13f: quarterly holdings snapshot. No buy/sell per
+              row, but we can show % of total portfolio. Sort by size.
+            politician / insider / activist: directional (buy/sell)
+              with trade + filed dates. Show both dates.
+       */}
+      {target.target_type === "fund_13f" ? (
+        <FundHoldingsTable
+          trades={trades}
+          totalPortfolio={totalEstimate}
+        />
+      ) : (
+        <DirectionalTradesTable trades={trades} targetType={target.target_type} />
+      )}
 
       <Alert className="border-border/60 bg-muted/20">
         <Info className="h-4 w-4" />
@@ -360,6 +301,199 @@ export default async function TargetDetailPage({
         </AlertDescription>
       </Alert>
     </div>
+  );
+}
+
+// Fund 13F table — snapshot of holdings as of the quarterly filing.
+// No buy/sell column because 13F doesn't disclose direction; instead
+// we show % of total disclosed portfolio so users can see relative
+// conviction at a glance.
+function FundHoldingsTable({
+  trades,
+  totalPortfolio,
+}: {
+  trades: SmartMoneyTrade[];
+  totalPortfolio: number;
+}) {
+  const sorted = [...trades].sort(
+    (a, b) => (b.size_estimate_usd ?? 0) - (a.size_estimate_usd ?? 0),
+  );
+  return (
+    <Card className="p-0 border-border/60 bg-card/40 overflow-hidden">
+      <div className="px-5 py-4 border-b border-border/60 flex items-center justify-between">
+        <div>
+          <h2 className="text-sm font-medium">13F Holdings</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Positions disclosed in the latest quarterly filing, sorted
+            by size
+          </p>
+        </div>
+        <Badge variant="outline" className="text-[10px]">
+          {sorted.length} positions
+        </Badge>
+      </div>
+      {sorted.length === 0 ? (
+        <EmptyTradesState targetType="fund_13f" />
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border/60 bg-muted/20 text-left text-xs text-muted-foreground">
+                <th className="px-5 py-2 font-medium">Company</th>
+                <th className="px-4 py-2 font-medium text-right">Size</th>
+                <th className="px-4 py-2 font-medium text-right">
+                  % of portfolio
+                </th>
+                <th className="px-4 py-2 font-medium">Filed</th>
+                <th className="px-4 py-2 font-medium">Source</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.slice(0, 50).map((t) => {
+                const pct =
+                  totalPortfolio > 0 && t.size_estimate_usd
+                    ? (t.size_estimate_usd / totalPortfolio) * 100
+                    : 0;
+                return (
+                  <tr
+                    key={t.id}
+                    className="border-b border-border/40 last:border-0"
+                  >
+                    <td className="px-5 py-2.5 font-mono">{t.symbol}</td>
+                    <td className="px-4 py-2.5 tabular-nums text-right">
+                      {t.size_estimate_usd != null
+                        ? fmtMoney(t.size_estimate_usd)
+                        : "—"}
+                    </td>
+                    <td className="px-4 py-2.5 tabular-nums text-right text-muted-foreground">
+                      {pct > 0 ? `${pct.toFixed(2)}%` : "—"}
+                    </td>
+                    <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                      {t.filed_date ?? "pending"}
+                    </td>
+                    <td className="px-4 py-2.5 text-xs">
+                      {t.source_url ? (
+                        <a
+                          href={t.source_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-primary hover:underline inline-flex items-center gap-1"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          link
+                        </a>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {sorted.length > 50 && (
+            <div className="px-5 py-3 text-xs text-muted-foreground border-t border-border/60 bg-muted/10">
+              Showing top 50 of {sorted.length} positions by size.
+            </div>
+          )}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+// Politician / insider / activist table — directional trades.
+function DirectionalTradesTable({
+  trades,
+  targetType,
+}: {
+  trades: SmartMoneyTrade[];
+  targetType: TargetType;
+}) {
+  return (
+    <Card className="p-0 border-border/60 bg-card/40 overflow-hidden">
+      <div className="px-5 py-4 border-b border-border/60">
+        <h2 className="text-sm font-medium">Recent trades</h2>
+      </div>
+      {trades.length === 0 ? (
+        <EmptyTradesState targetType={targetType} />
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border/60 bg-muted/20 text-left text-xs text-muted-foreground">
+                <th className="px-5 py-2 font-medium">Symbol</th>
+                <th className="px-4 py-2 font-medium">Action</th>
+                <th className="px-4 py-2 font-medium">Size</th>
+                <th className="px-4 py-2 font-medium">Traded</th>
+                <th className="px-4 py-2 font-medium">Filed</th>
+                <th className="px-4 py-2 font-medium">Source</th>
+              </tr>
+            </thead>
+            <tbody>
+              {trades.map((t) => {
+                const size =
+                  t.size_estimate_usd != null
+                    ? fmtMoney(t.size_estimate_usd)
+                    : t.size_bucket ?? "—";
+                const actionLabel =
+                  t.side === "buy"
+                    ? "Bought"
+                    : t.side === "sell"
+                      ? "Sold"
+                      : t.side === "exchange"
+                        ? "Exchanged"
+                        : "Disclosed";
+                return (
+                  <tr
+                    key={t.id}
+                    className="border-b border-border/40 last:border-0"
+                  >
+                    <td className="px-5 py-2.5 font-mono">{t.symbol}</td>
+                    <td className="px-4 py-2.5">
+                      <Badge
+                        variant="outline"
+                        className={
+                          t.side === "buy"
+                            ? "border-emerald-400/40 text-emerald-300 text-[10px] py-0 h-5"
+                            : t.side === "sell"
+                              ? "border-rose-400/40 text-rose-300 text-[10px] py-0 h-5"
+                              : "text-[10px] py-0 h-5"
+                        }
+                      >
+                        {actionLabel}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-2.5 tabular-nums">{size}</td>
+                    <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                      {t.trade_date} ({daysAgo(t.trade_date)})
+                    </td>
+                    <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                      {t.filed_date ?? "pending"}
+                    </td>
+                    <td className="px-4 py-2.5 text-xs">
+                      {t.source_url ? (
+                        <a
+                          href={t.source_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-primary hover:underline inline-flex items-center gap-1"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          link
+                        </a>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Card>
   );
 }
 
