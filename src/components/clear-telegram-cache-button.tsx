@@ -2,68 +2,108 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { LogOut, RefreshCw } from "lucide-react";
+import { ExternalLink, RefreshCw } from "lucide-react";
 
-// Clears the Telegram Login Widget's cached identity so the user can
-// sign in as a different Telegram account. Opens oauth.telegram.org
-// in a new tab — that's the domain the widget reads its cookie from,
-// and Telegram's own "Log out" button there removes it. We can't
-// touch cross-origin cookies from edgeniq.com, so this is the only
-// real path from a browser.
+// Help users switch Telegram accounts on the Login Widget.
 //
-// Two-step UX:
-//   Step 1: Button says "Use a different Telegram account"
-//   Step 2: After the new tab opens, the button morphs into
-//           "I logged out — reload widget" which hard-reloads the
-//           login page so the widget re-reads the (now cleared)
-//           Telegram cookie.
+// HARD TRUTH: Telegram stores the widget's authorization in a cookie
+// on its own domain (oauth.telegram.org). Same-Origin Policy means we
+// can't clear that cookie from edgeniq.com with any JS trick — it
+// has to be cleared on Telegram's side or via browser dev tools.
+//
+// So this component offers the two real working paths from a desktop
+// browser, plus a "reload widget" button for after the user has
+// cleared it via either path.
 export function ClearTelegramCacheButton() {
-  const [stage, setStage] = useState<"idle" | "prompted">("idle");
-
-  const onOpenLogout = () => {
-    // oauth.telegram.org is where the login widget stores its
-    // authorization cookie. Its homepage shows whichever Telegram
-    // account is currently authorized and has a Log out button.
-    window.open("https://oauth.telegram.org/", "_blank", "noopener");
-    setStage("prompted");
-  };
+  const [showInstructions, setShowInstructions] = useState(false);
 
   const onReload = () => {
-    // Full page reload so the widget iframe re-initializes against
-    // Telegram's updated cookie state.
     window.location.reload();
   };
 
-  if (stage === "prompted") {
-    return (
-      <div className="space-y-2">
-        <div className="rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-200/90 leading-relaxed">
-          A new tab opened on <b>oauth.telegram.org</b>. Click{" "}
-          <b>Log out</b> there, then come back and hit the button
-          below.
-        </div>
+  return (
+    <div className="space-y-2">
+      {!showInstructions ? (
         <Button
-          onClick={onReload}
+          onClick={() => setShowInstructions(true)}
           variant="outline"
           size="sm"
           className="w-full"
         >
-          <RefreshCw className="h-3.5 w-3.5" />
-          I logged out — reload widget
+          Show me how to switch accounts
         </Button>
-      </div>
-    );
-  }
+      ) : (
+        <div className="rounded-md border border-border/60 bg-muted/30 px-4 py-3 text-xs text-muted-foreground leading-relaxed space-y-3">
+          <div>
+            <p className="font-medium text-foreground mb-1.5">
+              Pick whichever is fastest:
+            </p>
+          </div>
 
-  return (
-    <Button
-      onClick={onOpenLogout}
-      variant="outline"
-      size="sm"
-      className="w-full"
-    >
-      <LogOut className="h-3.5 w-3.5" />
-      Use a different Telegram account
-    </Button>
+          <div>
+            <p className="text-foreground font-medium">
+              Option A — Incognito / private window
+            </p>
+            <p>
+              Open this page in a new private window. The widget starts
+              fresh with no cached identity.
+            </p>
+          </div>
+
+          <div>
+            <p className="text-foreground font-medium">
+              Option B — Revoke in Telegram Web
+            </p>
+            <p className="mb-1.5">
+              Open Telegram Web and sign out of{" "}
+              <code>@edgeniq_alerts_bot</code>&rsquo;s login session.
+            </p>
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="w-full h-8 text-xs"
+            >
+              <a
+                href="https://web.telegram.org/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <ExternalLink className="h-3 w-3" />
+                Open Telegram Web
+              </a>
+            </Button>
+            <p className="mt-1.5">
+              Go to <b>Settings</b> (☰ menu) &rarr;{" "}
+              <b>Privacy &amp; Security</b> &rarr; <b>Active Sessions</b>
+              , find the browser session, and terminate. Or find the
+              chat with the bot and use <code>/stop</code>.
+            </p>
+          </div>
+
+          <div>
+            <p className="text-foreground font-medium">
+              Option C — Clear browser cookies
+            </p>
+            <p>
+              In site settings for this page, clear cookies for{" "}
+              <code>telegram.org</code>. In Chrome: click the padlock
+              in the address bar &rarr; <b>Cookies and site data</b>{" "}
+              &rarr; remove entries for <code>telegram.org</code>.
+            </p>
+          </div>
+
+          <Button
+            onClick={onReload}
+            variant="outline"
+            size="sm"
+            className="w-full"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Done — reload widget
+          </Button>
+        </div>
+      )}
+    </div>
   );
 }
