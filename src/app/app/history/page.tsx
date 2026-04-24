@@ -36,10 +36,13 @@ export default async function HistoryPage() {
       : 0;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <header>
+        <div className="text-xs font-mono text-muted-foreground mb-1 uppercase tracking-wider">
+          Activity
+        </div>
         <h1 className="text-3xl font-semibold tracking-tight">History</h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
           Every resolved signal, oldest at the bottom.
         </p>
       </header>

@@ -151,17 +151,20 @@ export default async function BrokerPage() {
     rules.find((r) => r.signal_type === "options") ?? defaultRule("options");
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
+    <div className="space-y-10">
+      <header>
+        <div className="text-xs font-mono text-muted-foreground mb-1 uppercase tracking-wider">
+          Execution
+        </div>
+        <h1 className="text-3xl font-semibold tracking-tight">
           Auto-trading
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
           Connect your Alpaca paper account and let EdgeNiq place
           trades on qualifying signals. Paper mode only for now — no
           real money at risk.
         </p>
-      </div>
+      </header>
 
       {!conn ? (
         <Card className="p-6 border-border/60 bg-card/40">
@@ -186,56 +189,71 @@ export default async function BrokerPage() {
             </AlertDescription>
           </Alert>
 
-          {/* Side-by-side: Auto-trade on/off toggle (pause/resume) +
-              Kill switch (emergency stop). Distinct functions, but
-              they pair visually because both gate whether orders go
-              out. Stacks on mobile where two cards side-by-side would
-              be too tight. */}
-          <div className="grid md:grid-cols-2 gap-4">
-            <AutoTradeMasterToggle
-              anyActive={rules.some(
-                (r) => r.execution_mode === "auto" || r.execution_mode === "one_tap",
-              )}
-              activeCount={
-                rules.filter(
-                  (r) =>
-                    r.execution_mode === "auto" ||
-                    r.execution_mode === "one_tap",
-                ).length
-              }
-              totalCount={rules.length || 2}
-            />
-            <KillSwitchCard
-              engaged={rails?.kill_switch_engaged ?? false}
-              engagedAt={rails?.kill_switch_engaged_at ?? null}
-              reason={rails?.kill_switch_engaged_reason ?? null}
-            />
-          </div>
+          {/* Controls — side-by-side Auto-trade toggle + Kill switch.
+              Both gate whether orders go out; pairing them puts the
+              single "stop everything" action next to the master switch
+              so operators don't hunt. Grid cells stretch so the two
+              cards always match heights regardless of content. */}
+          <section className="space-y-3">
+            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+              Controls
+            </h2>
+            <div className="grid md:grid-cols-2 gap-4 items-stretch">
+              <AutoTradeMasterToggle
+                anyActive={rules.some(
+                  (r) => r.execution_mode === "auto" || r.execution_mode === "one_tap",
+                )}
+                activeCount={
+                  rules.filter(
+                    (r) =>
+                      r.execution_mode === "auto" ||
+                      r.execution_mode === "one_tap",
+                  ).length
+                }
+                totalCount={rules.length || 2}
+              />
+              <KillSwitchCard
+                engaged={rails?.kill_switch_engaged ?? false}
+                engagedAt={rails?.kill_switch_engaged_at ?? null}
+                reason={rails?.kill_switch_engaged_reason ?? null}
+              />
+            </div>
+          </section>
 
-          <RiskRailsCard
-            rails={
-              rails ?? {
-                chat_id: user.tgUserId!,
-                max_open_positions: 5,
-                max_alloc_per_ticker_pct: 20,
-                max_daily_loss_usd: null,
-                max_daily_loss_pct: null,
+          <section className="space-y-3">
+            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+              Risk rails
+            </h2>
+            <RiskRailsCard
+              rails={
+                rails ?? {
+                  chat_id: user.tgUserId!,
+                  max_open_positions: 5,
+                  max_alloc_per_ticker_pct: 20,
+                  max_daily_loss_usd: null,
+                  max_daily_loss_pct: null,
+                }
               }
-            }
-          />
+            />
+          </section>
 
-          <div className="grid lg:grid-cols-2 gap-4">
-            <RulesCard
-              rule={stockRule}
-              title="Stock signals"
-              description="Auto-trade stock signals against your watchlist."
-            />
-            <RulesCard
-              rule={optionsRule}
-              title="Options signals"
-              description="Auto-trade OPTIONS SIGNAL alerts. Start small — premiums decay fast."
-            />
-          </div>
+          <section className="space-y-3">
+            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+              Rules
+            </h2>
+            <div className="grid lg:grid-cols-2 gap-4 items-stretch">
+              <RulesCard
+                rule={stockRule}
+                title="Stock signals"
+                description="Auto-trade stock signals against your watchlist."
+              />
+              <RulesCard
+                rule={optionsRule}
+                title="Options signals"
+                description="Auto-trade OPTIONS SIGNAL alerts. Start small — premiums decay fast."
+              />
+            </div>
+          </section>
 
           <TradesTable trades={trades} />
         </>
@@ -261,20 +279,31 @@ function defaultRule(signalType: "stocks" | "options"): RuleRow {
 function TradesTable({ trades }: { trades: TradeRow[] }) {
   if (trades.length === 0) {
     return (
-      <Card className="p-6 border-border/60 bg-card/40">
-        <h2 className="font-medium">Today&rsquo;s auto-trades</h2>
-        <p className="text-xs text-muted-foreground mt-2">
-          No trades submitted today. Enable a rule and wait for a
-          matching signal.
-        </p>
-      </Card>
+      <section className="space-y-3">
+        <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+          Today&rsquo;s auto-trades
+        </h2>
+        <Card className="p-8 border-border/60 bg-card/40 text-center">
+          <p className="text-sm text-muted-foreground">
+            No trades submitted today. Enable a rule and wait for a
+            matching signal.
+          </p>
+        </Card>
+      </section>
     );
   }
   return (
-    <Card className="p-0 border-border/60 bg-card/40 overflow-hidden">
-      <div className="px-6 py-4 border-b border-border/60">
-        <h2 className="font-medium">Today&rsquo;s auto-trades</h2>
+    <section className="space-y-3">
+      <div className="flex items-baseline justify-between">
+        <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+          Today&rsquo;s auto-trades
+        </h2>
+        <span className="text-xs text-muted-foreground tabular-nums">
+          {trades.length}{" "}
+          {trades.length === 1 ? "order" : "orders"}
+        </span>
       </div>
+      <Card className="p-0 border-border/60 bg-card/40 overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
@@ -328,6 +357,7 @@ function TradesTable({ trades }: { trades: TradeRow[] }) {
           </tbody>
         </table>
       </div>
-    </Card>
+      </Card>
+    </section>
   );
 }

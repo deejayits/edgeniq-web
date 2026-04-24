@@ -218,18 +218,21 @@ export default async function CommandsPage() {
   const isPrimary = role === "primary_admin";
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
+    <div className="space-y-10">
+      <header>
+        <div className="text-xs font-mono text-muted-foreground mb-1 uppercase tracking-wider">
+          Reference
+        </div>
+        <h1 className="text-3xl font-semibold tracking-tight">
           Bot commands
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
           The EdgeNiq bot lives on Telegram. Every feature — watchlist
           edits, risk profile changes, price alerts, strategy switches —
           is a command. This page mirrors <code>/help</code> inside the
           bot, grouped by what you actually need.
         </p>
-      </div>
+      </header>
 
       {/* Quick-jump to Telegram */}
       <Card className="p-5 border-border/60 bg-gradient-to-br from-emerald-400/5 to-violet-400/5">

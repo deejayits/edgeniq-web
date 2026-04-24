@@ -22,10 +22,13 @@ export default async function SettingsPage() {
   if (!me) return null;
 
   return (
-    <div className="space-y-8 max-w-3xl">
+    <div className="space-y-10 max-w-3xl">
       <header>
+        <div className="text-xs font-mono text-muted-foreground mb-1 uppercase tracking-wider">
+          Preferences
+        </div>
         <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
           Preferences that control which signals reach you. Editing is
           coming in the next release — for now, use the Telegram bot
           commands to change these.

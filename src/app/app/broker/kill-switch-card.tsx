@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -57,17 +58,21 @@ export function KillSwitchCard({
 
   if (engaged) {
     return (
-      <Card className="p-6 border-rose-400/40 bg-rose-400/10 space-y-4">
+      <Card className="p-6 flex flex-col h-full space-y-4 border-rose-400/40 bg-rose-400/10">
         <div className="flex items-start gap-3">
-          <div className="h-9 w-9 rounded-md bg-rose-400/20 border border-rose-400/40 flex items-center justify-center shrink-0">
+          <div className="h-10 w-10 rounded-md bg-rose-400/20 border border-rose-400/40 flex items-center justify-center shrink-0">
             <AlertTriangle className="h-4 w-4 text-rose-300" />
           </div>
           <div className="flex-1">
-            <h3 className="font-medium text-rose-200">Kill switch is ENGAGED</h3>
-            <p className="text-xs text-rose-200/80 mt-0.5 leading-relaxed">
-              All open Alpaca orders have been canceled and auto-trade
-              execution modes reset to <b>off</b>. No orders will submit
-              until you release.
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-medium text-rose-200">Kill switch</h3>
+              <Badge className="bg-rose-400/20 text-rose-200 border border-rose-400/40 text-[10px] py-0 h-5">
+                Engaged
+              </Badge>
+            </div>
+            <p className="text-xs text-rose-200/80 mt-1 leading-relaxed">
+              All open Alpaca orders canceled; rules reset to{" "}
+              <b>off</b>. No orders submit until you release.
               {engagedAt && (
                 <>
                   <br />
@@ -78,36 +83,45 @@ export function KillSwitchCard({
             </p>
           </div>
         </div>
-        <Button
-          onClick={handleRelease}
-          disabled={isPending}
-          variant="outline"
-          className="w-full"
-        >
-          {isPending ? "…" : "Release kill switch"}
-        </Button>
+        <div className="mt-auto pt-2 border-t border-rose-400/20">
+          <Button
+            onClick={handleRelease}
+            disabled={isPending}
+            variant="outline"
+            className="w-full"
+          >
+            {isPending ? "…" : "Release kill switch"}
+          </Button>
+        </div>
       </Card>
     );
   }
 
   return (
-    <Card className="p-6 border-rose-400/30 bg-rose-400/5 space-y-4">
+    <Card className="p-6 flex flex-col h-full space-y-4 border-rose-400/30 bg-rose-400/5">
       <div className="flex items-start gap-3">
-        <div className="h-9 w-9 rounded-md bg-rose-400/15 border border-rose-400/30 flex items-center justify-center shrink-0">
+        <div className="h-10 w-10 rounded-md bg-rose-400/15 border border-rose-400/30 flex items-center justify-center shrink-0">
           <Power className="h-4 w-4 text-rose-300" />
         </div>
         <div className="flex-1">
-          <h3 className="font-medium">Kill switch</h3>
-          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-            Emergency stop. Cancels every open Alpaca order on your
-            account and resets all auto-trade execution modes to off.
-            Use when something looks wrong.
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="font-medium">Kill switch</h3>
+            <Badge
+              variant="outline"
+              className="text-[10px] py-0 h-5 text-muted-foreground"
+            >
+              Armed
+            </Badge>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+            Emergency stop. Cancels every open Alpaca order and resets
+            all auto-trade rules to off. Use when something looks wrong.
           </p>
         </div>
       </div>
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogTrigger asChild>
-          <Button variant="destructive" className="w-full">
+          <Button variant="destructive" className="mt-auto w-full">
             <Power className="h-4 w-4" />
             Engage kill switch
           </Button>

@@ -66,16 +66,19 @@ export default async function SmartMoneyPage({
 
   if (!eliteish) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
+      <div className="space-y-10">
+        <header>
+          <div className="text-xs font-mono text-muted-foreground mb-1 uppercase tracking-wider">
+            Intel
+          </div>
+          <h1 className="text-3xl font-semibold tracking-tight">
             Smart Money
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
             Follow politicians, hedge funds, and insiders. See what they
             bought before it hits the news.
           </p>
-        </div>
+        </header>
         <Card className="p-8 text-center border-border/60 bg-card/40 space-y-3">
           <Badge className="bg-violet-400/15 text-violet-300 border border-violet-400/30">
             Elite feature

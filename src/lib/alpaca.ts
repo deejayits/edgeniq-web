@@ -15,6 +15,10 @@ export type AlpacaMode = "paper" | "live";
 
 const PAPER_BASE = "https://paper-api.alpaca.markets";
 const LIVE_BASE = "https://api.alpaca.markets";
+// Market data API is the same hostname regardless of paper/live. Free
+// tier is IEX-only with ~15 min delay; that's fine for the portfolio
+// current-price view.
+const DATA_BASE = "https://data.alpaca.markets";
 
 export type AlpacaAccount = {
   id: string;
@@ -184,6 +188,37 @@ export class AlpacaClient {
    */
   cancelAllOrders(): Promise<void> {
     return this.req<void>("/v2/orders", { method: "DELETE" });
+  }
+
+  // --- market data -----------------------------------------------------
+
+  /**
+   * Latest trade price for a symbol, via the Alpaca data API. Uses the
+   * same credentials as the trading endpoints — Alpaca authenticates
+   * both hosts with the same key pair. Returns null on any error so
+   * the caller can render "—" without try/catch at every call site.
+   *
+   * Free tier is IEX-only with ~15 min delay; good enough for the
+   * portfolio "current price" view without needing paid data.
+   */
+  async getLatestPrice(symbol: string): Promise<number | null> {
+    const url = `${DATA_BASE}/v2/stocks/${encodeURIComponent(symbol)}/trades/latest?feed=iex`;
+    try {
+      const res = await fetch(url, {
+        headers: {
+          "APCA-API-KEY-ID": this.apiKey,
+          "APCA-API-SECRET-KEY": this.apiSecret,
+          accept: "application/json",
+        },
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (!res.ok) return null;
+      const data = (await res.json()) as { trade?: { p?: number } };
+      const price = data.trade?.p;
+      return typeof price === "number" && Number.isFinite(price) ? price : null;
+    } catch {
+      return null;
+    }
   }
 }
 
