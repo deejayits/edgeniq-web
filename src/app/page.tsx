@@ -358,17 +358,32 @@ function Features() {
     {
       icon: BellRing,
       title: "Signals on Telegram",
-      body: "Gap-ups, momentum breakouts, reversion bounces — every signal comes with a plain-English rationale, target ladder, and stop-loss. No daily noise bombs.",
+      body: "Stocks, options, prediction markets — every signal comes with a plain-English rationale, target ladder, and stop-loss. No daily noise bombs.",
+    },
+    {
+      icon: Zap,
+      title: "Auto-trade via Alpaca",
+      body: "Connect your Alpaca paper account. Bot places bracket orders on qualifying signals using rules you configure. Kill switch is one tap away.",
+    },
+    {
+      icon: Eye,
+      title: "Smart Money tracker",
+      body: "Follow Nancy Pelosi, Warren Buffett, Michael Burry, and 12 others. See what they're buying — optionally mirror the trades automatically.",
     },
     {
       icon: BarChart3,
       title: "Dashboard that earns its keep",
-      body: "See today's activity, your open positions, historical win rate by setup type, and portfolio concentration warnings in one place.",
+      body: "Today's activity, open positions, 30-day win rate by setup type, portfolio concentration warnings — all in one place.",
+    },
+    {
+      icon: Target,
+      title: "Personal target ladders",
+      body: "Your entry price, your risk profile, your exit targets — not the signal's canonical ladder. Directed alerts on YOUR thresholds only.",
     },
     {
       icon: ShieldCheck,
       title: "Built for real money",
-      body: "No paper-trading boasts. Every signal is logged, every outcome tracked. You see the 30-day win rate for your risk profile, not a curated highlight reel.",
+      body: "No paper-trading boasts. Every signal is logged, every outcome tracked. You see real win rates, not a curated highlight reel.",
     },
   ];
   return (
