@@ -358,32 +358,32 @@ function Features() {
     {
       icon: BellRing,
       title: "Signals on Telegram",
-      body: "Stocks, options, prediction markets — every signal comes with a plain-English rationale, target ladder, and stop-loss. No daily noise bombs.",
+      body: "Stocks, options, prediction markets — every alert ships with rationale, target ladder, stop-loss, and position size. Liquidity-filtered so thin tickers never reach you.",
     },
     {
       icon: Zap,
       title: "Auto-trade via Alpaca",
-      body: "Connect your Alpaca paper account. Bot places bracket orders on qualifying signals using rules you configure. Kill switch is one tap away.",
+      body: "Connect Alpaca paper. Bot places bracket orders on qualifying signals. When price hits T1 the stop auto-moves to breakeven — near-winners close at zero, not full loss.",
     },
     {
       icon: Eye,
       title: "Smart Money tracker",
-      body: "Follow Nancy Pelosi, Warren Buffett, Michael Burry, and 12 others. See what they're buying — optionally mirror the trades automatically.",
+      body: "Follow real 13F filings — Buffett, Burry, Dalio, Ackman, Tepper, Icahn, Klarman. Auto-ingested from SEC EDGAR, CUSIP-resolved to tickers. Congressional trades coming.",
     },
     {
       icon: BarChart3,
       title: "Dashboard that earns its keep",
-      body: "Today's activity, open positions, 30-day win rate by setup type, portfolio concentration warnings — all in one place.",
+      body: "Today's activity, open positions, 30-day win rate by setup type, portfolio concentration + theme warnings. Full trade history, no curated highlight reel.",
     },
     {
       icon: Target,
       title: "Personal target ladders",
-      body: "Your entry price, your risk profile, your exit targets — not the signal's canonical ladder. Directed alerts on YOUR thresholds only.",
+      body: "YOUR entry, YOUR risk profile, YOUR exit targets — not the signal's canonical ladder. Directed target-hit and stop-hit alerts on your personal thresholds.",
     },
     {
       icon: ShieldCheck,
-      title: "Built for real money",
-      body: "No paper-trading boasts. Every signal is logged, every outcome tracked. You see real win rates, not a curated highlight reel.",
+      title: "Regime-aware sizing",
+      body: "VIX ≥ 25 or realized vol ≥ 1.5% / day automatically halves auto-trade position size. Extreme regimes quarter it. Confirmation lag + flicker detection prevent whipsaw.",
     },
   ];
   return (
@@ -548,9 +548,11 @@ function Pricing() {
       highlights: [
         "Stock signals — only for tickers on your watchlist",
         "Up to 5 tickers on your watchlist",
-        "All 4 risk profiles + 6 strategy templates",
+        "4 risk profiles + 6 strategy templates",
+        "Volatility-regime-aware sizing on every alert",
         "Live position monitor + portfolio advisor",
-        "Earnings calendar alerts for your watchlist",
+        "Earnings calendar alerts (Yahoo Finance-backed)",
+        "Full analytics: /history · /performance · /portfolio",
       ],
       featured: true,
       badge: "Most popular",
@@ -565,14 +567,15 @@ function Pricing() {
       ctaHref: "/login",
       stripePlan: "elite" as "pro" | "elite" | null,
       highlights: [
-        "Everything in Pro",
+        "Everything in Pro, plus:",
         "Unlimited watchlist",
-        "Whole-market discovery signals — not just your list",
+        "Whole-market discovery — not just your list",
+        "Relative-strength-vs-SPY scoring + $5M liquidity floor",
         "Options alerts (unusual volume, block prints, OTM spikes)",
         "Prediction markets (Kalshi + Polymarket)",
-        "Whale trade alerts + cross-venue HIGH CONVICTION",
-        "Smart Money tracker — hedge fund 13F filings (Congress data coming later)",
-        "Auto-trade via Alpaca (paper) — connect your broker, set rules, kill switch",
+        "Whale trade alerts + HIGH CONVICTION cross-venue",
+        "Smart Money — hedge fund 13F (Buffett, Burry, Dalio, Ackman, Tepper, Icahn, Klarman)",
+        "Alpaca auto-trade (paper) — bracket orders with breakeven-at-T1 monitor, kill switch",
       ],
       featured: false,
       badge: null,
@@ -732,24 +735,38 @@ function FeatureMatrix() {
     pro: string | boolean;
     elite: string | boolean;
   }> = [
+    // --- Signal discovery ---------------------------------------
     { label: "Stock signals", free: "Whole market", pro: "Watchlist only", elite: "Whole market (discovery)" },
     { label: "Watchlist size", free: "5 tickers", pro: "5 tickers", elite: "Unlimited" },
-    { label: "Options alerts", free: true, pro: false, elite: true },
+    { label: "Relative strength vs SPY factor", free: true, pro: true, elite: true },
+    { label: "Liquidity filter ($5M+ daily $-volume)", free: true, pro: true, elite: true },
+    { label: "Grade + score + R/R gating", free: true, pro: true, elite: true },
+    { label: "Options alerts (unusual vol · block · OTM)", free: true, pro: false, elite: true },
     { label: "Prediction markets (Kalshi · Polymarket)", free: true, pro: false, elite: true },
     { label: "Whale trade alerts", free: true, pro: false, elite: true },
     { label: "HIGH CONVICTION cross-venue signals", free: true, pro: false, elite: true },
-    { label: "Alpaca auto-trade (paper mode)", free: true, pro: false, elite: true },
-    { label: "Alpaca auto-trade (live mode)", free: false, pro: false, elite: "Add-on +$49.99/mo" },
+    // --- Smart Money ---------------------------------------------
     { label: "Smart Money — hedge fund 13F filings", free: true, pro: false, elite: true },
     { label: "Smart Money — Congressional trades", free: false, pro: false, elite: "Coming soon" },
     { label: "Smart Money mirror (auto-shadow trades)", free: false, pro: false, elite: "Add-on +$49.99/mo" },
-    { label: "Risk profiles", free: "All 4", pro: "All 4", elite: "All 4" },
-    { label: "Strategy templates", free: "All 6", pro: "All 6", elite: "All 6" },
-    { label: "Per-user target ladders", free: true, pro: true, elite: true },
+    // --- Execution -----------------------------------------------
+    { label: "Alpaca auto-trade (paper mode)", free: true, pro: false, elite: true },
+    { label: "Alpaca auto-trade (live mode)", free: false, pro: false, elite: "Add-on +$49.99/mo" },
+    { label: "Breakeven-at-T1 stop monitor", free: true, pro: false, elite: true },
+    { label: "Volatility-regime sizing (auto halves in elevated)", free: true, pro: true, elite: true },
+    { label: "Kill switch + risk rails", free: true, pro: false, elite: true },
+    // --- Personalization -----------------------------------------
+    { label: "Risk profiles (Safe / Balanced / Aggressive / Custom)", free: "All 4", pro: "All 4", elite: "All 4" },
+    { label: "Strategy templates (momentum, mean-reversion, +4 more)", free: "All 6", pro: "All 6", elite: "All 6" },
+    { label: "Per-user target ladders (YOUR entry, YOUR targets)", free: true, pro: true, elite: true },
+    // --- Analytics + dashboards ----------------------------------
     { label: "Live position monitor", free: true, pro: true, elite: true },
-    { label: "Portfolio advisor", free: true, pro: true, elite: true },
+    { label: "Portfolio advisor (concentration · theme · streak)", free: true, pro: true, elite: true },
+    { label: "Full trade history + win-rate analytics", free: true, pro: true, elite: true },
     { label: "Earnings calendar alerts", free: true, pro: "For watchlist", elite: "Whole market" },
     { label: "Session briefings (pre-market · EOD)", free: true, pro: true, elite: true },
+    { label: "Glossary reference (/glossary)", free: true, pro: true, elite: true },
+    // --- Trial ---------------------------------------------------
     { label: "Trial length", free: "7 days", pro: "—", elite: "—" },
   ];
 
