@@ -24,6 +24,11 @@ export type SmartMoneyTrade = {
   id: string;
   target_id: string;
   symbol: string;
+  /** Real stock ticker resolved via CUSIP lookup during ingestion.
+   *  Nullable when OpenFIGI couldn't resolve or source didn't carry
+   *  a ticker (older rows before this column was added). UI falls
+   *  back to `symbol` when this is null. */
+  ticker: string | null;
   side: "buy" | "sell" | "exchange" | "other";
   trade_date: string;
   filed_date: string | null;

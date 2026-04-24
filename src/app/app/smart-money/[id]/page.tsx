@@ -132,13 +132,17 @@ export default async function TargetDetailPage({
     (sum, t) => sum + (t.size_estimate_usd ?? 0),
     0,
   );
+  // Count top-held names. Prefer real ticker when OpenFIGI resolved
+  // one; fall back to the symbol column (cleaned company name) for
+  // older rows or unresolved CUSIPs.
   const symbolCounts = new Map<string, number>();
   for (const t of trades) {
-    symbolCounts.set(t.symbol, (symbolCounts.get(t.symbol) ?? 0) + 1);
+    const key = t.ticker ?? t.symbol;
+    symbolCounts.set(key, (symbolCounts.get(key) ?? 0) + 1);
   }
   const topSymbols = [...symbolCounts.entries()]
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 6);
+    .slice(0, 8);
 
   return (
     <div className="space-y-6">
@@ -257,7 +261,9 @@ export default async function TargetDetailPage({
       {topSymbols.length > 0 && (
         <Card className="p-5 border-border/60 bg-card/40">
           <h2 className="text-sm font-medium mb-3">
-            Most-traded tickers
+            {target.target_type === "fund_13f"
+              ? "Largest positions"
+              : "Most-traded tickers"}
           </h2>
           <div className="flex flex-wrap gap-2">
             {topSymbols.map(([sym, count]) => (
@@ -304,6 +310,18 @@ export default async function TargetDetailPage({
   );
 }
 
+// Extract the full issuer name from the trade's notes field.
+// Ingestion appends '· {issuer_name}' to the notes string for 13F
+// positions so we can render a humanized company name alongside
+// the ticker. Returns null when the notes don't match that shape.
+function parseCompanyFromNotes(notes: string | null): string | null {
+  if (!notes) return null;
+  // Expected shape: "13F-HR · CUSIP XXX · 1,234 shares · ISSUER NAME"
+  const parts = notes.split("·").map((s) => s.trim()).filter(Boolean);
+  if (parts.length < 4) return null;
+  return parts[parts.length - 1] || null;
+}
+
 // Fund 13F table — snapshot of holdings as of the quarterly filing.
 // No buy/sell column because 13F doesn't disclose direction; instead
 // we show % of total disclosed portfolio so users can see relative
@@ -339,7 +357,8 @@ function FundHoldingsTable({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border/60 bg-muted/20 text-left text-xs text-muted-foreground">
-                <th className="px-5 py-2 font-medium">Company</th>
+                <th className="px-5 py-2 font-medium">Ticker</th>
+                <th className="px-4 py-2 font-medium">Company</th>
                 <th className="px-4 py-2 font-medium text-right">Size</th>
                 <th className="px-4 py-2 font-medium text-right">
                   % of portfolio
@@ -354,12 +373,32 @@ function FundHoldingsTable({
                   totalPortfolio > 0 && t.size_estimate_usd
                     ? (t.size_estimate_usd / totalPortfolio) * 100
                     : 0;
+                // Prefer real ticker (from OpenFIGI); fall back to
+                // cleaned company name in the symbol column. For the
+                // Company column we use the full name from notes
+                // when available, or the symbol itself.
+                const displayTicker = t.ticker ?? t.symbol;
+                // Parse the fuller company name out of the notes
+                // field (ingestion appends " · {full_issuer_name}")
+                // so humans recognize "Alphabet Inc" vs "GOOGL".
+                const companyName = parseCompanyFromNotes(t.notes) ?? t.symbol;
                 return (
                   <tr
                     key={t.id}
                     className="border-b border-border/40 last:border-0"
                   >
-                    <td className="px-5 py-2.5 font-mono">{t.symbol}</td>
+                    <td className="px-5 py-2.5 font-mono">
+                      {t.ticker ? (
+                        <span className="text-foreground">{displayTicker}</span>
+                      ) : (
+                        <span className="text-muted-foreground">
+                          {displayTicker}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                      {companyName}
+                    </td>
                     <td className="px-4 py-2.5 tabular-nums text-right">
                       {t.size_estimate_usd != null
                         ? fmtMoney(t.size_estimate_usd)
