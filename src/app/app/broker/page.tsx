@@ -186,29 +186,31 @@ export default async function BrokerPage() {
             </AlertDescription>
           </Alert>
 
-          {/* Master on/off — flips all rules to auto or off in one
-              click. Distinct from the kill switch: kill switch also
-              cancels open orders + engages the rails flag; the master
-              toggle just pauses/resumes future order submission. */}
-          <AutoTradeMasterToggle
-            anyActive={rules.some(
-              (r) => r.execution_mode === "auto" || r.execution_mode === "one_tap",
-            )}
-            activeCount={
-              rules.filter(
-                (r) =>
-                  r.execution_mode === "auto" ||
-                  r.execution_mode === "one_tap",
-              ).length
-            }
-            totalCount={rules.length || 2}
-          />
-
-          <KillSwitchCard
-            engaged={rails?.kill_switch_engaged ?? false}
-            engagedAt={rails?.kill_switch_engaged_at ?? null}
-            reason={rails?.kill_switch_engaged_reason ?? null}
-          />
+          {/* Side-by-side: Auto-trade on/off toggle (pause/resume) +
+              Kill switch (emergency stop). Distinct functions, but
+              they pair visually because both gate whether orders go
+              out. Stacks on mobile where two cards side-by-side would
+              be too tight. */}
+          <div className="grid md:grid-cols-2 gap-4">
+            <AutoTradeMasterToggle
+              anyActive={rules.some(
+                (r) => r.execution_mode === "auto" || r.execution_mode === "one_tap",
+              )}
+              activeCount={
+                rules.filter(
+                  (r) =>
+                    r.execution_mode === "auto" ||
+                    r.execution_mode === "one_tap",
+                ).length
+              }
+              totalCount={rules.length || 2}
+            />
+            <KillSwitchCard
+              engaged={rails?.kill_switch_engaged ?? false}
+              engagedAt={rails?.kill_switch_engaged_at ?? null}
+              reason={rails?.kill_switch_engaged_reason ?? null}
+            />
+          </div>
 
           <RiskRailsCard
             rails={
