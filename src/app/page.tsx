@@ -482,8 +482,9 @@ function Pricing() {
       ctaVariant: "outline" as const,
       ctaHref: "/login",
       highlights: [
-        "Up to 5 stock signals per day",
-        "Moderate risk profile",
+        "Signals only for tickers on your watchlist",
+        "Up to 5 tickers tracked",
+        "Moderate risk profile · Balanced strategy",
         "Web dashboard + Telegram bot",
       ],
       featured: false,
@@ -498,11 +499,11 @@ function Pricing() {
       ctaVariant: "default" as const,
       ctaHref: "/login",
       highlights: [
-        "Unlimited stock + prediction-market signals",
+        "Discovery signals across the whole market — not just your watchlist",
+        "Unlimited watchlist + prediction-market alerts",
         "All 4 risk profiles + 6 strategy templates",
         "Portfolio advisor (concentration, streak, stale warnings)",
-        "Earnings calendar alerts",
-        "Live position monitor on the dashboard",
+        "Earnings calendar + live position monitor",
       ],
       featured: true,
       badge: "Most popular",
@@ -606,7 +607,8 @@ function FeatureMatrix() {
     pro: string | boolean;
     founding: string | boolean;
   }> = [
-    { label: "Stock signals per day", free: "5", pro: "Unlimited", founding: "Unlimited" },
+    { label: "Signal coverage", free: "Watchlist only", pro: "Whole market + watchlist", founding: "Whole market + watchlist" },
+    { label: "Watchlist size", free: "5 tickers", pro: "Unlimited", founding: "Unlimited" },
     { label: "Risk profiles", free: "Moderate", pro: "All 4", founding: "All 4" },
     { label: "Strategy templates", free: "Balanced only", pro: "All 6", founding: "All 6" },
     { label: "Per-user target ladders", free: true, pro: true, founding: true },
@@ -615,7 +617,6 @@ function FeatureMatrix() {
     { label: "Earnings calendar alerts", free: false, pro: true, founding: true },
     { label: "Prediction markets (Kalshi · Polymarket)", free: false, pro: true, founding: true },
     { label: "Session briefings (pre-market · EOD · Sunday prep)", free: false, pro: true, founding: true },
-    { label: "Watchlist size", free: "5 tickers", pro: "Unlimited", founding: "Unlimited" },
     { label: "Direct DM to founder", free: false, pro: false, founding: true },
     { label: "Vote on feature roadmap", free: false, pro: false, founding: true },
     { label: "Locked-in price forever", free: "n/a", pro: false, founding: true },
