@@ -1,9 +1,7 @@
 import { LogoIcon } from "./logo-icon";
 
-// Brand wordmark.
-//   Edge (emerald) — the trader's edge, gains, forward momentum
-//   Niq  (violet)  — unique analysis, the twist that covers edge cases
-// Tooltip carries the origin story.
+// Brand wordmark — Edge (emerald) + Niq (violet). Always the full
+// word, never an EN monogram.
 export function BrandMark({
   className = "",
   title = "Edge case analysis, uniquely",
@@ -19,22 +17,29 @@ export function BrandMark({
   );
 }
 
-// Icon + wordmark lockup. Preferred for headers because the glyph is
-// distinctive and the wordmark stays legible. `size` controls the
-// icon height; wordmark scales with text classes.
+// Icon + wordmark lockup. Two orientations:
+//   - horizontal (default): icon · EdgeNiq (used in nav bars)
+//   - vertical: icon stacked over EdgeNiq (used in hero-ish contexts)
 export function BrandLockup({
   iconSize = 32,
   textClassName = "text-lg",
-  gap = "gap-2.5",
+  orientation = "horizontal",
   title,
 }: {
   iconSize?: number;
   textClassName?: string;
-  gap?: string;
+  orientation?: "horizontal" | "vertical";
   title?: string;
 }) {
+  const isVertical = orientation === "vertical";
   return (
-    <span className={`inline-flex items-center ${gap}`}>
+    <span
+      className={
+        isVertical
+          ? "inline-flex flex-col items-center gap-2"
+          : "inline-flex items-center gap-2.5"
+      }
+    >
       <LogoIcon size={iconSize} className="shrink-0" />
       <BrandMark className={textClassName} title={title} />
     </span>

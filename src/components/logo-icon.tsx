@@ -1,20 +1,26 @@
-// EdgeNiq logo mark — scalable SVG. Used at all sizes from 16px favicon
-// to 512px Telegram profile pic.
+// EdgeNiq logo icon — pure visual mark, no letters.
 //
 // Composition:
-//   - Rounded square (20% radius) for a modern badge look
-//   - Emerald → violet diagonal gradient (the brand's two-tone story)
-//   - Faint uptrend chart line behind the monogram (the trading edge)
-//   - Bold "EN" monogram in white
+//   - Rounded square with emerald→violet diagonal gradient
+//   - Stylized uptrend chart: 3-step staircase rising from bottom-left
+//     to top-right, with a signal dot at the endpoint
+//   - White strokes for contrast at any size
 //
-// viewBox is 100×100; pass any size via the `size` prop (or className).
+// Designed to read clearly from 16px (favicon) to 512px (Telegram
+// profile). No text baked in — pair with the "EdgeNiq" wordmark.
 export function LogoIcon({
   size = 32,
   className,
+  idSuffix = "",
 }: {
   size?: number;
   className?: string;
+  // When the icon appears twice on the same page the gradient def id
+  // collides. Callers that render multiple instances can pass a unique
+  // suffix. Default is "" (single instance).
+  idSuffix?: string;
 }) {
+  const gradId = `edgeniq-grad${idSuffix}`;
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -22,46 +28,36 @@ export function LogoIcon({
       width={size}
       height={size}
       className={className}
-      aria-label="EdgeNiq"
+      aria-label="EdgeNiq logo"
       role="img"
     >
       <defs>
-        <linearGradient id="edgeniq-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+        <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#34d399" />
           <stop offset="100%" stopColor="#a78bfa" />
         </linearGradient>
       </defs>
+      {/* Rounded badge */}
       <rect
         x="0"
         y="0"
         width="100"
         height="100"
-        rx="20"
-        ry="20"
-        fill="url(#edgeniq-bg)"
+        rx="22"
+        ry="22"
+        fill={`url(#${gradId})`}
       />
-      {/* Faint uptrend line — the "edge" — sits behind the monogram */}
+      {/* Stepped uptrend — the "edge" */}
       <path
-        d="M15,72 L34,55 L52,64 L86,28"
+        d="M22 74 L22 62 L42 62 L42 46 L62 46 L62 30 L82 30"
         stroke="white"
-        strokeOpacity="0.22"
-        strokeWidth="4"
+        strokeWidth="6"
         strokeLinecap="round"
         strokeLinejoin="round"
         fill="none"
       />
-      <text
-        x="50"
-        y="68"
-        textAnchor="middle"
-        fontFamily="ui-sans-serif, system-ui, sans-serif"
-        fontSize="44"
-        fontWeight="700"
-        fill="white"
-        letterSpacing="-1"
-      >
-        EN
-      </text>
+      {/* Signal dot at the endpoint */}
+      <circle cx="82" cy="30" r="5.5" fill="white" />
     </svg>
   );
 }

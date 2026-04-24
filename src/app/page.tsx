@@ -50,19 +50,19 @@ function SiteHeader() {
         <nav className="flex items-center gap-6 text-sm">
           <Link
             href="#features"
-            className="text-muted-foreground hover:text-foreground transition"
+            className="hidden md:inline text-muted-foreground hover:text-foreground transition"
           >
             Features
           </Link>
           <Link
             href="#how-it-works"
-            className="text-muted-foreground hover:text-foreground transition"
+            className="hidden md:inline text-muted-foreground hover:text-foreground transition"
           >
             How it works
           </Link>
           <Link
             href="#pricing"
-            className="text-muted-foreground hover:text-foreground transition"
+            className="hidden md:inline text-muted-foreground hover:text-foreground transition"
           >
             Pricing
           </Link>
@@ -77,8 +77,8 @@ function SiteHeader() {
 
 function Hero() {
   return (
-    <section className="mx-auto max-w-6xl px-6 pt-20 pb-24">
-      <div className="grid md:grid-cols-[1.1fr_1fr] gap-12 items-center">
+    <section className="mx-auto max-w-6xl px-6 pt-12 pb-16 md:pt-20 md:pb-24">
+      <div className="grid md:grid-cols-[1.1fr_1fr] gap-10 md:gap-12 items-center">
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/50 px-3 py-1 text-xs text-muted-foreground mb-6">
             <span className="relative flex h-1.5 w-1.5">
@@ -87,11 +87,11 @@ function Hero() {
             </span>
             Live signals on Telegram
           </div>
-          <h1 className="text-5xl md:text-6xl font-semibold tracking-tight leading-[1.05]">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight leading-[1.05]">
             Your trading edge,{" "}
             <span className="text-muted-foreground">organized.</span>
           </h1>
-          <p className="mt-6 text-lg text-muted-foreground max-w-xl leading-relaxed">
+          <p className="mt-5 md:mt-6 text-base md:text-lg text-muted-foreground max-w-xl leading-relaxed">
             AI-scored stock signals delivered to Telegram the moment they
             fire. Per-user target ladders, personal trade tracking, and a
             web dashboard that actually tells you whether you&rsquo;re
