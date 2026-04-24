@@ -6,19 +6,23 @@ import { cn } from "@/lib/utils";
 
 // Top-nav for /app. Highlights the active route. Kept as a client
 // component because usePathname only works in the client tree — but
-// the nav items list is static so it's cheap.
-const NAV = [
+// the nav items list is static so it's cheap. isAdmin is passed from
+// the server layout since session reads belong in server components.
+const BASE_NAV = [
   { href: "/app", label: "Today" },
   { href: "/app/portfolio", label: "Portfolio" },
   { href: "/app/history", label: "History" },
   { href: "/app/settings", label: "Settings" },
 ];
 
-export function AppNav() {
+const ADMIN_NAV = [{ href: "/app/admin/users", label: "Users" }];
+
+export function AppNav({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname();
+  const items = isAdmin ? [...BASE_NAV, ...ADMIN_NAV] : BASE_NAV;
   return (
     <nav className="flex items-center gap-1 text-sm">
-      {NAV.map((item) => {
+      {items.map((item) => {
         const active =
           item.href === "/app"
             ? pathname === "/app"

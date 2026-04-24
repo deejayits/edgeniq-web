@@ -25,6 +25,7 @@ export default async function AppLayout({
     role?: string;
     subPlan?: string;
   };
+  const isAdmin = user.role === "admin" || user.role === "primary_admin";
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -34,7 +35,7 @@ export default async function AppLayout({
             <Link href="/app" aria-label="EdgeNiq home">
               <BrandLockup iconSize={30} textClassName="text-lg" />
             </Link>
-            <AppNav />
+            <AppNav isAdmin={isAdmin} />
           </div>
           <UserMenu
             name={user.name ?? ""}
