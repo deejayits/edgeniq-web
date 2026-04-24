@@ -9,11 +9,17 @@ import {
   BellRing,
   Check,
   Eye,
+  MessageSquare,
   ShieldCheck,
   Target,
   TrendingUp,
   Zap,
 } from "lucide-react";
+
+// Primary signup surface — Telegram, not the website. Every "Get
+// started" CTA routes here so new visitors start the bot before
+// (or instead of) hitting the web login widget.
+const TELEGRAM_START_URL = "https://t.me/edgeniq_alerts_bot?start=web";
 
 // Marketing landing page. Public; no auth required. Renders at /.
 export default function LandingPage() {
@@ -101,16 +107,25 @@ function Hero() {
             web dashboard that actually tells you whether you&rsquo;re
             making money — without the guru noise.
           </p>
-          <div className="mt-8 flex items-center gap-3">
+          <div className="mt-8 flex items-center gap-3 flex-wrap">
             <Button asChild size="lg">
-              <Link href="/login">
-                Get started <ArrowRight className="h-4 w-4" />
-              </Link>
+              <a
+                href={TELEGRAM_START_URL}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <MessageSquare className="h-4 w-4" />
+                Start on Telegram
+              </a>
             </Button>
-            <Button asChild variant="ghost" size="lg">
-              <Link href="#how-it-works">How it works</Link>
+            <Button asChild variant="outline" size="lg">
+              <Link href="/login">Log in</Link>
             </Button>
           </div>
+          <p className="mt-3 text-xs text-muted-foreground">
+            Signup happens on Telegram — the bot onboards you in 30
+            seconds, then the dashboard unlocks.
+          </p>
         </div>
         <SignalMock />
       </div>
@@ -707,14 +722,20 @@ function FooterCTA() {
         Ready to trade with a system?
       </h2>
       <p className="text-muted-foreground mb-8 max-w-xl mx-auto">
-        Log in with Telegram to access the dashboard. If you&rsquo;re not
-        in the beta yet, request access from the admin.
+        Tap the button, the bot walks you through onboarding in under
+        a minute, then come back here to see your dashboard.
       </p>
-      <Button asChild size="lg">
-        <Link href="/login">
-          Log in with Telegram <ArrowRight className="h-4 w-4" />
-        </Link>
-      </Button>
+      <div className="flex items-center justify-center gap-3 flex-wrap">
+        <Button asChild size="lg">
+          <a href={TELEGRAM_START_URL} target="_blank" rel="noreferrer">
+            <MessageSquare className="h-4 w-4" />
+            Start on Telegram <ArrowRight className="h-4 w-4" />
+          </a>
+        </Button>
+        <Button asChild variant="ghost" size="lg">
+          <Link href="/login">I already have an account</Link>
+        </Button>
+      </div>
     </section>
   );
 }

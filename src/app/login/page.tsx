@@ -1,8 +1,12 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { BrandLockup } from "@/components/brand";
 import { TelegramLoginButton } from "@/components/telegram-login-button";
 import { env } from "@/env";
+import { MessageSquare, ArrowRight } from "lucide-react";
+
+const TELEGRAM_START_URL = "https://t.me/edgeniq_alerts_bot?start=web";
 
 // Login page. Public. Renders the Telegram Login Widget which redirects
 // to /api/auth/telegram/callback on success. `next` query param lets us
@@ -35,10 +39,9 @@ export default async function LoginPage({
 
       <main className="flex-1 flex items-center justify-center px-6 py-12">
         <Card className="w-full max-w-md p-8 border-border/60 bg-card/50">
-          <h1 className="text-2xl font-semibold mb-2">Log in</h1>
+          <h1 className="text-2xl font-semibold mb-2">Welcome back.</h1>
           <p className="text-sm text-muted-foreground mb-8">
-            We use Telegram as the sign-in mechanism — same account you
-            get signals on. No passwords.
+            Sign in with the Telegram account you use for signals.
           </p>
 
           {errorMsg && (
@@ -54,16 +57,36 @@ export default async function LoginPage({
             />
           </div>
 
-          <p className="mt-8 text-xs text-muted-foreground leading-relaxed">
-            Not in the beta yet? Message{" "}
-            <a
-              href="https://t.me/EdgeNiqSupport"
-              className="text-foreground hover:underline"
-            >
-              @EdgeNiqSupport
-            </a>{" "}
-            for access. Only existing bot users can sign in here.
-          </p>
+          {/* Divider */}
+          <div className="relative my-8">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-border/60" />
+            </div>
+            <div className="relative flex justify-center">
+              <span className="bg-card/50 px-3 text-xs text-muted-foreground uppercase tracking-wider">
+                New here?
+              </span>
+            </div>
+          </div>
+
+          <div className="rounded-md border border-border/60 bg-background/40 p-5">
+            <h2 className="text-sm font-medium mb-1">Start on Telegram first</h2>
+            <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
+              Signup happens inside the bot — tap <code>/start</code>,
+              pick a risk profile, accept the terms. Then come back
+              here to sign in.
+            </p>
+            <Button asChild size="sm" className="w-full">
+              <a
+                href={TELEGRAM_START_URL}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <MessageSquare className="h-4 w-4" />
+                Open @edgeniq_alerts_bot <ArrowRight className="h-3.5 w-3.5" />
+              </a>
+            </Button>
+          </div>
         </Card>
       </main>
 
