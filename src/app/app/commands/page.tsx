@@ -49,6 +49,11 @@ const RESEARCH: Command[] = [
     desc: "your open prediction-market positions (what you took)",
     tier: "elite",
   },
+  {
+    cmd: "/myoptions",
+    desc: "your open options positions (what you entered)",
+    tier: "elite",
+  },
   { cmd: "/history", desc: "your complete trade history" },
   { cmd: "/performance", desc: "win-rate, realized P&L, streak stats" },
   {
