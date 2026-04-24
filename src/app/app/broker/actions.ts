@@ -261,6 +261,36 @@ export async function updateRiskRails(
 // Kill switch
 // ----------------------------------------------------------------------
 
+// Master "auto-trade on/off" switch. Batch-sets execution_mode on
+// every auto_trade_rules row for this user. Needed because the rules
+// cards set modes per-signal-type and there was no single obvious
+// "stop/start auto-trade" control.
+export async function setMasterAutoTrade(
+  enabled: boolean,
+): Promise<ActionResult> {
+  const chatId = await requireElite();
+  const supabase = supabaseAdmin();
+  // When enabling, flip OFF rules to 'auto'. Rules already on
+  // 'one_tap' stay on one_tap so we don't steamroll someone's
+  // more-deliberate mode. When disabling, everything goes to 'off'.
+  if (enabled) {
+    const { error } = await supabase
+      .from("auto_trade_rules")
+      .update({ execution_mode: "auto", updated_at: new Date().toISOString() })
+      .eq("chat_id", chatId)
+      .eq("execution_mode", "off");
+    if (error) return { ok: false, error: error.message };
+  } else {
+    const { error } = await supabase
+      .from("auto_trade_rules")
+      .update({ execution_mode: "off", updated_at: new Date().toISOString() })
+      .eq("chat_id", chatId);
+    if (error) return { ok: false, error: error.message };
+  }
+  revalidatePath("/app/broker");
+  return { ok: true };
+}
+
 export async function engageKillSwitch(
   reason: string = "manual",
 ): Promise<ActionResult<{ canceledCount: number }>> {

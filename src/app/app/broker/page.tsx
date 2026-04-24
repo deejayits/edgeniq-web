@@ -11,6 +11,7 @@ import { ConnectedHeader } from "./connected-header";
 import { RulesCard, type RuleRow } from "./rules-card";
 import { RiskRailsCard, type RiskRailsRow } from "./risk-rails-card";
 import { KillSwitchCard } from "./kill-switch-card";
+import { AutoTradeMasterToggle } from "./master-toggle";
 
 export const dynamic = "force-dynamic";
 
@@ -184,6 +185,24 @@ export default async function BrokerPage() {
               kill switch accessible.
             </AlertDescription>
           </Alert>
+
+          {/* Master on/off — flips all rules to auto or off in one
+              click. Distinct from the kill switch: kill switch also
+              cancels open orders + engages the rails flag; the master
+              toggle just pauses/resumes future order submission. */}
+          <AutoTradeMasterToggle
+            anyActive={rules.some(
+              (r) => r.execution_mode === "auto" || r.execution_mode === "one_tap",
+            )}
+            activeCount={
+              rules.filter(
+                (r) =>
+                  r.execution_mode === "auto" ||
+                  r.execution_mode === "one_tap",
+              ).length
+            }
+            totalCount={rules.length || 2}
+          />
 
           <KillSwitchCard
             engaged={rails?.kill_switch_engaged ?? false}
