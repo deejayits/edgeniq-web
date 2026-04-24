@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { auth } from "@/auth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BrandLockup } from "@/components/brand";
@@ -6,7 +8,11 @@ import { TelegramLoginButton } from "@/components/telegram-login-button";
 import { env } from "@/env";
 import { MessageSquare, ArrowRight } from "lucide-react";
 
-const TELEGRAM_START_URL = "https://t.me/edgeniq_alerts_bot?start=web";
+// Bare t.me link — the ?start=web suffix required a "START BOT" click
+// in Telegram's web preview that only actually opens the bot if the
+// user already has Telegram Desktop installed. Plain URL opens the
+// native app directly (mobile) and shows a useful preview (desktop).
+const TELEGRAM_START_URL = "https://t.me/edgeniq_alerts_bot";
 
 // Login page. Public. Renders the Telegram Login Widget which redirects
 // to /api/auth/telegram/callback on success. `next` query param lets us
@@ -21,6 +27,14 @@ export default async function LoginPage({
     tg_id?: string;
   }>;
 }) {
+  // If the user already has a valid session (e.g. they signed in on
+  // another tab), skip the login form and send them to the dashboard.
+  const session = await auth();
+  if (session?.user) {
+    const params0 = await searchParams;
+    redirect(params0.next && params0.next.startsWith("/") ? params0.next : "/app");
+  }
+
   const params = await searchParams;
   const errorMsg = errorMessage(params.error, {
     reason: params.reason,

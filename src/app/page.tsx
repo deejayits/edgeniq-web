@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { auth } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,10 +20,20 @@ import {
 // Primary signup surface — Telegram, not the website. Every "Get
 // started" CTA routes here so new visitors start the bot before
 // (or instead of) hitting the web login widget.
-const TELEGRAM_START_URL = "https://t.me/edgeniq_alerts_bot?start=web";
+// Plain t.me URL — the ?start=web suffix previously here required
+// clicking a "START BOT" button that only worked if Telegram Desktop
+// was installed. Bare URL opens the bot directly in the app on mobile
+// and shows the bot preview on desktop, which is the expected behavior.
+const TELEGRAM_START_URL = "https://t.me/edgeniq_alerts_bot";
 
 // Marketing landing page. Public; no auth required. Renders at /.
-export default function LandingPage() {
+// Session-aware: if the user is already logged in (cookie present from
+// /app sign-in), show "Open dashboard" instead of "Log in" in the nav
+// so new-tab visitors don't feel logged out.
+export default async function LandingPage() {
+  const session = await auth();
+  const isLoggedIn = !!session?.user;
+
   return (
     <div className="flex flex-col min-h-screen relative overflow-hidden">
       {/* Subtle grid + radial glow background. Pure CSS so no layout shift. */}
@@ -34,7 +45,7 @@ export default function LandingPage() {
             "radial-gradient(ellipse 80% 50% at 50% -10%, rgba(110, 80, 255, 0.14), transparent 60%), radial-gradient(ellipse 60% 40% at 80% 20%, rgba(16, 185, 129, 0.1), transparent 60%)",
         }}
       />
-      <SiteHeader />
+      <SiteHeader isLoggedIn={isLoggedIn} />
       <main className="flex-1">
         <Hero />
         <StatsStrip />
@@ -50,7 +61,7 @@ export default function LandingPage() {
   );
 }
 
-function SiteHeader() {
+function SiteHeader({ isLoggedIn }: { isLoggedIn: boolean }) {
   return (
     <header className="border-b border-border/50 backdrop-blur-sm sticky top-0 z-50 bg-background/80">
       <div className="mx-auto max-w-6xl px-6 h-16 flex items-center justify-between">
@@ -76,9 +87,15 @@ function SiteHeader() {
           >
             Pricing
           </Link>
-          <Button asChild size="sm" variant="outline">
-            <Link href="/login">Log in</Link>
-          </Button>
+          {isLoggedIn ? (
+            <Button asChild size="sm">
+              <Link href="/app">Open dashboard</Link>
+            </Button>
+          ) : (
+            <Button asChild size="sm" variant="outline">
+              <Link href="/login">Log in</Link>
+            </Button>
+          )}
         </nav>
       </div>
     </header>
