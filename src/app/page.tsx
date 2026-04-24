@@ -494,62 +494,65 @@ function WhyDifferent() {
   );
 }
 
-// Three-tier subscription pricing. Benchmarked against Discord trading
-// communities ($15–40/mo is the typical band). No lifetime/one-time
-// options — we rely on MRR and low churn, not lump-sum bets.
+// Three-tier subscription pricing. Free is a 7-day trial with full
+// Elite access so new users feel the ceiling before deciding. Pro is
+// the focused "signals on my own stocks" tier. Elite unlocks
+// whole-market discovery, options, prediction markets, and whale flow.
 function Pricing() {
   const tiers = [
     {
       name: "Free",
-      tag: "Try it out",
+      tag: "7-day trial — full Elite access",
       price: "$0",
-      priceSub: "",
-      cta: "Start free",
+      priceSub: "for 7 days",
+      cta: "Start free trial",
       ctaVariant: "outline" as const,
       ctaHref: "/login",
       highlights: [
-        "Signals only for tickers on your watchlist",
-        "Up to 5 tickers tracked",
-        "Moderate risk profile · Balanced strategy",
+        "Full Elite features for 7 days",
+        "See every signal the bot can fire — stocks, options, predictions, whales",
         "Web dashboard + Telegram bot",
+        "Pick Pro or Elite when the trial ends",
       ],
       featured: false,
       badge: null,
     },
     {
       name: "Pro",
-      tag: "Active traders",
-      price: "$19",
+      tag: "Stock signals for your list",
+      price: "$49.99",
       priceSub: "/ mo",
       cta: "Join Pro",
       ctaVariant: "default" as const,
       ctaHref: "/login",
       highlights: [
-        "Discovery signals across the whole market — not just your watchlist",
-        "Unlimited watchlist + prediction-market alerts",
+        "Stock signals — only for tickers on your watchlist",
+        "Up to 5 tickers on your watchlist",
         "All 4 risk profiles + 6 strategy templates",
-        "Portfolio advisor (concentration, streak, stale warnings)",
-        "Earnings calendar + live position monitor",
+        "Live position monitor + portfolio advisor",
+        "Earnings calendar alerts for your watchlist",
       ],
       featured: true,
       badge: "Most popular",
     },
     {
-      name: "Founding Pro",
-      tag: "First 50 members — $9/mo locked in forever",
-      price: "$9",
+      name: "Elite",
+      tag: "Everything the bot can do",
+      price: "$99.99",
       priceSub: "/ mo",
-      cta: "Apply",
+      cta: "Go Elite",
       ctaVariant: "outline" as const,
       ctaHref: "/login",
       highlights: [
-        "Full Pro — $9/mo locked in, even after price rises",
-        "Direct DM to the founder on Telegram",
-        "Vote on the feature roadmap",
-        "Private member-only announcements",
+        "Everything in Pro",
+        "Unlimited watchlist",
+        "Whole-market discovery signals — not just your list",
+        "Options alerts (unusual volume, block prints, OTM spikes)",
+        "Prediction markets (Kalshi + Polymarket)",
+        "Whale trade alerts + cross-venue HIGH CONVICTION",
       ],
       featured: false,
-      badge: "50% off",
+      badge: null,
     },
   ];
 
@@ -566,9 +569,9 @@ function Pricing() {
           Built for traders who want a system.
         </h2>
         <p className="mt-4 text-muted-foreground max-w-xl mx-auto">
-          Open beta today. Pro rolls out when billing is wired —
-          Founding Member pricing is available now for the first 50
-          committed users.
+          Start with a free 7-day Elite trial. No card required — signup
+          happens on Telegram, so the bot knows who you are from the
+          first signal.
         </p>
       </div>
       <div className="grid md:grid-cols-3 gap-6 mb-16">
@@ -625,27 +628,30 @@ function Pricing() {
 }
 
 // Full feature-by-tier comparison table. Scoped to the pricing page
-// because the tier cards above necessarily elide detail.
+// because the tier cards above necessarily elide detail. Free is
+// rendered as "trial" — it's a 7-day look at Elite, not a permanent
+// tier, so the comparison shows what users get during vs. after.
 function FeatureMatrix() {
   const rows: Array<{
     label: string;
     free: string | boolean;
     pro: string | boolean;
-    founding: string | boolean;
+    elite: string | boolean;
   }> = [
-    { label: "Signal coverage", free: "Watchlist only", pro: "Whole market + watchlist", founding: "Whole market + watchlist" },
-    { label: "Watchlist size", free: "5 tickers", pro: "Unlimited", founding: "Unlimited" },
-    { label: "Risk profiles", free: "Moderate", pro: "All 4", founding: "All 4" },
-    { label: "Strategy templates", free: "Balanced only", pro: "All 6", founding: "All 6" },
-    { label: "Per-user target ladders", free: true, pro: true, founding: true },
-    { label: "Live position monitor", free: false, pro: true, founding: true },
-    { label: "Portfolio advisor", free: false, pro: true, founding: true },
-    { label: "Earnings calendar alerts", free: false, pro: true, founding: true },
-    { label: "Prediction markets (Kalshi · Polymarket)", free: false, pro: true, founding: true },
-    { label: "Session briefings (pre-market · EOD · Sunday prep)", free: false, pro: true, founding: true },
-    { label: "Direct DM to founder", free: false, pro: false, founding: true },
-    { label: "Vote on feature roadmap", free: false, pro: false, founding: true },
-    { label: "Locked-in price forever", free: "n/a", pro: false, founding: true },
+    { label: "Stock signals", free: "Whole market", pro: "Watchlist only", elite: "Whole market (discovery)" },
+    { label: "Watchlist size", free: "5 tickers", pro: "5 tickers", elite: "Unlimited" },
+    { label: "Options alerts", free: true, pro: false, elite: true },
+    { label: "Prediction markets (Kalshi · Polymarket)", free: true, pro: false, elite: true },
+    { label: "Whale trade alerts", free: true, pro: false, elite: true },
+    { label: "HIGH CONVICTION cross-venue signals", free: true, pro: false, elite: true },
+    { label: "Risk profiles", free: "All 4", pro: "All 4", elite: "All 4" },
+    { label: "Strategy templates", free: "All 6", pro: "All 6", elite: "All 6" },
+    { label: "Per-user target ladders", free: true, pro: true, elite: true },
+    { label: "Live position monitor", free: true, pro: true, elite: true },
+    { label: "Portfolio advisor", free: true, pro: true, elite: true },
+    { label: "Earnings calendar alerts", free: true, pro: "For watchlist", elite: "Whole market" },
+    { label: "Session briefings (pre-market · EOD)", free: true, pro: true, elite: true },
+    { label: "Trial length", free: "7 days", pro: "—", elite: "—" },
   ];
 
   return (
@@ -665,9 +671,7 @@ function FeatureMatrix() {
                 <th className="text-center px-4 py-3 font-medium text-primary">
                   Pro
                 </th>
-                <th className="text-center px-4 py-3 font-medium">
-                  Founding
-                </th>
+                <th className="text-center px-4 py-3 font-medium">Elite</th>
               </tr>
             </thead>
             <tbody>
@@ -686,7 +690,7 @@ function FeatureMatrix() {
                     <MatrixCell v={row.pro} featured />
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <MatrixCell v={row.founding} />
+                    <MatrixCell v={row.elite} />
                   </td>
                 </tr>
               ))}
@@ -694,6 +698,10 @@ function FeatureMatrix() {
           </table>
         </div>
       </Card>
+      <p className="text-xs text-muted-foreground text-center mt-4 max-w-2xl mx-auto">
+        Free is a 7-day trial with full Elite access. After the trial
+        ends, choose Pro or Elite to keep receiving signals.
+      </p>
     </div>
   );
 }
