@@ -44,6 +44,11 @@ const RESEARCH: Command[] = [
   { cmd: "/today", desc: "all signals fired today + live status" },
   { cmd: "/eod", desc: "today's end-of-day summary (on demand)" },
   { cmd: "/portfolio", desc: "open positions, concentration warnings" },
+  {
+    cmd: "/mymarkets",
+    desc: "your open prediction-market positions (what you took)",
+    tier: "elite",
+  },
   { cmd: "/history", desc: "your complete trade history" },
   { cmd: "/performance", desc: "win-rate, realized P&L, streak stats" },
   {
