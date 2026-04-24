@@ -28,6 +28,34 @@ export const env = createEnv({
       .enum(["true", "false"])
       .default("false")
       .transform((v) => v === "true"),
+
+    // Symmetric AES-256-GCM key for encrypting broker API credentials
+    // at rest in Supabase. Generate once with:
+    //   openssl rand -base64 32
+    // Rotating this key requires re-encrypting every stored broker
+    // credential — treat as append-only config.
+    TRADING_ENCRYPTION_KEY: z
+      .string()
+      .min(40)
+      .refine(
+        (v) => {
+          try {
+            return Buffer.from(v, "base64").length === 32;
+          } catch {
+            return false;
+          }
+        },
+        { message: "TRADING_ENCRYPTION_KEY must decode to exactly 32 bytes" },
+      ),
+
+    // OAuth for Alpaca — scaffolded but requires Alpaca developer app
+    // approval before production use. Unset = paste-key flow only.
+    ALPACA_OAUTH_CLIENT_ID: z.string().optional(),
+    ALPACA_OAUTH_CLIENT_SECRET: z.string().optional(),
+    ALPACA_OAUTH_ENABLED: z
+      .enum(["true", "false"])
+      .default("false")
+      .transform((v) => v === "true"),
   },
   client: {
     NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
