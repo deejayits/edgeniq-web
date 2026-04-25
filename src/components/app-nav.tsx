@@ -24,7 +24,7 @@ export function AppNav({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname();
   const items = isAdmin ? [...BASE_NAV, ...ADMIN_NAV] : BASE_NAV;
   return (
-    <nav className="flex items-center gap-1 text-sm">
+    <nav className="flex items-center gap-0.5 text-sm">
       {items.map((item) => {
         const active =
           item.href === "/app"
@@ -35,10 +35,10 @@ export function AppNav({ isAdmin = false }: { isAdmin?: boolean }) {
             key={item.href}
             href={item.href}
             className={cn(
-              "px-3 py-1.5 rounded-md transition",
+              "relative px-3 py-1.5 rounded-md transition-colors duration-150",
               active
-                ? "bg-muted text-foreground"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                ? "text-foreground bg-muted/60 shadow-[inset_0_1px_0_oklch(1_0_0_/_0.05)]"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/30",
             )}
           >
             {item.label}

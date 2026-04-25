@@ -29,10 +29,14 @@ export default async function AppLayout({
 
   return (
     <div className="flex flex-col min-h-screen">
-      <header className="border-b border-border/50 bg-background/80 backdrop-blur-sm sticky top-0 z-30">
+      <header className="border-b border-border/40 bg-background/70 backdrop-blur-md sticky top-0 z-30 supports-[backdrop-filter]:bg-background/60">
         <div className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-8">
-            <Link href="/app" aria-label="EdgeNiq home">
+            <Link
+              href="/app"
+              aria-label="EdgeNiq home"
+              className="opacity-90 hover:opacity-100 transition-opacity"
+            >
               <BrandLockup iconSize={30} textClassName="text-lg" />
             </Link>
             <AppNav isAdmin={isAdmin} />
@@ -46,7 +50,7 @@ export default async function AppLayout({
         </div>
       </header>
 
-      <main className="flex-1 mx-auto w-full max-w-7xl px-6 py-8">
+      <main className="flex-1 mx-auto w-full max-w-7xl px-6 py-10">
         {children}
       </main>
 

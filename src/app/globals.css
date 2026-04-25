@@ -127,8 +127,53 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Subtle ambient gradient — emerald top-left, violet bottom-right.
+       The brand colors live at low alpha so the page reads dark/neutral
+       but the corners get a hint of warmth that ties content to the
+       EdgeNiq mark. radial-gradient on a fixed background means it
+       doesn't tile or scroll with content. */
+    background-image:
+      radial-gradient(
+        circle at 0% 0%,
+        oklch(0.488 0.243 264.376 / 0.06) 0%,
+        transparent 45%
+      ),
+      radial-gradient(
+        circle at 100% 100%,
+        oklch(0.69 0.16 165 / 0.05) 0%,
+        transparent 55%
+      );
+    background-attachment: fixed;
   }
   html {
-    @apply font-sans;
+    @apply font-sans antialiased;
+  }
+  /* Cards get a faint inner highlight on top edge — picks up the
+     ambient gradient and lifts them off the background without a heavy
+     shadow. Subtle enough to read as "depth," not "3D button." */
+  [data-slot="card"] {
+    box-shadow:
+      0 0 0 1px oklch(1 0 0 / 0.02),
+      inset 0 1px 0 oklch(1 0 0 / 0.03);
+    transition:
+      border-color 200ms ease,
+      box-shadow 200ms ease,
+      transform 200ms ease;
+  }
+}
+
+@layer utilities {
+  /* Card hover affordance for clickable cards. Apply manually with
+     class="card-hover" — most cards are static and shouldn't lift on
+     hover. */
+  .card-hover {
+    @apply hover:border-border;
+  }
+  .card-hover:hover {
+    box-shadow:
+      0 0 0 1px oklch(1 0 0 / 0.04),
+      inset 0 1px 0 oklch(1 0 0 / 0.05),
+      0 8px 24px -12px oklch(0 0 0 / 0.4);
+    transform: translateY(-1px);
   }
 }

@@ -201,17 +201,23 @@ function ActiveTradeCard({ trade }: { trade: EnrichedTrade }) {
     ? ((live - entry) / entry) * 100
     : null;
 
-  // Where is current price on the ladder? Use the % range between stop
-  // and the farthest target to place a progress marker. Falls back to
-  // a static grey bar when we don't have a live price or ladder.
+  // Centered "P&L bar": entry sits in the middle. Left half shows the
+  // distance to stop (loss zone), right half shows the distance to the
+  // farthest target (profit zone). This matches the user's mental
+  // model — winners pull the marker right, losers pull it left.
   const hasLadder = stop > 0 && targets.length > 0;
-  const laddMax = targets[targets.length - 1]?.price ?? entry * 1.15;
-  const laddMin = stop || entry * 0.97;
-  const markerPct = live != null && hasLadder
-    ? clampPct(((live - laddMin) / (laddMax - laddMin)) * 100)
+  const ladderMax = targets[targets.length - 1]?.price ?? entry * 1.15;
+  // Distance from entry → stop (loss span) and entry → T3 (profit span)
+  // as % of entry, used to size the bar's halves and place ticks.
+  const lossSpanPct = entry > 0 ? ((entry - stop) / entry) * 100 : 0;
+  const profitSpanPct = entry > 0 ? ((ladderMax - entry) / entry) * 100 : 0;
+  // % distance to nearest milestones — surfaced as headline stats.
+  const distanceToStopPct = live != null && stop > 0
+    ? ((live - stop) / live) * 100
     : null;
-  const entryPct = hasLadder
-    ? clampPct(((entry - laddMin) / (laddMax - laddMin)) * 100)
+  const t1Price = targets[0]?.price ?? null;
+  const distanceToT1Pct = live != null && t1Price != null
+    ? ((t1Price - live) / live) * 100
     : null;
 
   return (
@@ -299,48 +305,65 @@ function ActiveTradeCard({ trade }: { trade: EnrichedTrade }) {
       <Separator className="bg-border/40" />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Stat label="Entry" value={fmtMoney(entry)} subtle={fmtDateShort(trade.confirmed_at)} />
         <Stat
-          label="Signal price"
-          value={
-            trade.signal?.suggested_price
-              ? fmtMoney(trade.signal.suggested_price)
-              : "—"
-          }
-          subtle={
-            trade.signal?.suggested_price && entry
-              ? fmtDiffPct(trade.signal.suggested_price, entry, "vs entry")
-              : undefined
-          }
+          label="Entry"
+          value={fmtMoney(entry)}
+          subtle={fmtDateShort(trade.confirmed_at)}
         />
         <Stat
           label="Stop"
           value={stop ? fmtMoney(stop) : "—"}
           subtle={
-            stop && entry
-              ? `${((stop - entry) / entry * 100).toFixed(2)}% from entry`
-              : undefined
+            distanceToStopPct != null
+              ? `${distanceToStopPct.toFixed(2)}% room before stop`
+              : stop && entry
+                ? `${((stop - entry) / entry * 100).toFixed(2)}% from entry`
+                : undefined
           }
           tone="rose"
         />
         <Stat
-          label="Targets"
-          value={targets.length ? `T1–T${targets.length}` : "—"}
-          subtle={targets.length ? `first +${(targets[0]?.pct || 0).toFixed(0)}%` : undefined}
+          label="Next target (T1)"
+          value={t1Price ? fmtMoney(t1Price) : "—"}
+          subtle={
+            distanceToT1Pct != null
+              ? distanceToT1Pct <= 0
+                ? "T1 reached"
+                : `${distanceToT1Pct.toFixed(2)}% to go`
+              : t1Price && entry
+                ? `+${(((t1Price - entry) / entry) * 100).toFixed(2)}% from entry`
+                : undefined
+          }
+          tone="emerald"
+        />
+        <Stat
+          label="All targets"
+          value={
+            targets.length
+              ? targets.map((_, i) => `T${i + 1}`).join(" · ")
+              : "—"
+          }
+          subtle={
+            targets.length
+              ? targets
+                  .map((t) => `+${(t.pct || 0).toFixed(0)}%`)
+                  .join(" · ")
+              : undefined
+          }
           tone="emerald"
         />
       </div>
 
-      {hasLadder && (
-        <div className="space-y-2 pt-1">
-          <LadderBar
-            stop={laddMin}
-            entry={entry}
-            targets={targets}
-            entryPct={entryPct}
-            markerPct={markerPct}
-          />
-        </div>
+      {hasLadder && entry > 0 && (
+        <PnLBar
+          live={live}
+          entry={entry}
+          stop={stop}
+          targets={targets}
+          unrealizedPct={unrealizedPct}
+          lossSpanPct={lossSpanPct}
+          profitSpanPct={profitSpanPct}
+        />
       )}
     </Card>
   );
@@ -442,66 +465,143 @@ function Stat({
   );
 }
 
-// Mini "range bar" that shows the distance from stop (left) to the
-// farthest target (right), with entry and current price marked. Gives
-// the user an instant read on how close they are to T1 vs being stopped.
-function LadderBar({
+// Entry-centered P&L bar. Entry sits at the middle line; left half is
+// the loss zone (stop at the left edge), right half is the profit zone
+// (last target at the right edge). The current-price marker pulls left
+// for a loss, right for a gain — matches what "+0.58% vs entry" feels
+// like to the user instead of the abstract stop→target normalization.
+function PnLBar({
+  live,
+  entry,
   stop,
-  entry: _entry,
   targets,
-  entryPct,
-  markerPct,
+  unrealizedPct,
+  lossSpanPct,
+  profitSpanPct,
 }: {
-  stop: number;
+  live: number | null;
   entry: number;
+  stop: number;
   targets: PersonalTarget[];
-  entryPct: number | null;
-  markerPct: number | null;
+  unrealizedPct: number | null;
+  lossSpanPct: number; // |entry → stop| as % of entry (positive)
+  profitSpanPct: number; // |entry → T3| as % of entry (positive)
 }) {
-  const max = targets[targets.length - 1]?.price ?? stop;
-  const range = max - stop;
+  // Where to draw the live-price marker, expressed as a % of bar width.
+  // Center (50%) = at entry; 0% = at stop; 100% = at last target.
+  let markerPct: number | null = null;
+  if (live != null && unrealizedPct != null) {
+    if (unrealizedPct < 0 && lossSpanPct > 0) {
+      // In the loss half: 0..50%, where 0% = stop, 50% = entry.
+      const portion = Math.min(1, Math.abs(unrealizedPct) / lossSpanPct);
+      markerPct = 50 - portion * 50;
+    } else if (unrealizedPct >= 0 && profitSpanPct > 0) {
+      // In the profit half: 50..100%.
+      const portion = Math.min(1, unrealizedPct / profitSpanPct);
+      markerPct = 50 + portion * 50;
+    } else {
+      markerPct = 50;
+    }
+  }
+
+  // Target tick positions on the right half. Each Tn is at
+  // 50% + (Tn_pct / profitSpanPct) * 50%.
+  const targetTicks = targets
+    .map((t, i) => {
+      if (entry <= 0 || profitSpanPct <= 0) return null;
+      const tPct = ((t.price - entry) / entry) * 100;
+      const portion = Math.min(1, tPct / profitSpanPct);
+      return {
+        i,
+        leftPct: 50 + portion * 50,
+        hit: !!t.hit,
+        price: t.price,
+      };
+    })
+    .filter((t): t is NonNullable<typeof t> => t != null);
+
   return (
-    <div>
-      <div className="relative h-3 rounded-full bg-muted/30 border border-border/40 overflow-visible">
-        {/* Entry tick */}
-        {entryPct != null && (
-          <div
-            className="absolute top-[-2px] bottom-[-2px] w-[2px] bg-muted-foreground/80"
-            style={{ left: `${entryPct}%` }}
-          />
-        )}
-        {/* Target ticks */}
-        {targets.map((t, i) => {
-          const pct = clampPct(((t.price - stop) / range) * 100);
-          return (
-            <div
-              key={i}
-              className={`absolute top-[-2px] bottom-[-2px] w-[2px] ${
-                t.hit ? "bg-emerald-400" : "bg-emerald-400/40"
-              }`}
-              style={{ left: `${pct}%` }}
-            />
-          );
-        })}
-        {/* Live price marker */}
+    <div className="space-y-3 pt-2">
+      <div className="relative h-2 rounded-full bg-muted/40 border border-border/40 overflow-visible">
+        {/* Loss zone (left half) — subtle red tint */}
+        <div
+          className="absolute inset-y-0 left-0 rounded-l-full bg-rose-400/15"
+          style={{ width: "50%" }}
+        />
+        {/* Profit zone (right half) — subtle emerald tint */}
+        <div
+          className="absolute inset-y-0 rounded-r-full bg-emerald-400/15"
+          style={{ left: "50%", width: "50%" }}
+        />
+        {/* Filled progress from entry to live price (winners pull
+            right green; losers pull left red). Read at a glance. */}
         {markerPct != null && (
           <div
-            className="absolute top-[-6px] bottom-[-6px] w-[3px] rounded-full bg-primary shadow-[0_0_8px_var(--color-primary)]"
-            style={{ left: `calc(${markerPct}% - 1px)` }}
+            className={`absolute inset-y-0 ${
+              markerPct >= 50
+                ? "bg-emerald-400/40 rounded-r-full"
+                : "bg-rose-400/40 rounded-l-full"
+            }`}
+            style={
+              markerPct >= 50
+                ? { left: "50%", width: `${markerPct - 50}%` }
+                : { left: `${markerPct}%`, width: `${50 - markerPct}%` }
+            }
+          />
+        )}
+        {/* Entry midline */}
+        <div
+          className="absolute top-[-3px] bottom-[-3px] w-[2px] bg-foreground/70"
+          style={{ left: "50%" }}
+        />
+        {/* Stop (left edge) */}
+        <div className="absolute top-[-3px] bottom-[-3px] left-0 w-[2px] bg-rose-400" />
+        {/* Target ticks on the right half */}
+        {targetTicks.map((tt) => (
+          <div
+            key={tt.i}
+            className={`absolute top-[-3px] bottom-[-3px] w-[2px] ${
+              tt.hit ? "bg-emerald-300" : "bg-emerald-400/60"
+            }`}
+            style={{ left: `${tt.leftPct}%` }}
+          />
+        ))}
+        {/* Live price marker — circular dot above the line so it
+            stands clearly apart from the static ticks. */}
+        {markerPct != null && (
+          <div
+            className="absolute top-[-5px] h-3 w-3 rounded-full border-2 border-background bg-primary shadow-[0_0_10px_var(--color-primary)]"
+            style={{ left: `calc(${markerPct}% - 6px)` }}
           />
         )}
       </div>
-      <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground mt-2">
-        <span className="inline-flex items-center gap-1">
-          <span className="h-1.5 w-1.5 rounded-full bg-rose-400" />
-          stop {fmtMoney(stop)}
-        </span>
-        <span className="inline-flex items-center gap-1">
-          <TargetIcon className="h-3 w-3 text-emerald-400" />
-          {targets
-            .map((t, i) => `T${i + 1} ${fmtMoney(t.price)}`)
-            .join(" · ")}
-        </span>
+
+      {/* Bar legend — three rows that map directly to what's on the bar:
+          stop edge on the left, entry in the middle, targets on the
+          right. Color-coded so the user reads "red = bad, green = good"
+          without thinking. */}
+      <div className="grid grid-cols-3 gap-2 text-[10px] font-mono">
+        <div className="flex items-center gap-1.5 text-muted-foreground">
+          <span className="h-2 w-2 rounded-full bg-rose-400 shrink-0" />
+          <span className="truncate">
+            <span className="text-rose-300">stop</span>{" "}
+            <span className="text-foreground">{fmtMoney(stop)}</span>
+          </span>
+        </div>
+        <div className="text-center text-muted-foreground">
+          <span className="text-foreground">entry</span> {fmtMoney(entry)}
+        </div>
+        <div className="flex items-center gap-1.5 justify-end text-muted-foreground">
+          <span className="truncate text-right">
+            <span className="text-emerald-300">targets</span>{" "}
+            <span className="text-foreground">
+              {targets
+                .map((t, i) => `T${i + 1} ${fmtMoney(t.price)}`)
+                .join(" · ")}
+            </span>
+          </span>
+          <TargetIcon className="h-3 w-3 text-emerald-400 shrink-0" />
+        </div>
       </div>
     </div>
   );
@@ -562,6 +662,7 @@ function prettyType(raw?: string | null): string | null {
     volume_spike: "Unusual buying surge",
     trend_up: "Steady upward pressure",
     momentum_up: "Steady upward pressure",
+    ws_momentum_up: "Steady upward pressure",
     trend_with_volume: "Strong trend with heavy volume",
     rsi_bounce: "Bouncing from a low point",
     rsi_oversold: "Bouncing from a low point",
@@ -569,10 +670,18 @@ function prettyType(raw?: string | null): string | null {
     gap_up: "Strong open, buyers in control",
     gap_down: "Sharp drop, bounce possible",
     momentum_down: "Selling pressure",
+    ws_momentum_down: "Selling pressure",
     mixed_setup: "Multiple indicators align",
     whale_accumulation: "Smart money buying",
+    cross_platform: "Confirmed on two platforms",
   };
-  return labels[raw] ?? raw.replace(/_/g, " ");
+  if (labels[raw]) return labels[raw];
+  // Trim leading "ws_" / "rt_" prefixes the websocket scanner adds and
+  // try the lookup again before falling back to the raw underscored
+  // string. Keeps unknown types readable without inventing a label.
+  const stripped = raw.replace(/^(ws_|rt_)/, "");
+  if (labels[stripped]) return labels[stripped];
+  return stripped.replace(/_/g, " ");
 }
 
 function fmtMoney(n: number | null | undefined): string {
@@ -591,17 +700,6 @@ function fmtDateShort(iso: string): string {
   } catch {
     return "—";
   }
-}
-
-function fmtDiffPct(from: number, to: number, suffix: string): string {
-  if (!from || !to) return "";
-  const pct = ((to - from) / from) * 100;
-  return `${pct >= 0 ? "+" : ""}${pct.toFixed(2)}% ${suffix}`;
-}
-
-function clampPct(n: number): number {
-  if (!Number.isFinite(n)) return 0;
-  return Math.min(100, Math.max(0, n));
 }
 
 function relativeTime(iso: string): string {

@@ -1,8 +1,18 @@
 import { auth } from "@/auth";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { supabaseAdmin } from "@/lib/supabase/server";
+import {
+  Activity,
+  Bell,
+  CalendarClock,
+  Eye,
+  Shield,
+  Target,
+  UserCircle,
+} from "lucide-react";
+
+export const dynamic = "force-dynamic";
 
 // Settings — read-only for now. Edit flows (change strategy, risk
 // profile, watchlist) will land in follow-up PRs with server actions
@@ -21,104 +31,294 @@ export default async function SettingsPage() {
     .single();
   if (!me) return null;
 
+  const sessionAlerts = (me.session_alerts ?? {}) as Record<string, boolean>;
+  const enabledSessions = Object.entries(sessionAlerts)
+    .filter(([, v]) => v)
+    .map(([k]) => k);
+  const watchlist: string[] = Array.isArray(me.watchlist) ? me.watchlist : [];
+  const alerts: string[] = Array.isArray(me.alerts) ? me.alerts : ["stocks"];
+
   return (
-    <div className="space-y-10 max-w-3xl">
+    <div className="space-y-10 max-w-4xl">
       <header>
         <div className="text-xs font-mono text-muted-foreground mb-1 uppercase tracking-wider">
           Preferences
         </div>
         <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>
         <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
-          Preferences that control which signals reach you. Editing is
-          coming in the next release — for now, use the Telegram bot
-          commands to change these.
+          Preferences that control which signals reach you. Editing
+          inline lands in the next release — for now use the linked
+          Telegram command on each row to change anything.
         </p>
       </header>
 
-      <Card className="p-6 border-border/60 bg-card/50 space-y-4">
+      <SettingsSection title="Trading" eyebrow="How EdgeNiq picks for you">
         <SettingRow
+          icon={Shield}
+          tone="emerald"
           label="Risk profile"
-          value={me.risk_profile}
-          hint="Change via /riskprofile on Telegram"
+          command="/riskprofile"
+          rightSlot={<ValuePill>{me.risk_profile ?? "—"}</ValuePill>}
         />
-        <Separator />
         <SettingRow
-          label="Strategy template"
-          value={me.strategy}
-          hint="Change via /strategy on Telegram"
+          icon={Target}
+          tone="violet"
+          label="Strategy"
+          command="/strategy"
+          rightSlot={<ValuePill>{me.strategy ?? "—"}</ValuePill>}
         />
-        <Separator />
         <SettingRow
+          icon={Eye}
+          tone="sky"
           label="Watchlist"
-          value={
-            me.watchlist?.length ? me.watchlist.join(", ") : "— empty —"
+          command="/watchlist"
+          rightSlot={
+            watchlist.length === 0 ? (
+              <span className="text-xs text-muted-foreground italic">
+                empty — add tickers via Telegram
+              </span>
+            ) : (
+              <div className="flex flex-wrap justify-end gap-1.5 max-w-md">
+                {watchlist.map((t) => (
+                  <Badge
+                    key={t}
+                    variant="outline"
+                    className="font-mono text-[11px] py-0 h-5"
+                  >
+                    {t}
+                  </Badge>
+                ))}
+              </div>
+            )
           }
-          hint="Change via /watchlist on Telegram"
         />
-        <Separator />
-        <SettingRow
-          label="Alert types"
-          value={me.alerts?.join(", ") || "stocks"}
-          hint="Toggle via /alerts on Telegram"
-        />
-        <Separator />
-        <SettingRow
-          label="Session alerts"
-          value={formatSessionAlerts(me.session_alerts)}
-          hint="Control which market-session notifications fire"
-        />
-      </Card>
+      </SettingsSection>
 
-      <Card className="p-6 border-border/60 bg-card/50 space-y-4">
-        <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
-          Account
-        </h2>
-        <div className="text-sm space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">Plan</span>
-            <Badge variant="outline">{me.sub_plan}</Badge>
+      <SettingsSection
+        title="Notifications"
+        eyebrow="What reaches your phone"
+      >
+        <SettingRow
+          icon={Bell}
+          tone="amber"
+          label="Alert types"
+          command="/alerts"
+          rightSlot={
+            <div className="flex flex-wrap justify-end gap-1.5">
+              {alerts.map((a) => (
+                <Badge
+                  key={a}
+                  className="bg-amber-400/15 text-amber-300 border border-amber-400/30 text-[11px] py-0 h-5 capitalize"
+                >
+                  {a}
+                </Badge>
+              ))}
+            </div>
+          }
+        />
+        <SettingRow
+          icon={CalendarClock}
+          tone="rose"
+          label="Session alerts"
+          command="—"
+          description="Pre-market, prime-time, EOD, and weekend recap notifications"
+          rightSlot={
+            enabledSessions.length === 0 ? (
+              <span className="text-xs text-muted-foreground italic">
+                none enabled
+              </span>
+            ) : (
+              <Badge
+                variant="outline"
+                className="text-[11px] py-0 h-5 text-muted-foreground"
+              >
+                {enabledSessions.length} of{" "}
+                {Object.keys(sessionAlerts).length || enabledSessions.length}{" "}
+                enabled
+              </Badge>
+            )
+          }
+        />
+        {enabledSessions.length > 0 && (
+          <div className="mt-2 pl-12 flex flex-wrap gap-1.5">
+            {enabledSessions.map((s) => (
+              <Badge
+                key={s}
+                variant="outline"
+                className="text-[10px] py-0 h-5 text-muted-foreground capitalize"
+              >
+                {s.replace(/_/g, " ")}
+              </Badge>
+            ))}
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">Status</span>
-            <Badge variant="outline">{me.sub_status}</Badge>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">Role</span>
-            <Badge variant="outline">{me.role}</Badge>
-          </div>
-        </div>
-      </Card>
+        )}
+      </SettingsSection>
+
+      <SettingsSection title="Account" eyebrow="Who you are on EdgeNiq">
+        <SettingRow
+          icon={UserCircle}
+          tone="violet"
+          label="Plan"
+          rightSlot={
+            <Badge
+              className={planClass(me.sub_plan ?? "free")}
+            >
+              {me.sub_plan ?? "free"}
+            </Badge>
+          }
+        />
+        <SettingRow
+          icon={Activity}
+          tone="emerald"
+          label="Status"
+          rightSlot={
+            <Badge
+              className={statusClass(me.sub_status ?? "active")}
+            >
+              {me.sub_status ?? "active"}
+            </Badge>
+          }
+        />
+        <SettingRow
+          icon={Shield}
+          tone="sky"
+          label="Role"
+          rightSlot={<ValuePill>{me.role ?? "user"}</ValuePill>}
+        />
+      </SettingsSection>
     </div>
   );
 }
 
-function SettingRow({
-  label,
-  value,
-  hint,
+function SettingsSection({
+  title,
+  eyebrow,
+  children,
 }: {
-  label: string;
-  value: string;
-  hint?: string;
+  title: string;
+  eyebrow?: string;
+  children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-4">
-      <div>
-        <div className="text-sm font-medium">{label}</div>
-        {hint && (
-          <div className="text-xs text-muted-foreground mt-0.5">{hint}</div>
+    <section className="space-y-3">
+      <div className="flex items-baseline gap-3">
+        <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+          {title}
+        </h2>
+        {eyebrow && (
+          <span className="text-xs text-muted-foreground/70">{eyebrow}</span>
         )}
       </div>
-      <div className="text-sm text-right font-mono max-w-[60%]">{value}</div>
+      <Card className="p-2 border-border/60 bg-card/50 divide-y divide-border/40 overflow-hidden">
+        {children}
+      </Card>
+    </section>
+  );
+}
+
+const TONE_CLASSES: Record<
+  string,
+  { bg: string; border: string; text: string }
+> = {
+  emerald: {
+    bg: "bg-emerald-400/10",
+    border: "border-emerald-400/30",
+    text: "text-emerald-300",
+  },
+  violet: {
+    bg: "bg-violet-400/10",
+    border: "border-violet-400/30",
+    text: "text-violet-300",
+  },
+  sky: {
+    bg: "bg-sky-400/10",
+    border: "border-sky-400/30",
+    text: "text-sky-300",
+  },
+  amber: {
+    bg: "bg-amber-400/10",
+    border: "border-amber-400/30",
+    text: "text-amber-300",
+  },
+  rose: {
+    bg: "bg-rose-400/10",
+    border: "border-rose-400/30",
+    text: "text-rose-300",
+  },
+};
+
+function SettingRow({
+  icon: Icon,
+  tone = "emerald",
+  label,
+  command,
+  description,
+  rightSlot,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  tone?: keyof typeof TONE_CLASSES;
+  label: string;
+  command?: string;
+  description?: string;
+  rightSlot: React.ReactNode;
+}) {
+  const t = TONE_CLASSES[tone];
+  return (
+    <div className="px-4 py-4 flex flex-wrap items-center justify-between gap-4">
+      <div className="flex items-center gap-3 min-w-0">
+        <div
+          className={`h-9 w-9 rounded-md flex items-center justify-center shrink-0 border ${t.bg} ${t.border}`}
+        >
+          <Icon className={`h-4 w-4 ${t.text}`} />
+        </div>
+        <div className="min-w-0">
+          <div className="text-sm font-medium">{label}</div>
+          {description ? (
+            <div className="text-xs text-muted-foreground mt-0.5">
+              {description}
+            </div>
+          ) : command && command !== "—" ? (
+            <div className="text-[11px] text-muted-foreground mt-0.5">
+              Change via{" "}
+              <code className="px-1.5 py-0.5 rounded bg-muted/60 border border-border/60 font-mono text-[10px]">
+                {command}
+              </code>{" "}
+              on Telegram
+            </div>
+          ) : null}
+        </div>
+      </div>
+      <div className="flex items-center justify-end">{rightSlot}</div>
     </div>
   );
 }
 
-function formatSessionAlerts(raw: unknown): string {
-  if (!raw || typeof raw !== "object") return "default";
-  const on = Object.entries(raw as Record<string, boolean>)
-    .filter(([, v]) => v)
-    .map(([k]) => k);
-  if (on.length === 0) return "none";
-  return on.join(", ");
+function ValuePill({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-muted/40 border border-border/60 font-mono text-xs capitalize">
+      {children}
+    </span>
+  );
+}
+
+function planClass(plan: string): string {
+  switch (plan.toLowerCase()) {
+    case "elite":
+      return "bg-violet-400/15 text-violet-300 border border-violet-400/30 capitalize";
+    case "pro":
+      return "bg-emerald-400/15 text-emerald-300 border border-emerald-400/30 capitalize";
+    default:
+      return "bg-muted/40 text-muted-foreground border border-border/60 capitalize";
+  }
+}
+
+function statusClass(status: string): string {
+  const s = status.toLowerCase();
+  if (s === "active" || s === "trial") {
+    return "bg-emerald-400/15 text-emerald-300 border border-emerald-400/30 capitalize";
+  }
+  if (s === "expired" || s === "suspended") {
+    return "bg-rose-400/15 text-rose-300 border border-rose-400/30 capitalize";
+  }
+  return "bg-muted/40 text-muted-foreground border border-border/60 capitalize";
 }
