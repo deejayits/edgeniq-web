@@ -226,7 +226,7 @@ export default async function CommandsPage() {
         <h1 className="text-3xl font-semibold tracking-tight">
           Bot commands
         </h1>
-        <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
+        <p className="text-sm text-muted-foreground mt-1">
           The EdgeNiq bot lives on Telegram. Every feature — watchlist
           edits, risk profile changes, price alerts, strategy switches —
           is a command. This page mirrors <code>/help</code> inside the

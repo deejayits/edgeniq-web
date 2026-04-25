@@ -74,7 +74,7 @@ export default async function SmartMoneyPage({
           <h1 className="text-3xl font-semibold tracking-tight">
             Smart Money
           </h1>
-          <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
+          <p className="text-sm text-muted-foreground mt-1">
             Follow politicians, hedge funds, and insiders. See what they
             bought before it hits the news.
           </p>
@@ -190,7 +190,7 @@ export default async function SmartMoneyPage({
           <h1 className="text-2xl font-semibold tracking-tight">
             Smart Money
           </h1>
-          <p className="text-sm text-muted-foreground mt-1 max-w-xl leading-relaxed">
+          <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
             Follow politicians, hedge funds, and insiders. Get alerts
             when they disclose new positions — optionally mirror them
             automatically via Alpaca.

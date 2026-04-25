@@ -159,7 +159,7 @@ export default async function BrokerPage() {
         <h1 className="text-3xl font-semibold tracking-tight">
           Auto-trading
         </h1>
-        <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
+        <p className="text-sm text-muted-foreground mt-1">
           Connect your Alpaca paper account and let EdgeNiq place
           trades on qualifying signals. Paper mode only for now — no
           real money at risk.

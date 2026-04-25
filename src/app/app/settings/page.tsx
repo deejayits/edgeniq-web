@@ -45,7 +45,7 @@ export default async function SettingsPage() {
           Preferences
         </div>
         <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>
-        <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
+        <p className="text-sm text-muted-foreground mt-1">
           Preferences that control which signals reach you. Editing
           inline lands in the next release — for now use the linked
           Telegram command on each row to change anything.

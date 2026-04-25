@@ -179,7 +179,7 @@ export default async function ComparePage({
           <h1 className="text-2xl font-semibold tracking-tight">
             Compare portfolios
           </h1>
-          <p className="text-sm text-muted-foreground mt-1 max-w-xl leading-relaxed">
+          <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
             Pick up to three politicians, funds, or insiders to see
             side-by-side. Shared holdings show up below — that&rsquo;s
             where consensus-driven edge lives.
