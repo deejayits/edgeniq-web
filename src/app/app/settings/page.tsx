@@ -73,6 +73,18 @@ export default async function SettingsPage() {
             rightSlot={<ValuePill>{me.strategy ?? "—"}</ValuePill>}
           />
           <SettingRow
+            icon={Shield}
+            tone="amber"
+            label="Min share price"
+            command="/setprice"
+            description="Penny-stock policy. $5 = SEC threshold (default), $1 = low-priced US-listed names allowed, $0 = anything goes"
+            rightSlot={
+              <ValuePill>
+                ${(typeof me.min_price === "number" ? me.min_price : 5).toFixed(2)}
+              </ValuePill>
+            }
+          />
+          <SettingRow
             icon={Eye}
             tone="sky"
             label="Watchlist"

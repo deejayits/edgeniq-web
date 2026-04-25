@@ -739,6 +739,7 @@ function FeatureMatrix() {
     { label: "Watchlist size", free: "5 tickers", pro: "5 tickers", elite: "Unlimited" },
     { label: "Relative strength vs SPY factor", free: true, pro: true, elite: true },
     { label: "Liquidity filter ($5M+ daily $-volume)", free: true, pro: true, elite: true },
+    { label: "Penny-stock policy ($5 / $1 / $0 floor)", free: true, pro: true, elite: true },
     { label: "Grade + score + R/R gating", free: true, pro: true, elite: true },
     { label: "Options alerts (unusual vol · block · OTM)", free: true, pro: false, elite: true },
     { label: "Prediction markets (Kalshi · Polymarket)", free: true, pro: false, elite: true },
