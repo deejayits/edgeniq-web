@@ -65,28 +65,28 @@ export default async function AppHome() {
 
       <section className="grid md:grid-cols-3 gap-4">
         <StatCard
+          tone="emerald"
           icon={Flame}
           label="Signals resolved (24h)"
           value={resolvedLast24h}
           hint="Closed with outcome"
           sparkValues={signalSpark}
-          sparkStroke="text-emerald-400"
         />
         <StatCard
+          tone="violet"
           icon={Target}
           label="Open positions"
           value={openTrades?.length ?? 0}
           hint="Confirmed personal trades"
           sparkValues={positionsFlatSpark(openTrades?.length ?? 0)}
-          sparkStroke="text-violet-400"
         />
         <StatCard
+          tone="sky"
           icon={Activity}
           label="Watchlist"
           value={me?.watchlist?.length ?? 0}
           hint="Tickers you track"
           sparkValues={watchlistFlatSpark(me?.watchlist?.length ?? 0)}
-          sparkStroke="text-muted-foreground"
         />
       </section>
 
@@ -105,7 +105,8 @@ function Header({
   return (
     <header className="flex flex-wrap items-end justify-between gap-4">
       <div>
-        <div className="text-xs font-mono text-muted-foreground mb-1 uppercase tracking-wider">
+        <div className="text-xs font-mono text-muted-foreground mb-1 uppercase tracking-wider inline-flex items-center gap-2">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_oklch(0.69_0.16_165_/_0.6)]" />
           Dashboard
         </div>
         <h1 className="text-3xl font-semibold tracking-tight">
@@ -116,46 +117,93 @@ function Header({
         </p>
       </div>
       <div className="flex items-center gap-2">
-        <Badge variant="outline" className="text-xs">
-          Risk: {user?.risk_profile ?? "moderate"}
+        <Badge className="bg-emerald-400/10 text-emerald-300 border border-emerald-400/30 text-xs capitalize">
+          Risk · {user?.risk_profile ?? "moderate"}
         </Badge>
-        <Badge variant="outline" className="text-xs">
-          Strategy: {user?.strategy ?? "balanced"}
+        <Badge className="bg-violet-400/10 text-violet-300 border border-violet-400/30 text-xs capitalize">
+          Strategy · {user?.strategy ?? "balanced"}
         </Badge>
       </div>
     </header>
   );
 }
 
+const STAT_TONE: Record<
+  "emerald" | "violet" | "sky",
+  {
+    iconBg: string;
+    iconBorder: string;
+    iconFg: string;
+    sparkStroke: string;
+    glowColor: string;
+  }
+> = {
+  emerald: {
+    iconBg: "bg-emerald-400/10",
+    iconBorder: "border-emerald-400/30",
+    iconFg: "text-emerald-300",
+    sparkStroke: "text-emerald-400",
+    glowColor: "oklch(0.69 0.16 165 / 0.18)",
+  },
+  violet: {
+    iconBg: "bg-violet-400/10",
+    iconBorder: "border-violet-400/30",
+    iconFg: "text-violet-300",
+    sparkStroke: "text-violet-400",
+    glowColor: "oklch(0.488 0.243 264.376 / 0.18)",
+  },
+  sky: {
+    iconBg: "bg-sky-400/10",
+    iconBorder: "border-sky-400/30",
+    iconFg: "text-sky-300",
+    sparkStroke: "text-sky-400",
+    glowColor: "oklch(0.7 0.14 230 / 0.18)",
+  },
+};
+
 function StatCard({
+  tone = "emerald",
   icon: Icon,
   label,
   value,
   hint,
   sparkValues,
-  sparkStroke,
 }: {
+  tone?: keyof typeof STAT_TONE;
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: number | string;
   hint: string;
   sparkValues: number[];
-  sparkStroke: string;
 }) {
+  const t = STAT_TONE[tone];
   return (
-    <Card className="p-6 border-border/60 bg-card/50">
-      <div className="flex items-center justify-between mb-3">
+    <Card className="relative p-6 border-border/60 bg-card/50 overflow-hidden">
+      {/* Subtle tone accent — top-left corner glow that ties the card
+          to its metric without painting the whole surface. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-16 -left-16 h-40 w-40 rounded-full blur-3xl"
+        style={{
+          background: `radial-gradient(circle, ${t.glowColor} 0%, transparent 70%)`,
+        }}
+      />
+      <div className="relative flex items-center justify-between mb-4">
         <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
           {label}
         </span>
-        <Icon className="h-4 w-4 text-muted-foreground" />
+        <div
+          className={`h-8 w-8 rounded-md flex items-center justify-center border ${t.iconBg} ${t.iconBorder}`}
+        >
+          <Icon className={`h-4 w-4 ${t.iconFg}`} />
+        </div>
       </div>
-      <div className="flex items-end justify-between gap-4">
+      <div className="relative flex items-end justify-between gap-4">
         <div>
           <div className="text-3xl font-semibold tabular-nums">{value}</div>
           <div className="text-xs text-muted-foreground mt-1">{hint}</div>
         </div>
-        <div className={sparkStroke}>
+        <div className={t.sparkStroke}>
           <Sparkline values={sparkValues} width={96} height={36} />
         </div>
       </div>

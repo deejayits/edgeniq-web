@@ -220,7 +220,8 @@ export default async function CommandsPage() {
   return (
     <div className="space-y-10">
       <header>
-        <div className="text-xs font-mono text-muted-foreground mb-1 uppercase tracking-wider">
+        <div className="text-xs font-mono text-muted-foreground mb-1 uppercase tracking-wider inline-flex items-center gap-2">
+          <span className="h-1.5 w-1.5 rounded-full bg-rose-400 shadow-[0_0_8px_oklch(0.7_0.18_15_/_0.6)]" />
           Reference
         </div>
         <h1 className="text-3xl font-semibold tracking-tight">

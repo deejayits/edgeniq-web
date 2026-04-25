@@ -41,7 +41,8 @@ export default async function SettingsPage() {
   return (
     <div className="space-y-10 max-w-4xl">
       <header>
-        <div className="text-xs font-mono text-muted-foreground mb-1 uppercase tracking-wider">
+        <div className="text-xs font-mono text-muted-foreground mb-1 uppercase tracking-wider inline-flex items-center gap-2">
+          <span className="h-1.5 w-1.5 rounded-full bg-sky-400 shadow-[0_0_8px_oklch(0.7_0.14_230_/_0.6)]" />
           Preferences
         </div>
         <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>
