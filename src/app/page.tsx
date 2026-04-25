@@ -572,6 +572,7 @@ function Pricing() {
         "Whole-market discovery — not just your list",
         "Relative-strength-vs-SPY scoring + $5M liquidity floor",
         "Options alerts (unusual volume, block prints, OTM spikes)",
+        "ETF call signals — directional SPY/QQQ trend setups when broad market is trending and vol regime is calm",
         "Prediction markets (Kalshi + Polymarket)",
         "Smart Money — hedge fund 13F (Buffett, Burry, Dalio, Ackman, Tepper, Icahn, Klarman)",
         "Alpaca auto-trade (paper) — bracket orders with breakeven-at-T1 monitor, kill switch",
@@ -742,6 +743,7 @@ function FeatureMatrix() {
     { label: "Penny-stock policy ($5 / $1 / $0 floor)", free: true, pro: true, elite: true },
     { label: "Grade + score + R/R gating", free: true, pro: true, elite: true },
     { label: "Options alerts (unusual vol · block · OTM)", free: true, pro: false, elite: true },
+    { label: "ETF call signals (SPY/QQQ trend setups)", free: true, pro: false, elite: true },
     { label: "Prediction markets (Kalshi · Polymarket)", free: true, pro: false, elite: true },
     { label: "HIGH CONVICTION cross-venue signals", free: true, pro: false, elite: true },
     // --- Smart Money ---------------------------------------------
