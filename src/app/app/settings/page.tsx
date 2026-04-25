@@ -39,7 +39,7 @@ export default async function SettingsPage() {
   const alerts: string[] = Array.isArray(me.alerts) ? me.alerts : ["stocks"];
 
   return (
-    <div className="space-y-10 max-w-4xl">
+    <div className="space-y-10">
       <header>
         <div className="text-xs font-mono text-muted-foreground mb-1 uppercase tracking-wider inline-flex items-center gap-2">
           <span className="h-1.5 w-1.5 rounded-full bg-sky-400 shadow-[0_0_8px_oklch(0.7_0.14_230_/_0.6)]" />
@@ -53,140 +53,175 @@ export default async function SettingsPage() {
         </p>
       </header>
 
-      <SettingsSection title="Trading" eyebrow="How EdgeNiq picks for you">
-        <SettingRow
-          icon={Shield}
-          tone="emerald"
-          label="Risk profile"
-          command="/riskprofile"
-          rightSlot={<ValuePill>{me.risk_profile ?? "—"}</ValuePill>}
-        />
-        <SettingRow
-          icon={Target}
-          tone="violet"
-          label="Strategy"
-          command="/strategy"
-          rightSlot={<ValuePill>{me.strategy ?? "—"}</ValuePill>}
-        />
-        <SettingRow
-          icon={Eye}
-          tone="sky"
-          label="Watchlist"
-          command="/watchlist"
-          rightSlot={
-            watchlist.length === 0 ? (
-              <span className="text-xs text-muted-foreground italic">
-                empty — add tickers via Telegram
-              </span>
-            ) : (
-              <div className="flex flex-wrap justify-end gap-1.5 max-w-md">
-                {watchlist.map((t) => (
+      {/* Top row: two side-by-side cards on desktop. Trading + Notifications
+          balance well visually because each holds a small batch of rows.
+          On mobile they stack as expected. */}
+      <div className="grid lg:grid-cols-2 gap-6 items-start">
+        <SettingsSection title="Trading" eyebrow="How EdgeNiq picks for you">
+          <SettingRow
+            icon={Shield}
+            tone="emerald"
+            label="Risk profile"
+            command="/riskprofile"
+            rightSlot={<ValuePill>{me.risk_profile ?? "—"}</ValuePill>}
+          />
+          <SettingRow
+            icon={Target}
+            tone="violet"
+            label="Strategy"
+            command="/strategy"
+            rightSlot={<ValuePill>{me.strategy ?? "—"}</ValuePill>}
+          />
+          <SettingRow
+            icon={Eye}
+            tone="sky"
+            label="Watchlist"
+            command="/watchlist"
+            rightSlot={
+              watchlist.length === 0 ? (
+                <span className="text-xs text-muted-foreground italic">
+                  empty — add tickers via Telegram
+                </span>
+              ) : (
+                <div className="flex flex-wrap justify-end gap-1.5 max-w-md">
+                  {watchlist.map((t) => (
+                    <Badge
+                      key={t}
+                      variant="outline"
+                      className="font-mono text-[11px] py-0 h-5"
+                    >
+                      {t}
+                    </Badge>
+                  ))}
+                </div>
+              )
+            }
+          />
+        </SettingsSection>
+
+        <SettingsSection
+          title="Notifications"
+          eyebrow="What reaches your phone"
+        >
+          <SettingRow
+            icon={Bell}
+            tone="amber"
+            label="Alert types"
+            command="/alerts"
+            rightSlot={
+              <div className="flex flex-wrap justify-end gap-1.5">
+                {alerts.map((a) => (
                   <Badge
-                    key={t}
-                    variant="outline"
-                    className="font-mono text-[11px] py-0 h-5"
+                    key={a}
+                    className="bg-amber-400/15 text-amber-300 border border-amber-400/30 text-[11px] py-0 h-5 capitalize"
                   >
-                    {t}
+                    {a}
                   </Badge>
                 ))}
               </div>
-            )
-          }
-        />
-      </SettingsSection>
-
-      <SettingsSection
-        title="Notifications"
-        eyebrow="What reaches your phone"
-      >
-        <SettingRow
-          icon={Bell}
-          tone="amber"
-          label="Alert types"
-          command="/alerts"
-          rightSlot={
-            <div className="flex flex-wrap justify-end gap-1.5">
-              {alerts.map((a) => (
+            }
+          />
+          <SettingRow
+            icon={CalendarClock}
+            tone="rose"
+            label="Session alerts"
+            command="—"
+            description="Pre-market, prime-time, EOD, and weekend recap notifications"
+            rightSlot={
+              enabledSessions.length === 0 ? (
+                <span className="text-xs text-muted-foreground italic">
+                  none enabled
+                </span>
+              ) : (
                 <Badge
-                  key={a}
-                  className="bg-amber-400/15 text-amber-300 border border-amber-400/30 text-[11px] py-0 h-5 capitalize"
+                  variant="outline"
+                  className="text-[11px] py-0 h-5 text-muted-foreground"
                 >
-                  {a}
+                  {enabledSessions.length} of{" "}
+                  {Object.keys(sessionAlerts).length || enabledSessions.length}{" "}
+                  enabled
+                </Badge>
+              )
+            }
+          />
+          {enabledSessions.length > 0 && (
+            <div className="mt-2 pl-12 flex flex-wrap gap-1.5">
+              {enabledSessions.map((s) => (
+                <Badge
+                  key={s}
+                  variant="outline"
+                  className="text-[10px] py-0 h-5 text-muted-foreground capitalize"
+                >
+                  {s.replace(/_/g, " ")}
                 </Badge>
               ))}
             </div>
-          }
-        />
-        <SettingRow
-          icon={CalendarClock}
-          tone="rose"
-          label="Session alerts"
-          command="—"
-          description="Pre-market, prime-time, EOD, and weekend recap notifications"
-          rightSlot={
-            enabledSessions.length === 0 ? (
-              <span className="text-xs text-muted-foreground italic">
-                none enabled
-              </span>
-            ) : (
-              <Badge
-                variant="outline"
-                className="text-[11px] py-0 h-5 text-muted-foreground"
-              >
-                {enabledSessions.length} of{" "}
-                {Object.keys(sessionAlerts).length || enabledSessions.length}{" "}
-                enabled
-              </Badge>
-            )
-          }
-        />
-        {enabledSessions.length > 0 && (
-          <div className="mt-2 pl-12 flex flex-wrap gap-1.5">
-            {enabledSessions.map((s) => (
-              <Badge
-                key={s}
-                variant="outline"
-                className="text-[10px] py-0 h-5 text-muted-foreground capitalize"
-              >
-                {s.replace(/_/g, " ")}
-              </Badge>
-            ))}
-          </div>
-        )}
-      </SettingsSection>
+          )}
+        </SettingsSection>
+      </div>
 
+      {/* Account section — three-column row of identity stats so it reads
+          like a banner across the full width instead of three stacked
+          rows in a half-width card. */}
       <SettingsSection title="Account" eyebrow="Who you are on EdgeNiq">
-        <SettingRow
-          icon={UserCircle}
-          tone="violet"
-          label="Plan"
-          rightSlot={
-            <Badge
-              className={planClass(me.sub_plan ?? "free")}
-            >
-              {me.sub_plan ?? "free"}
-            </Badge>
-          }
-        />
-        <SettingRow
-          icon={Activity}
-          tone="emerald"
-          label="Status"
-          rightSlot={
-            <Badge
-              className={statusClass(me.sub_status ?? "active")}
-            >
-              {me.sub_status ?? "active"}
-            </Badge>
-          }
-        />
-        <SettingRow
-          icon={Shield}
-          tone="sky"
-          label="Role"
-          rightSlot={<ValuePill>{me.role ?? "user"}</ValuePill>}
-        />
+        <div className="grid sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border/40">
+          <AccountStat
+            icon={UserCircle}
+            tone="violet"
+            label="Plan"
+            value={
+              <Badge className={planClass(me.sub_plan ?? "free")}>
+                {me.sub_plan ?? "free"}
+              </Badge>
+            }
+          />
+          <AccountStat
+            icon={Activity}
+            tone="emerald"
+            label="Status"
+            value={
+              <Badge className={statusClass(me.sub_status ?? "active")}>
+                {me.sub_status ?? "active"}
+              </Badge>
+            }
+          />
+          <AccountStat
+            icon={Shield}
+            tone="sky"
+            label="Role"
+            value={<ValuePill>{me.role ?? "user"}</ValuePill>}
+          />
+        </div>
       </SettingsSection>
+    </div>
+  );
+}
+
+function AccountStat({
+  icon: Icon,
+  tone,
+  label,
+  value,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  tone: keyof typeof TONE_CLASSES;
+  label: string;
+  value: React.ReactNode;
+}) {
+  const t = TONE_CLASSES[tone];
+  return (
+    <div className="px-5 py-5 flex items-center gap-4">
+      <div
+        className={`h-9 w-9 rounded-md flex items-center justify-center shrink-0 border ${t.bg} ${t.border}`}
+      >
+        <Icon className={`h-4 w-4 ${t.text}`} />
+      </div>
+      <div className="flex-1 min-w-0 flex items-center justify-between gap-3">
+        <div className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
+          {label}
+        </div>
+        <div>{value}</div>
+      </div>
     </div>
   );
 }
