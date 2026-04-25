@@ -26,8 +26,8 @@ export default function TermsPage() {
         <Section title="What EdgeNiq is">
           <p>
             EdgeNiq provides algorithmically-derived trading signals
-            (stocks, options, prediction markets, whale flow, and
-            smart-money tracking) delivered via Telegram bot and a
+            (stocks, options, prediction markets, and smart-money
+            tracking) delivered via Telegram bot and a
             companion web dashboard. Signals are{" "}
             <b>informational only</b>. EdgeNiq is not a broker-dealer,
             investment advisor, or fiduciary, and nothing we send

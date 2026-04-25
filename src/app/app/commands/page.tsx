@@ -39,7 +39,6 @@ const RESEARCH: Command[] = [
     desc: "find prediction markets",
     example: "/market bitcoin",
   },
-  { cmd: "/whale", desc: "top whale wallet activity", tier: "elite" },
   {
     cmd: "/congress",
     desc: "browse Smart Money — politicians + hedge funds + insiders",

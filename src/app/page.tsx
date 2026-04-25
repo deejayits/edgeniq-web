@@ -211,7 +211,7 @@ function TargetPill({ label, pct }: { label: string; pct: string }) {
 function StatsStrip() {
   const stats = [
     { label: "Scanners active", value: "10", hint: "24/7" },
-    { label: "Sources", value: "4", hint: "Alpaca · Kalshi · Polymarket · Whales" },
+    { label: "Sources", value: "4", hint: "Alpaca · Kalshi · Polymarket · Smart Money" },
     { label: "Signal horizon", value: "3–10d", hint: "Short to swing" },
     { label: "Data layer", value: "Postgres", hint: "Supabase" },
   ];
@@ -513,7 +513,7 @@ function WhyDifferent() {
 // Three-tier subscription pricing. Free is a 7-day trial with full
 // Elite access so new users feel the ceiling before deciding. Pro is
 // the focused "signals on my own stocks" tier. Elite unlocks
-// whole-market discovery, options, prediction markets, and whale flow.
+// whole-market discovery, options, prediction markets, and Smart Money.
 function Pricing() {
   const tiers = [
     {
@@ -529,7 +529,7 @@ function Pricing() {
       stripePlan: null as "pro" | "elite" | null,
       highlights: [
         "Full Elite features for 7 days",
-        "See every signal the bot can fire — stocks, options, predictions, whales",
+        "See every signal the bot can fire — stocks, options, predictions, smart money",
         "Web dashboard + Telegram bot",
         "Pick Pro or Elite when the trial ends",
       ],
@@ -573,7 +573,6 @@ function Pricing() {
         "Relative-strength-vs-SPY scoring + $5M liquidity floor",
         "Options alerts (unusual volume, block prints, OTM spikes)",
         "Prediction markets (Kalshi + Polymarket)",
-        "Whale trade alerts + HIGH CONVICTION cross-venue",
         "Smart Money — hedge fund 13F (Buffett, Burry, Dalio, Ackman, Tepper, Icahn, Klarman)",
         "Alpaca auto-trade (paper) — bracket orders with breakeven-at-T1 monitor, kill switch",
       ],
@@ -743,7 +742,6 @@ function FeatureMatrix() {
     { label: "Grade + score + R/R gating", free: true, pro: true, elite: true },
     { label: "Options alerts (unusual vol · block · OTM)", free: true, pro: false, elite: true },
     { label: "Prediction markets (Kalshi · Polymarket)", free: true, pro: false, elite: true },
-    { label: "Whale trade alerts", free: true, pro: false, elite: true },
     { label: "HIGH CONVICTION cross-venue signals", free: true, pro: false, elite: true },
     // --- Smart Money ---------------------------------------------
     { label: "Smart Money — hedge fund 13F filings", free: true, pro: false, elite: true },

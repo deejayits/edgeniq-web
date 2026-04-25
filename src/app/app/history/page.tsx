@@ -328,7 +328,6 @@ function prettyType(raw?: string | null): string | null {
     momentum_down: "Momentum down",
     ws_momentum_down: "Momentum down",
     mixed_setup: "Mixed setup",
-    whale_accumulation: "Whale buy",
     cross_platform: "Cross-platform",
   };
   if (labels[raw]) return labels[raw];

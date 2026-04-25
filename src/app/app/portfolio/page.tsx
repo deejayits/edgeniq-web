@@ -673,7 +673,6 @@ function prettyType(raw?: string | null): string | null {
     momentum_down: "Selling pressure",
     ws_momentum_down: "Selling pressure",
     mixed_setup: "Multiple indicators align",
-    whale_accumulation: "Smart money buying",
     cross_platform: "Confirmed on two platforms",
   };
   if (labels[raw]) return labels[raw];
