@@ -1,5 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { HeaderStat } from "@/components/header-stat";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { AdminUserRow, type AdminUserRowData } from "./user-row";
 
@@ -70,27 +71,42 @@ export default async function AdminUsersPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Users</h1>
-        <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-4xl">
-          Manage subscriptions, revoke access, suspend abusers. Changes
-          here sync to the Telegram bot on the next command.
-        </p>
-      </div>
+      <header className="flex flex-wrap items-end justify-between gap-6">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Users</h1>
+          <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-3xl">
+            Manage subscriptions, revoke access, suspend abusers. Changes
+            here sync to the Telegram bot on the next command.
+          </p>
+        </div>
+        <div className="flex items-stretch gap-3">
+          <HeaderStat
+            label="Total"
+            value={total.toLocaleString()}
+            sub="all users"
+            tone="muted"
+          />
+          <HeaderStat
+            label="Elite"
+            value={`${elite}`}
+            sub={total > 0 ? `${((elite / total) * 100).toFixed(0)}%` : "—"}
+            tone="primary"
+          />
+          <HeaderStat
+            label="Pro"
+            value={`${pro}`}
+            sub={total > 0 ? `${((pro / total) * 100).toFixed(0)}%` : "—"}
+            tone="emerald"
+          />
+        </div>
+      </header>
 
-      {/* Summary badges */}
+      {/* Smaller secondary chips for trial/suspended/etc — not big
+          enough to deserve HeaderStat tiles, but useful as quick
+          filters when scanning the table. */}
       <div className="flex flex-wrap gap-2">
-        <Badge variant="outline" className="text-foreground">
-          {total} total
-        </Badge>
         <Badge className="bg-emerald-400/15 text-emerald-300 border border-emerald-400/30">
           {onTrial} on trial
-        </Badge>
-        <Badge className="bg-violet-400/15 text-violet-300 border border-violet-400/30">
-          {elite} Elite
-        </Badge>
-        <Badge className="bg-primary/15 text-primary border border-primary/30">
-          {pro} Pro
         </Badge>
         {expired > 0 && (
           <Badge

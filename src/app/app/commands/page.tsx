@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MessageSquare, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { HeaderStat } from "@/components/header-stat";
 
 export const dynamic = "force-dynamic";
 
@@ -216,22 +217,62 @@ export default async function CommandsPage() {
   const isAdmin = role === "admin" || role === "primary_admin";
   const isPrimary = role === "primary_admin";
 
+  // Header right-rail counts so the dead space is informative. We
+  // count visible categories (skipping admin groups for non-admins
+  // to keep the number honest with what the user actually sees).
+  const visibleCommands = [
+    ...GENERAL,
+    ...RESEARCH,
+    ...PERSONALIZE,
+    ...PRIVACY,
+    ...(isAdmin ? ADMIN : []),
+    ...(isPrimary ? PRIMARY_ONLY : []),
+  ];
+  const eliteCount = visibleCommands.filter((c) => c.tier === "elite").length;
+  const proCount = visibleCommands.filter((c) => c.tier === "pro").length;
+
   return (
     <div className="space-y-10">
-      <header>
-        <div className="text-xs font-mono text-muted-foreground mb-1 uppercase tracking-wider inline-flex items-center gap-2">
-          <span className="h-1.5 w-1.5 rounded-full bg-rose-400 shadow-[0_0_8px_oklch(0.7_0.18_15_/_0.6)]" />
-          Reference
+      <header className="flex flex-wrap items-end justify-between gap-6">
+        <div>
+          <div className="text-xs font-mono text-muted-foreground mb-1 uppercase tracking-wider inline-flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-rose-400 shadow-[0_0_8px_oklch(0.7_0.18_15_/_0.6)]" />
+            Reference
+          </div>
+          <h1 className="text-3xl font-semibold tracking-tight">
+            Bot commands
+          </h1>
+          <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-3xl">
+            The EdgeNiq bot lives on Telegram. Every feature — watchlist
+            edits, risk profile changes, price alerts, strategy switches —
+            is a command. This page mirrors <code>/help</code> inside the
+            bot, grouped by what you actually need.
+          </p>
         </div>
-        <h1 className="text-3xl font-semibold tracking-tight">
-          Bot commands
-        </h1>
-        <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-4xl">
-          The EdgeNiq bot lives on Telegram. Every feature — watchlist
-          edits, risk profile changes, price alerts, strategy switches —
-          is a command. This page mirrors <code>/help</code> inside the
-          bot, grouped by what you actually need.
-        </p>
+        <div className="flex items-stretch gap-3">
+          <HeaderStat
+            label="Total"
+            value={`${visibleCommands.length}`}
+            sub="commands"
+            tone="muted"
+          />
+          {proCount > 0 && (
+            <HeaderStat
+              label="Pro"
+              value={`${proCount}`}
+              sub="tier-gated"
+              tone="emerald"
+            />
+          )}
+          {eliteCount > 0 && (
+            <HeaderStat
+              label="Elite"
+              value={`${eliteCount}`}
+              sub="tier-gated"
+              tone="primary"
+            />
+          )}
+        </div>
       </header>
 
       {/* Quick-jump to Telegram */}

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Info, TrendingUp, Shield } from "lucide-react";
+import { HeaderStat } from "@/components/header-stat";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { isEliteAccess } from "@/lib/access";
 import { TargetCard } from "./target-card";
@@ -173,9 +174,16 @@ export default async function SmartMoneyPage({
 
   const followedIds = withStats.filter((t) => t.is_followed);
 
+  // Right-rail summary stats — aggregate counts across the universe
+  // and the user's relationship to it. Filling the dead right space
+  // with information density beats the previous "lonely outline
+  // button stranded next to the title".
+  const totalTrades90d = trades.length;
+  const followedCount = followedIds.length;
+
   return (
     <div className="space-y-10">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
+      <div className="flex flex-wrap items-end justify-between gap-6">
         <div>
           <div className="text-xs font-mono text-muted-foreground mb-1 uppercase tracking-wider inline-flex items-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full bg-violet-400 shadow-[0_0_8px_oklch(0.488_0.243_264.376_/_0.6)]" />
@@ -184,18 +192,41 @@ export default async function SmartMoneyPage({
           <h1 className="text-3xl font-semibold tracking-tight">
             Smart Money
           </h1>
-          <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-4xl">
+          <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-3xl">
             Follow politicians, hedge funds, and insiders. Get alerts
             when they disclose new positions — optionally mirror them
             automatically via Alpaca.
           </p>
         </div>
-        <Button asChild variant="outline" size="sm">
-          <Link href="/app/smart-money/compare">
-            <TrendingUp className="h-3.5 w-3.5" />
-            Compare portfolios
-          </Link>
-        </Button>
+        <div className="flex items-stretch gap-3">
+          <HeaderStat
+            label="Targets"
+            value={withStats.length.toLocaleString()}
+            sub={
+              followedCount > 0
+                ? `${followedCount} followed`
+                : "browse to follow"
+            }
+            tone={followedCount > 0 ? "primary" : "muted"}
+          />
+          <HeaderStat
+            label="Trades"
+            value={totalTrades90d.toLocaleString()}
+            sub="last 90 days"
+            tone="muted"
+          />
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="self-end h-9"
+          >
+            <Link href="/app/smart-money/compare">
+              <TrendingUp className="h-3.5 w-3.5" />
+              Compare portfolios
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <Alert className="px-5 py-4 border-amber-500/30 bg-amber-500/5">

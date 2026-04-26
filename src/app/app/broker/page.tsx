@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { isEliteAccess } from "@/lib/access";
+import { HeaderStat } from "@/components/header-stat";
 import { ConnectForm } from "./connect-form";
 import { ConnectedHeader } from "./connected-header";
 import { RulesCard, type RuleRow } from "./rules-card";
@@ -139,21 +140,58 @@ export default async function BrokerPage() {
   const optionsRule =
     rules.find((r) => r.signal_type === "options") ?? defaultRule("options");
 
+  // Right-rail stats for the header. Different stats based on
+  // connection state so the header always carries useful info:
+  //   not connected → "Status: Not connected" + Mode: Paper only
+  //   connected     → today's order count + active rule count
+  const todaysOrders = trades.length;
+  const activeRulesCount = rules.filter(
+    (r) => r.execution_mode === "auto" || r.execution_mode === "one_tap",
+  ).length;
+
   return (
     <div className="space-y-10">
-      <header>
-        <div className="text-xs font-mono text-muted-foreground mb-1 uppercase tracking-wider inline-flex items-center gap-2">
-          <span className="h-1.5 w-1.5 rounded-full bg-violet-400 shadow-[0_0_8px_oklch(0.488_0.243_264.376_/_0.6)]" />
-          Execution
+      <header className="flex flex-wrap items-end justify-between gap-6">
+        <div>
+          <div className="text-xs font-mono text-muted-foreground mb-1 uppercase tracking-wider inline-flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-violet-400 shadow-[0_0_8px_oklch(0.488_0.243_264.376_/_0.6)]" />
+            Execution
+          </div>
+          <h1 className="text-3xl font-semibold tracking-tight">
+            Auto-trading
+          </h1>
+          <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-3xl">
+            Connect your Alpaca paper account and let EdgeNiq place
+            trades on qualifying signals. Paper mode only for now — no
+            real money at risk.
+          </p>
         </div>
-        <h1 className="text-3xl font-semibold tracking-tight">
-          Auto-trading
-        </h1>
-        <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-4xl">
-          Connect your Alpaca paper account and let EdgeNiq place
-          trades on qualifying signals. Paper mode only for now — no
-          real money at risk.
-        </p>
+        <div className="flex items-stretch gap-3">
+          <HeaderStat
+            label="Status"
+            value={conn ? "Connected" : "Off"}
+            sub={conn ? "Alpaca · paper" : "not connected"}
+            tone={conn ? "emerald" : "muted"}
+          />
+          <HeaderStat
+            label="Active rules"
+            value={`${activeRulesCount}`}
+            sub={`of ${rules.length || 2}`}
+            tone={activeRulesCount > 0 ? "primary" : "muted"}
+          />
+          <HeaderStat
+            label="Orders today"
+            value={`${todaysOrders}`}
+            sub={
+              todaysOrders === 0
+                ? "none yet"
+                : todaysOrders === 1
+                  ? "1 order"
+                  : "submitted"
+            }
+            tone="muted"
+          />
+        </div>
       </header>
 
       {!conn ? (

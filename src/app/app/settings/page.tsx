@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { HeaderStat } from "@/components/header-stat";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import {
   Activity,
@@ -66,20 +67,65 @@ export default async function SettingsPage() {
     }
   }
 
+  const planLabel = (me.sub_plan ?? "free").toString();
+  const statusLabel = (me.sub_status ?? "active").toString();
+  const statusTone: "emerald" | "amber" | "rose" | "muted" =
+    statusLabel === "active" || statusLabel === "trial"
+      ? "emerald"
+      : statusLabel === "expired" || statusLabel === "suspended"
+        ? "rose"
+        : "muted";
+
   return (
     <div className="space-y-10">
-      <header>
-        <div className="text-xs font-mono text-muted-foreground mb-1 uppercase tracking-wider inline-flex items-center gap-2">
-          <span className="h-1.5 w-1.5 rounded-full bg-sky-400 shadow-[0_0_8px_oklch(0.7_0.14_230_/_0.6)]" />
-          Preferences
+      <header className="flex flex-wrap items-end justify-between gap-6">
+        <div>
+          <div className="text-xs font-mono text-muted-foreground mb-1 uppercase tracking-wider inline-flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-sky-400 shadow-[0_0_8px_oklch(0.7_0.14_230_/_0.6)]" />
+            Preferences
+          </div>
+          <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>
+          <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-3xl">
+            Preferences that control which signals reach you. Trading
+            changes save instantly and reach the running bot within a
+            minute. Notifications still use the Telegram command on each
+            row.
+          </p>
         </div>
-        <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>
-        <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-4xl">
-          Preferences that control which signals reach you. Trading
-          changes save instantly and reach the running bot within a
-          minute. Notifications still use the Telegram command on each
-          row.
-        </p>
+        <div className="flex items-stretch gap-3">
+          <HeaderStat
+            label="Plan"
+            value={planLabel}
+            sub={
+              planLabel === "elite"
+                ? "all features"
+                : planLabel === "pro"
+                  ? "stocks + watchlist"
+                  : "limited"
+            }
+            tone={
+              planLabel === "elite"
+                ? "primary"
+                : planLabel === "pro"
+                  ? "emerald"
+                  : "muted"
+            }
+            className="capitalize"
+          />
+          <HeaderStat
+            label="Status"
+            value={statusLabel}
+            sub={statusLabel === "trial" ? "free for 7d" : "subscription"}
+            tone={statusTone}
+            className="capitalize"
+          />
+          <HeaderStat
+            label="Watchlist"
+            value={`${watchlist.length}`}
+            sub={`of 50 max`}
+            tone="muted"
+          />
+        </div>
       </header>
 
       {/* Trading row 1 — three compact preferences side-by-side on desktop
@@ -205,39 +251,23 @@ export default async function SettingsPage() {
         </SettingsSection>
       </div>
 
-      {/* Account section — three-column row of identity stats so it reads
-          like a banner across the full width instead of three stacked
-          rows in a half-width card. */}
-      <SettingsSection title="Account" eyebrow="Who you are on EdgeNiq">
-        <div className="grid sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border/40">
-          <AccountStat
-            icon={UserCircle}
-            tone="violet"
-            label="Plan"
-            value={
-              <Badge className={planClass(me.sub_plan ?? "free")}>
-                {me.sub_plan ?? "free"}
-              </Badge>
-            }
-          />
-          <AccountStat
-            icon={Activity}
-            tone="emerald"
-            label="Status"
-            value={
-              <Badge className={statusClass(me.sub_status ?? "active")}>
-                {me.sub_status ?? "active"}
-              </Badge>
-            }
-          />
-          <AccountStat
-            icon={Shield}
-            tone="sky"
-            label="Role"
-            value={<ValuePill>{me.role ?? "user"}</ValuePill>}
-          />
-        </div>
-      </SettingsSection>
+      {/* Role row — only surfaced for admins since regular users are
+          always "user". Avoids a useless "Role: user" tile for the
+          99% case while keeping admin/primary_admin visible to the
+          people who care. Plan + Status moved to the header tiles. */}
+      {me.role && me.role !== "user" && (
+        <SettingsSection title="Account" eyebrow="Internal">
+          <div className="px-5 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-md flex items-center justify-center border bg-violet-400/10 border-violet-400/30">
+                <Shield className="h-4 w-4 text-violet-300" />
+              </div>
+              <div className="text-sm font-medium">Role</div>
+            </div>
+            <ValuePill>{me.role}</ValuePill>
+          </div>
+        </SettingsSection>
+      )}
     </div>
   );
 }
