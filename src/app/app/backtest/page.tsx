@@ -81,38 +81,64 @@ export default async function BacktestPage({
   }
   const signalTypes = [...bySignal.keys()].sort();
 
+  // Right-side stat tiles for the header — total signals tracked
+  // across all signal types (sum of n_signals for every "all" grade
+  // row in this window) and last-updated timestamp. Filling the
+  // dead right rail with relevant info makes the page feel useful
+  // even before the user reads any of the table rows.
+  const totalTracked = rows
+    .filter((r) => r.grade === "all")
+    .reduce((sum, r) => sum + r.n_signals, 0);
+  const lastComputed = rows.length > 0 ? rows[0].last_computed : null;
+
   return (
     <div className="space-y-10">
-      <header>
-        <div className="text-xs font-mono text-muted-foreground mb-1 uppercase tracking-wider inline-flex items-center gap-2">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_oklch(0.69_0.16_165_/_0.6)]" />
-          Track record
+      <header className="flex flex-wrap items-end justify-between gap-6">
+        <div>
+          <div className="text-xs font-mono text-muted-foreground mb-1 uppercase tracking-wider inline-flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_oklch(0.69_0.16_165_/_0.6)]" />
+            Track record
+          </div>
+          <h1 className="text-3xl font-semibold tracking-tight">Backtest</h1>
+          <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-3xl">
+            Aggregate hit rate and average gain for every signal type
+            we&rsquo;ve fired, computed across the full user base.
+            Refreshed nightly from the same signal log we use to grade
+            your personal /history.
+          </p>
         </div>
-        <h1 className="text-3xl font-semibold tracking-tight">Backtest</h1>
-        <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-4xl">
-          Aggregate hit rate and average gain for every signal type
-          we&rsquo;ve fired, computed across the full user base.
-          Refreshed nightly from the same signal log we use to grade
-          your personal /history.
-        </p>
+        <div className="flex flex-wrap items-end gap-2 text-sm">
+          {WINDOW_TABS.map((tab) => (
+            <a
+              key={tab.days}
+              href={`/app/backtest${tab.days === 0 ? "" : `?window=${tab.days}`}`}
+              className={`px-3 py-1.5 rounded-md text-sm transition ${
+                windowDays === tab.days
+                  ? "bg-muted text-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              }`}
+            >
+              {tab.label}
+            </a>
+          ))}
+        </div>
       </header>
 
-      {/* Window toggle */}
-      <div className="flex items-center gap-2 flex-wrap text-sm">
-        {WINDOW_TABS.map((tab) => (
-          <a
-            key={tab.days}
-            href={`/app/backtest${tab.days === 0 ? "" : `?window=${tab.days}`}`}
-            className={`px-3 py-1.5 rounded-md text-sm transition ${
-              windowDays === tab.days
-                ? "bg-muted text-foreground"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-            }`}
-          >
-            {tab.label}
-          </a>
-        ))}
-      </div>
+      {totalTracked > 0 && (
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted-foreground tabular-nums">
+          <span>
+            Tracking{" "}
+            <span className="text-foreground font-semibold">
+              {totalTracked.toLocaleString()}
+            </span>{" "}
+            resolved signals across {signalTypes.length} type
+            {signalTypes.length === 1 ? "" : "s"}
+          </span>
+          {lastComputed && (
+            <span>· Last updated {fmtAge(lastComputed)}</span>
+          )}
+        </div>
+      )}
 
       <Alert className="px-5 py-4 border-border/60 bg-muted/20">
         <Info className="h-4 w-4" />
@@ -144,11 +170,6 @@ export default async function BacktestPage({
         </div>
       )}
 
-      {rows.length > 0 && (
-        <p className="text-xs text-muted-foreground tabular-nums">
-          Last updated {fmtAge(rows[0].last_computed)}
-        </p>
-      )}
     </div>
   );
 }

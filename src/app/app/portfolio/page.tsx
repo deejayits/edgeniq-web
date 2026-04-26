@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { HeaderStat } from "@/components/header-stat";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { AlpacaClient } from "@/lib/alpaca";
 import { decrypt, type EncryptedBlob } from "@/lib/crypto";
@@ -123,19 +124,74 @@ export default async function PortfolioPage() {
     signal: signalsById.get(t.signal_id),
   }));
 
+  // Header right-side summary. Live unrealized = current price vs
+  // entry, weighted equally per position (no allocation data here, so
+  // we can't dollar-weight). Closed P&L = mean of user_pnl_pct on
+  // recently-closed rows. Both are filler stats designed to make the
+  // top of the page useful, not strictly accurate portfolio math.
+  const liveUnrealized = (() => {
+    const items = activeEnriched
+      .filter((t) => t.livePrice && t.user_entry_price > 0)
+      .map(
+        (t) => ((t.livePrice ?? 0) - t.user_entry_price) / t.user_entry_price,
+      );
+    if (items.length === 0) return null;
+    return (items.reduce((s, x) => s + x, 0) / items.length) * 100;
+  })();
+  const closedAvgPnl =
+    closed.length > 0
+      ? closed.reduce((s, t) => s + (t.user_pnl_pct ?? 0), 0) / closed.length
+      : null;
+
   return (
     <div className="space-y-10">
-      <header>
-        <div className="text-xs font-mono text-muted-foreground mb-1 uppercase tracking-wider inline-flex items-center gap-2">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_oklch(0.69_0.16_165_/_0.6)]" />
-          Positions
+      <header className="flex flex-wrap items-end justify-between gap-6">
+        <div>
+          <div className="text-xs font-mono text-muted-foreground mb-1 uppercase tracking-wider inline-flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_oklch(0.69_0.16_165_/_0.6)]" />
+            Positions
+          </div>
+          <h1 className="text-3xl font-semibold tracking-tight">Portfolio</h1>
+          <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-3xl">
+            Your confirmed personal trades. Active positions show live
+            progress toward targets and stop; closed show the final P&amp;L
+            and how they exited.
+          </p>
         </div>
-        <h1 className="text-3xl font-semibold tracking-tight">Portfolio</h1>
-        <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-4xl">
-          Your confirmed personal trades. Active positions show live
-          progress toward targets and stop; closed show the final P&amp;L
-          and how they exited.
-        </p>
+        <div className="flex flex-wrap items-stretch gap-3">
+          <HeaderStat
+            label="Active"
+            value={`${active.length}`}
+            sub={
+              liveUnrealized != null
+                ? `${liveUnrealized >= 0 ? "+" : ""}${liveUnrealized.toFixed(2)}% live`
+                : "—"
+            }
+            tone={
+              liveUnrealized == null
+                ? "muted"
+                : liveUnrealized >= 0
+                  ? "emerald"
+                  : "rose"
+            }
+          />
+          <HeaderStat
+            label="Closed"
+            value={`${closed.length}`}
+            sub={
+              closedAvgPnl != null
+                ? `${closedAvgPnl >= 0 ? "+" : ""}${closedAvgPnl.toFixed(2)}% avg`
+                : "—"
+            }
+            tone={
+              closedAvgPnl == null
+                ? "muted"
+                : closedAvgPnl >= 0
+                  ? "emerald"
+                  : "rose"
+            }
+          />
+        </div>
       </header>
 
       <section className="space-y-3">

@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { HeaderStat } from "@/components/header-stat";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -62,17 +63,43 @@ export default async function HistoryPage() {
 
   return (
     <div className="space-y-10">
-      <header>
-        <div className="text-xs font-mono text-muted-foreground mb-1 uppercase tracking-wider inline-flex items-center gap-2">
-          <span className="h-1.5 w-1.5 rounded-full bg-amber-400 shadow-[0_0_8px_oklch(0.78_0.17_85_/_0.6)]" />
-          Activity
+      <header className="flex flex-wrap items-end justify-between gap-6">
+        <div>
+          <div className="text-xs font-mono text-muted-foreground mb-1 uppercase tracking-wider inline-flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-400 shadow-[0_0_8px_oklch(0.78_0.17_85_/_0.6)]" />
+            Activity
+          </div>
+          <h1 className="text-3xl font-semibold tracking-tight">History</h1>
+          <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-3xl">
+            Every signal you received that has resolved — hit a target,
+            stopped out, or expired after 48h. Newest first, capped at the
+            last 200.
+          </p>
         </div>
-        <h1 className="text-3xl font-semibold tracking-tight">History</h1>
-        <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-4xl">
-          Every signal you received that has resolved — hit a target,
-          stopped out, or expired after 48h. Newest first, capped at the
-          last 200.
-        </p>
+        {total > 0 && (
+          <div className="flex items-stretch gap-3">
+            <HeaderStat
+              label="Resolved"
+              value={total.toLocaleString()}
+              sub="last 200"
+              tone="muted"
+            />
+            <HeaderStat
+              label="Win rate"
+              value={`${winRate.toFixed(1)}%`}
+              sub={`${wins.length}W · ${losses.length}L`}
+              tone={
+                winRate >= 60 ? "emerald" : winRate >= 50 ? "primary" : "amber"
+              }
+            />
+            <HeaderStat
+              label="Avg gain"
+              value={`${avgGain >= 0 ? "+" : ""}${avgGain.toFixed(2)}%`}
+              sub="per signal"
+              tone={avgGain >= 0 ? "emerald" : "rose"}
+            />
+          </div>
+        )}
       </header>
 
       <section className="grid md:grid-cols-4 gap-4">

@@ -43,9 +43,59 @@ const VALID_STRATEGIES = [
 // values via /setprice.
 const ALLOWED_MIN_PRICES = [0, 1, 5] as const;
 
-const TICKER_RE = /^[A-Z][A-Z0-9.-]{0,9}$/;
+// Format gate — must be 1-5 letters with optional .X share-class
+// suffix. Tighter than before so obvious gibberish (1+ digits, weird
+// punctuation) gets rejected at the format layer before we even hit
+// Yahoo. BRK.B / GOOG.A / RDS.A type symbols still pass.
+const TICKER_RE = /^[A-Z]{1,5}(\.[A-Z])?$/;
 
 const WATCHLIST_MAX = 50;
+
+// In-memory validation cache. Yahoo is generous but we still
+// shouldn't hammer it for repeat lookups (e.g. user adds AAPL,
+// removes it, adds again). Lives for the life of the server process,
+// which is fine — tickers don't get delisted often enough to matter.
+const _validatedTickers = new Map<string, boolean>();
+
+// Verify a ticker actually trades by hitting Yahoo's public chart
+// endpoint. Cheap, no auth, returns 404 (or empty result array) for
+// unknown symbols. We fail-OPEN on network errors / timeouts so a
+// transient outage doesn't block the user; the bot will simply ignore
+// any garbage that slips through when scanning.
+async function isRealTicker(ticker: string): Promise<boolean> {
+  if (_validatedTickers.has(ticker)) return _validatedTickers.get(ticker)!;
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 3000);
+    const res = await fetch(
+      `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1d`,
+      {
+        signal: ctrl.signal,
+        // Yahoo blocks non-browser UAs sporadically; spoof a generic one.
+        headers: { "User-Agent": "Mozilla/5.0 EdgeNiq/1.0" },
+      },
+    );
+    clearTimeout(t);
+    if (!res.ok) {
+      // 404 specifically means symbol doesn't exist; cache the
+      // negative result. Other errors (5xx, rate limit) — fail open.
+      if (res.status === 404) {
+        _validatedTickers.set(ticker, false);
+        return false;
+      }
+      return true;
+    }
+    const json = (await res.json()) as {
+      chart?: { result?: unknown[] | null; error?: { code?: string } };
+    };
+    const ok = !!json.chart?.result?.length && !json.chart?.error;
+    _validatedTickers.set(ticker, ok);
+    return ok;
+  } catch {
+    // Network error / abort — fail open.
+    return true;
+  }
+}
 
 async function requireUser(): Promise<{ chatId: number }> {
   const session = await auth();
@@ -122,7 +172,17 @@ export async function addWatchlistTicker(raw: string): Promise<ActionResult> {
     const { chatId } = await requireUser();
     const ticker = raw.trim().toUpperCase();
     if (!TICKER_RE.test(ticker)) {
-      return { ok: false, error: "Ticker must be 1-10 letters/digits" };
+      return {
+        ok: false,
+        error: "Ticker must be 1-5 letters (optionally .X for share class)",
+      };
+    }
+    // Real-ticker check before we touch the DB — keeps garbage like
+    // AAAA / XXXX out of users.watchlist where the bot's scanner would
+    // silently ignore them and confuse anyone reading the table.
+    const isReal = await isRealTicker(ticker);
+    if (!isReal) {
+      return { ok: false, error: `${ticker} is not a recognized ticker` };
     }
     const sb = supabaseAdmin();
     const { data: row } = await sb
@@ -137,7 +197,6 @@ export async function addWatchlistTicker(raw: string): Promise<ActionResult> {
       return { ok: false, error: `Watchlist is at the max of ${WATCHLIST_MAX}` };
     }
     if (existing.includes(ticker)) {
-      // Idempotent — treat duplicate add as success.
       return { ok: true };
     }
     const next = [...existing, ticker];
