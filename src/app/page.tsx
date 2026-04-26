@@ -14,6 +14,7 @@ import {
   Eye,
   MessageSquare,
   ShieldCheck,
+  Sparkles,
   Target,
   TrendingUp,
   Zap,
@@ -112,14 +113,15 @@ function Hero() {
             Live signals on Telegram
           </div>
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight leading-[1.05]">
-            Your trading edge,{" "}
-            <span className="text-muted-foreground">organized.</span>
+            For traders who hate{" "}
+            <span className="text-muted-foreground">Discord groups.</span>
           </h1>
           <p className="mt-5 md:mt-6 text-base md:text-lg text-muted-foreground max-w-xl leading-relaxed">
-            AI-scored signals for stocks, options, and prediction
-            markets delivered to Telegram. Personal target ladders,
-            Smart Money tracking, and one-tap auto-trade via Alpaca —
-            all in one dashboard. No guru noise.
+            Every signal carries a 0–100 score, a letter grade, and the
+            5 components that produced it. Filtered through your risk
+            profile, regime gate, and liquidity floor before it reaches
+            you. No caller ego, no FOMO timer, no green-screenshot
+            culture. Just the math, on Telegram.
           </p>
           <div className="mt-8 flex items-center gap-3 flex-wrap">
             <TelegramStartDialog
@@ -460,23 +462,33 @@ function WhyDifferent() {
   const points = [
     {
       icon: Eye,
-      title: "You see the losers too",
-      body: "Most signal services quietly hide the bad calls. Your dashboard shows every trade — wins, stops, expireds. Real win rate, no highlight reel.",
-    },
-    {
-      icon: Zap,
-      title: "Per-user target ladders",
-      body: "Everyone else broadcasts a single price. We compute YOUR targets from YOUR entry when you confirm. A $100 ladder doesn't work if you got in at $103.",
-    },
-    {
-      icon: BellRing,
-      title: "Telegram-native, not Yet-Another-App",
-      body: "You already have Telegram open. Signals, confirmations, target-hit alerts — all in the chat you're in all day. No new login, no new notification spam.",
+      title: "Math, not personalities",
+      body: "Every signal ships with a 0–100 score, letter grade, and the 5 components that produced it (trend, volume, momentum, price action, triggers). A Discord caller will never tell you that. We do, mechanically, every time.",
     },
     {
       icon: ShieldCheck,
-      title: "Strategy filters that actually filter",
-      body: "Six preset strategies (momentum, mean-reversion, trend-following, post-earnings drift, high-conviction) with rule-based gating. Not vibes-based labels.",
+      title: "Filtered before you see it",
+      body: "Thousands of tickers run through 5-factor scoring + multi-timeframe confirmation + regime gate + liquidity floor + earnings filter + your risk profile. Typically 1–5 signals/day. Discord rooms hit you with 30; you take the ones you remember.",
+    },
+    {
+      icon: Zap,
+      title: "Auditable & deterministic",
+      body: "Same conditions = same signal, every time. No caller-changed-his-mind on Wednesday. /why explains scanner state in real time. /history shows every closed trade — wins, stops, expireds. No highlight reels.",
+    },
+    {
+      icon: BellRing,
+      title: "Risk-profile aware",
+      body: "Conservative users don't see $4 stocks gapping 12%. Aggressive users do. Discord rooms send the same calls to everyone, regardless of account size or appetite.",
+    },
+    {
+      icon: Target,
+      title: "Positions get tracked",
+      body: "Confirm a signal and the bot watches it for you — alerts on T1/T2/T3 hits and stops, moves your stop to breakeven once T1 prints, fires an EOD flatten 15 min before close. Discord? You're on your own once you click buy.",
+    },
+    {
+      icon: Sparkles,
+      title: "Smart Money, not gut money",
+      body: "Form 4 insider buys (2-day SEC latency, the fastest legal smart-money signal). 13F holdings from Buffett, Burry, Dalio, Ackman, Tepper, Icahn, Klarman. Congressional STOCK Act filings. Disclosed positions, not pundits.",
     },
   ];
   return (
@@ -486,10 +498,16 @@ function WhyDifferent() {
           Why EdgeNiq
         </div>
         <h2 className="text-3xl md:text-4xl font-semibold tracking-tight">
-          Built different — because the category deserves it.
+          The Discord for people who hate Discords.
         </h2>
+        <p className="text-sm md:text-base text-muted-foreground mt-3 leading-relaxed">
+          Discord trading rooms are entertainment dressed as edge —
+          a personality calling trades, a chat full of FOMO, a feed
+          of green screenshots that mysteriously omits the losses.
+          EdgeNiq is the opposite of that.
+        </p>
       </div>
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {points.map((p) => (
           <Card key={p.title} className="p-6 border-border/60 bg-card/50">
             <div className="flex items-start gap-4">
@@ -592,12 +610,13 @@ function Pricing() {
           Pricing
         </div>
         <h2 className="text-3xl md:text-4xl font-semibold tracking-tight">
-          Built for traders who want a system.
+          Software pricing, not personality pricing.
         </h2>
         <p className="mt-4 text-muted-foreground max-w-xl mx-auto">
-          Start with a free 7-day Elite trial. No card required — signup
-          happens on Telegram, so the bot knows who you are from the
-          first signal.
+          Top trading Discords charge $200–$500/mo for human callers
+          and chat-room access. EdgeNiq runs the math for you at a
+          fraction of that. Start with a free 7-day Elite trial — no
+          card required.
         </p>
       </div>
       <div className="grid md:grid-cols-3 gap-6 mb-16">
