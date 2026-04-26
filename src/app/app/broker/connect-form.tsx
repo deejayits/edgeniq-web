@@ -48,8 +48,8 @@ export function ConnectForm() {
 
   return (
     <div className="space-y-5">
-      <Alert className="border-amber-500/30 bg-amber-500/5">
-        <AlertDescription className="text-xs leading-relaxed text-amber-200/90">
+      <Alert className="px-5 py-4 border-amber-500/30 bg-amber-500/5">
+        <AlertDescription className="text-sm leading-relaxed text-amber-200/90 max-w-3xl">
           <b>Paper trading only for now.</b> No real money at risk.
           Paper keys start with <code>PK</code> — NOT <code>AK</code>.
           Live trading will become available under a separate pricing
@@ -121,8 +121,8 @@ export function ConnectForm() {
       </div>
 
       {testResult && (
-        <Alert className="border-emerald-400/30 bg-emerald-400/5">
-          <AlertDescription className="text-xs text-emerald-200/90">
+        <Alert className="px-5 py-4 border-emerald-400/30 bg-emerald-400/5">
+          <AlertDescription className="text-sm leading-relaxed text-emerald-200/90 max-w-3xl">
             ✓ Verified · Alpaca account <code>{testResult.accountId}</code> ·
             status <b>{testResult.status}</b> · buying power{" "}
             <b>${Number(testResult.buyingPower).toLocaleString()}</b>

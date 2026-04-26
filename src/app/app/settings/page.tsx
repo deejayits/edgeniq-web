@@ -1,7 +1,6 @@
 import { auth } from "@/auth";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ConvictionBadge } from "@/components/conviction-badge";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import {
   Activity,
@@ -12,12 +11,22 @@ import {
   Target,
   UserCircle,
 } from "lucide-react";
+import {
+  RiskProfileEditor,
+  StrategyEditor,
+  MinPriceEditor,
+  WatchlistEditor,
+} from "./editors";
 
 export const dynamic = "force-dynamic";
 
-// Settings — read-only for now. Edit flows (change strategy, risk
-// profile, watchlist) will land in follow-up PRs with server actions
-// that mirror into Supabase and trip the bot's dual-write mirror too.
+// Settings — Trading section is web-editable now (risk profile,
+// strategy, min share price, watchlist) via server actions that write
+// directly to Supabase. The bot's _user_sync_loop polls the same row
+// every 60s, so changes propagate to the running scanner within a
+// minute. Notifications + Account are still read-only — alert types
+// and session alerts have notification side effects we don't want to
+// fan-out from the web (yet).
 export default async function SettingsPage() {
   const session = await auth();
   const tgUserId = (session?.user as { tgUserId?: number } | undefined)
@@ -42,8 +51,9 @@ export default async function SettingsPage() {
   // Pull conviction snapshots for every watchlist ticker. The bot's
   // conviction writer keeps this table fresh; if a ticker has no row
   // yet (just added, writer hasn't ticked) the badge renders "—"
-  // rather than blocking the page.
-  const convictionMap = new Map<string, number>();
+  // rather than blocking the page. Plain object passed to the client
+  // editor — Maps don't serialize across the server/client boundary.
+  const convictionByTicker: Record<string, number> = {};
   if (watchlist.length > 0) {
     const { data: convRows } = await db
       .from("conviction_scores")
@@ -51,7 +61,7 @@ export default async function SettingsPage() {
       .in("ticker", watchlist.map((t) => t.toUpperCase()));
     for (const row of convRows ?? []) {
       if (row?.ticker && typeof row.score === "number") {
-        convictionMap.set(row.ticker.toUpperCase(), row.score);
+        convictionByTicker[row.ticker.toUpperCase()] = row.score;
       }
     }
   }
@@ -64,10 +74,11 @@ export default async function SettingsPage() {
           Preferences
         </div>
         <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Preferences that control which signals reach you. Editing
-          inline lands in the next release — for now use the linked
-          Telegram command on each row to change anything.
+        <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-2xl">
+          Preferences that control which signals reach you. Trading
+          changes save instantly and reach the running bot within a
+          minute. Notifications still use the Telegram command on each
+          row.
         </p>
       </header>
 
@@ -80,50 +91,41 @@ export default async function SettingsPage() {
             icon={Shield}
             tone="emerald"
             label="Risk profile"
-            command="/riskprofile"
-            rightSlot={<ValuePill>{me.risk_profile ?? "—"}</ValuePill>}
+            description="Drives sizing aggressiveness and signal selectivity"
+            rightSlot={
+              <RiskProfileEditor value={me.risk_profile ?? "moderate"} />
+            }
           />
           <SettingRow
             icon={Target}
             tone="violet"
             label="Strategy"
-            command="/strategy"
-            rightSlot={<ValuePill>{me.strategy ?? "—"}</ValuePill>}
+            description="Setup-type filter applied to every signal we evaluate"
+            rightSlot={<StrategyEditor value={me.strategy ?? "balanced"} />}
           />
           <SettingRow
             icon={Shield}
             tone="amber"
             label="Min share price"
-            command="/setprice"
-            description="Penny-stock policy. $5 = SEC threshold (default), $1 = low-priced US-listed names allowed, $0 = anything goes"
+            description="Penny-stock policy. $5 = SEC threshold (default)"
             rightSlot={
-              <ValuePill>
-                ${(typeof me.min_price === "number" ? me.min_price : 5).toFixed(2)}
-              </ValuePill>
+              <MinPriceEditor
+                value={typeof me.min_price === "number" ? me.min_price : 5}
+              />
             }
           />
           <SettingRow
             icon={Eye}
             tone="sky"
             label="Watchlist"
-            command="/watchlist"
+            description="Tickers you track. Conviction score updates every 15 min during market hours."
             rightSlot={
-              watchlist.length === 0 ? (
-                <span className="text-xs text-muted-foreground italic">
-                  empty — add tickers via Telegram
-                </span>
-              ) : (
-                <div className="flex flex-wrap justify-end gap-1.5 max-w-md">
-                  {watchlist.map((t) => (
-                    <ConvictionBadge
-                      key={t}
-                      ticker={t}
-                      score={convictionMap.get(t.toUpperCase()) ?? null}
-                    />
-                  ))}
-                </div>
-              )
+              <WatchlistEditor
+                initial={watchlist.map((t) => t.toUpperCase())}
+                scoreByTicker={convictionByTicker}
+              />
             }
+            stackOnMobile
           />
         </SettingsSection>
 
@@ -318,6 +320,7 @@ function SettingRow({
   command,
   description,
   rightSlot,
+  stackOnMobile,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   tone?: keyof typeof TONE_CLASSES;
@@ -325,24 +328,30 @@ function SettingRow({
   command?: string;
   description?: string;
   rightSlot: React.ReactNode;
+  /** Stack the right slot below the label on narrower screens. Use
+      for wide editors like the watchlist where putting them on the
+      right would crush either the label or the editor. */
+  stackOnMobile?: boolean;
 }) {
   const t = TONE_CLASSES[tone];
   return (
-    <div className="px-4 py-4 flex flex-wrap items-center justify-between gap-4">
-      <div className="flex items-center gap-3 min-w-0">
+    <div
+      className={`px-5 py-5 flex flex-wrap gap-x-6 gap-y-4 ${stackOnMobile ? "flex-col md:flex-row md:items-start md:justify-between" : "items-center justify-between"}`}
+    >
+      <div className="flex items-start gap-3 min-w-0 flex-1">
         <div
           className={`h-9 w-9 rounded-md flex items-center justify-center shrink-0 border ${t.bg} ${t.border}`}
         >
           <Icon className={`h-4 w-4 ${t.text}`} />
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="text-sm font-medium">{label}</div>
           {description ? (
-            <div className="text-xs text-muted-foreground mt-0.5">
+            <div className="text-xs text-muted-foreground mt-1 leading-relaxed max-w-md">
               {description}
             </div>
           ) : command && command !== "—" ? (
-            <div className="text-[11px] text-muted-foreground mt-0.5">
+            <div className="text-[11px] text-muted-foreground mt-1">
               Change via{" "}
               <code className="px-1.5 py-0.5 rounded bg-muted/60 border border-border/60 font-mono text-[10px]">
                 {command}
@@ -352,7 +361,11 @@ function SettingRow({
           ) : null}
         </div>
       </div>
-      <div className="flex items-center justify-end">{rightSlot}</div>
+      <div
+        className={`flex items-center ${stackOnMobile ? "w-full md:w-auto md:justify-end" : "justify-end"}`}
+      >
+        {rightSlot}
+      </div>
     </div>
   );
 }
