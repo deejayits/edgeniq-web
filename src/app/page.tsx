@@ -370,7 +370,7 @@ function Features() {
     {
       icon: Eye,
       title: "Smart Money tracker",
-      body: "Follow real 13F filings — Buffett, Burry, Dalio, Ackman, Tepper, Icahn, Klarman. Auto-ingested from SEC EDGAR, CUSIP-resolved to tickers. Congressional trades coming.",
+      body: "Form 4 insider buys (~2-day SEC latency, fastest legal smart-money signal), 13F holdings from Buffett, Burry, Dalio, Ackman, Tepper, Icahn, Klarman, and Congressional STOCK Act filings. Telegram pings when a CFO buys a ticker on your watchlist.",
     },
     {
       icon: BarChart3,
@@ -488,7 +488,7 @@ function WhyDifferent() {
     {
       icon: Sparkles,
       title: "Smart Money, not gut money",
-      body: "Form 4 insider buys with ~2-day SEC latency — the fastest legal smart-money signal available. 13F holdings from Buffett, Burry, Dalio, Ackman, Tepper, Icahn, Klarman. Congressional STOCK Act filings. Disclosed positions, not pundits.",
+      body: "Form 4 insider buys (~2-day SEC latency) are a 30–90 day watchlist signal — when a CFO buys $500K of their own stock, you get most of their thesis window to participate. Plus 13F filings from Buffett, Burry, Dalio, Ackman, Tepper, Icahn, Klarman, and Congressional STOCK Act disclosures. Disclosed positions, not pundits.",
     },
   ];
   return (
@@ -593,7 +593,8 @@ function Pricing() {
         "Options alerts (unusual volume, block prints, OTM spikes)",
         "ETF call signals — directional SPY/QQQ trend setups when broad market is trending and vol regime is calm",
         "Prediction markets (Kalshi + Polymarket)",
-        "Smart Money — hedge fund 13F (Buffett, Burry, Dalio, Ackman, Tepper, Icahn, Klarman)",
+        "Smart Money — Form 4 insider buys (~2-day latency), 13F filings (Buffett, Burry, Dalio, Ackman, Tepper, Icahn, Klarman), Congressional STOCK Act disclosures",
+        "Telegram alerts when an insider buys a ticker on your watchlist",
         "Alpaca auto-trade (paper) — bracket orders with breakeven-at-T1 monitor, kill switch",
       ],
       featured: false,
@@ -768,7 +769,9 @@ function FeatureMatrix() {
     { label: "HIGH CONVICTION cross-venue signals", free: true, pro: false, elite: true },
     // --- Smart Money ---------------------------------------------
     { label: "Smart Money — hedge fund 13F filings", free: true, pro: false, elite: true },
-    { label: "Smart Money — Congressional trades", free: false, pro: false, elite: "Coming soon" },
+    { label: "Smart Money — Form 4 insider buys (~2d latency)", free: true, pro: false, elite: true },
+    { label: "Smart Money — Congressional STOCK Act filings", free: true, pro: false, elite: true },
+    { label: "Smart Money — Telegram alerts on watchlist matches", free: true, pro: false, elite: true },
     { label: "Smart Money mirror (auto-shadow trades)", free: false, pro: false, elite: "Add-on +$49.99/mo" },
     // --- Execution -----------------------------------------------
     { label: "Alpaca auto-trade (paper mode)", free: true, pro: false, elite: true },
