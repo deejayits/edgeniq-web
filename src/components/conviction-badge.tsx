@@ -62,7 +62,7 @@ export function ConvictionBadge({
       )}
       title={
         score == null
-          ? `${ticker} — no conviction snapshot yet`
+          ? `${ticker} — score appears within ~1 minute of being added`
           : `${ticker} — conviction ${score}/100 (${label})`
       }
     >
