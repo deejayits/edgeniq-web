@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ConvictionBadge } from "@/components/conviction-badge";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import {
   Activity,
@@ -37,6 +38,23 @@ export default async function SettingsPage() {
     .map(([k]) => k);
   const watchlist: string[] = Array.isArray(me.watchlist) ? me.watchlist : [];
   const alerts: string[] = Array.isArray(me.alerts) ? me.alerts : ["stocks"];
+
+  // Pull conviction snapshots for every watchlist ticker. The bot's
+  // conviction writer keeps this table fresh; if a ticker has no row
+  // yet (just added, writer hasn't ticked) the badge renders "—"
+  // rather than blocking the page.
+  const convictionMap = new Map<string, number>();
+  if (watchlist.length > 0) {
+    const { data: convRows } = await db
+      .from("conviction_scores")
+      .select("ticker, score")
+      .in("ticker", watchlist.map((t) => t.toUpperCase()));
+    for (const row of convRows ?? []) {
+      if (row?.ticker && typeof row.score === "number") {
+        convictionMap.set(row.ticker.toUpperCase(), row.score);
+      }
+    }
+  }
 
   return (
     <div className="space-y-10">
@@ -97,13 +115,11 @@ export default async function SettingsPage() {
               ) : (
                 <div className="flex flex-wrap justify-end gap-1.5 max-w-md">
                   {watchlist.map((t) => (
-                    <Badge
+                    <ConvictionBadge
                       key={t}
-                      variant="outline"
-                      className="font-mono text-[11px] py-0 h-5"
-                    >
-                      {t}
-                    </Badge>
+                      ticker={t}
+                      score={convictionMap.get(t.toUpperCase()) ?? null}
+                    />
                   ))}
                 </div>
               )

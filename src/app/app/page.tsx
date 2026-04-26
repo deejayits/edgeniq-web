@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Sparkline } from "@/components/sparkline";
+import { ConvictionBadge } from "@/components/conviction-badge";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import {
   Activity,
@@ -10,6 +11,7 @@ import {
   CheckCircle2,
   Flame,
   Keyboard,
+  Sparkles,
   Target,
   XCircle,
 } from "lucide-react";
@@ -50,6 +52,26 @@ export default async function AppHome() {
         .limit(20),
     ]);
 
+  // Top-conviction watchlist tickers — pull scores for the user's
+  // watchlist and surface the highest-scoring 5 as a "look here first"
+  // tile. Skipped when the watchlist is empty (typical for free users
+  // pre-onboarding).
+  const watchlist: string[] = Array.isArray(me?.watchlist) ? me!.watchlist : [];
+  let topConviction: { ticker: string; score: number }[] = [];
+  if (watchlist.length > 0) {
+    const { data: convRows } = await db
+      .from("conviction_scores")
+      .select("ticker, score")
+      .in("ticker", watchlist.map((t) => t.toUpperCase()))
+      .order("score", { ascending: false })
+      .limit(5);
+    topConviction = (convRows ?? [])
+      .filter((r): r is { ticker: string; score: number } =>
+        typeof r?.ticker === "string" && typeof r?.score === "number",
+      )
+      .map((r) => ({ ticker: r.ticker, score: r.score }));
+  }
+
   const resolvedLast24h = (recentSignals ?? []).filter(
     (r) => Date.parse(r.closed_at) >= Date.now() - 86_400_000,
   ).length;
@@ -89,6 +111,8 @@ export default async function AppHome() {
           sparkValues={watchlistFlatSpark(me?.watchlist?.length ?? 0)}
         />
       </section>
+
+      <TopConviction items={topConviction} watchlistEmpty={watchlist.length === 0} />
 
       <RecentActivity signals={recentSignals ?? []} />
 
@@ -214,6 +238,71 @@ function StatCard({
 // Timeline of resolved signals over the last 7 days. Mix of wins, losses,
 // and expireds — grouped visually by outcome so the user sees their
 // actual experience, not just counts.
+// "Top conviction" — surfaces the watchlist tickers with the highest
+// current conviction snapshots. The bot's writer keeps the table
+// fresh every 15 min during market hours; if the user just signed up
+// and hasn't built a watchlist yet, we show a quiet prompt instead
+// of a blank section.
+function TopConviction({
+  items,
+  watchlistEmpty,
+}: {
+  items: { ticker: string; score: number }[];
+  watchlistEmpty: boolean;
+}) {
+  if (watchlistEmpty) {
+    return (
+      <section className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-amber-300" />
+          <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+            Top conviction
+          </h2>
+        </div>
+        <Card className="p-6 text-sm text-muted-foreground border-border/60 bg-card/40">
+          Build your /watchlist on Telegram to see conviction scores for
+          the names you track. Conviction blends trend, 52-week
+          position, sector relative strength, insider activity, and
+          volatility regime into one 0-100 number.
+        </Card>
+      </section>
+    );
+  }
+  if (items.length === 0) {
+    // Watchlist exists but no scores yet — bot hasn't refreshed.
+    return null;
+  }
+  return (
+    <section className="space-y-3">
+      <div className="flex items-center gap-2">
+        <Sparkles className="h-4 w-4 text-amber-300" />
+        <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+          Top conviction
+        </h2>
+        <span className="text-xs text-muted-foreground">
+          your watchlist, ranked
+        </span>
+      </div>
+      <Card className="p-5 border-border/60 bg-card/40">
+        <div className="flex flex-wrap gap-2">
+          {items.map((it) => (
+            <ConvictionBadge
+              key={it.ticker}
+              ticker={it.ticker}
+              score={it.score}
+            />
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground mt-3 leading-relaxed">
+          Score blends trend, 52-week position, sector relative
+          strength, insider activity, and volatility regime. Updated
+          every 15 minutes during market hours.
+        </p>
+      </Card>
+    </section>
+  );
+}
+
 function RecentActivity({
   signals,
 }: {
