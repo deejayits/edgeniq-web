@@ -76,30 +76,46 @@ export default async function HistoryPage() {
             last 200.
           </p>
         </div>
-        {total > 0 && (
-          <div className="flex items-stretch gap-3">
-            <HeaderStat
-              label="Resolved"
-              value={total.toLocaleString()}
-              sub="last 200"
-              tone="muted"
-            />
-            <HeaderStat
-              label="Win rate"
-              value={`${winRate.toFixed(1)}%`}
-              sub={`${wins.length}W · ${losses.length}L`}
-              tone={
-                winRate >= 60 ? "emerald" : winRate >= 50 ? "primary" : "amber"
-              }
-            />
-            <HeaderStat
-              label="Avg gain"
-              value={`${avgGain >= 0 ? "+" : ""}${avgGain.toFixed(2)}%`}
-              sub="per signal"
-              tone={avgGain >= 0 ? "emerald" : "rose"}
-            />
-          </div>
-        )}
+        {/* Always render the tiles so the header layout stays
+            balanced — empty state just shows em-dashes. Without this
+            the description reflows onto two lines on wide screens
+            because the right side collapses. */}
+        <div className="flex items-stretch gap-3">
+          <HeaderStat
+            label="Resolved"
+            value={total > 0 ? total.toLocaleString() : "0"}
+            sub={total > 0 ? "last 200" : "no history yet"}
+            tone="muted"
+          />
+          <HeaderStat
+            label="Win rate"
+            value={total > 0 ? `${winRate.toFixed(1)}%` : "—"}
+            sub={
+              total > 0
+                ? `${wins.length}W · ${losses.length}L`
+                : "win/loss split"
+            }
+            tone={
+              total === 0
+                ? "muted"
+                : winRate >= 60
+                  ? "emerald"
+                  : winRate >= 50
+                    ? "primary"
+                    : "amber"
+            }
+          />
+          <HeaderStat
+            label="Avg gain"
+            value={
+              total > 0
+                ? `${avgGain >= 0 ? "+" : ""}${avgGain.toFixed(2)}%`
+                : "—"
+            }
+            sub="per signal"
+            tone={total === 0 ? "muted" : avgGain >= 0 ? "emerald" : "rose"}
+          />
+        </div>
       </header>
 
       <section className="grid md:grid-cols-4 gap-4">

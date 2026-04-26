@@ -57,43 +57,47 @@ const WATCHLIST_MAX = 50;
 // which is fine — tickers don't get delisted often enough to matter.
 const _validatedTickers = new Map<string, boolean>();
 
-// Verify a ticker actually trades by hitting Yahoo's public chart
-// endpoint. Cheap, no auth, returns 404 (or empty result array) for
-// unknown symbols. We fail-OPEN on network errors / timeouts so a
-// transient outage doesn't block the user; the bot will simply ignore
-// any garbage that slips through when scanning.
+// Verify a ticker actually trades by hitting Yahoo's public search
+// endpoint. The chart endpoint we tried first (v8/finance/chart) was
+// too permissive — it returns 200 with placeholder shape for some
+// non-existent strings like XXXX. The search endpoint is stricter:
+// returns the actual quote universe Yahoo knows about, and we then
+// require an EXACT symbol match in the results (Yahoo's search is
+// fuzzy by default, so without exact-match we'd accept anything that
+// shares a prefix with a real ticker).
+//
+// Fail-OPEN on network/timeout so a transient outage doesn't block
+// legit adds; the bot scanner will simply ignore any garbage that
+// slips through.
 async function isRealTicker(ticker: string): Promise<boolean> {
   if (_validatedTickers.has(ticker)) return _validatedTickers.get(ticker)!;
   try {
     const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 3000);
-    const res = await fetch(
-      `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1d`,
-      {
-        signal: ctrl.signal,
-        // Yahoo blocks non-browser UAs sporadically; spoof a generic one.
-        headers: { "User-Agent": "Mozilla/5.0 EdgeNiq/1.0" },
-      },
-    );
-    clearTimeout(t);
-    if (!res.ok) {
-      // 404 specifically means symbol doesn't exist; cache the
-      // negative result. Other errors (5xx, rate limit) — fail open.
-      if (res.status === 404) {
-        _validatedTickers.set(ticker, false);
-        return false;
-      }
-      return true;
-    }
+    const timer = setTimeout(() => ctrl.abort(), 3500);
+    const url = `https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(ticker)}&quotesCount=10&newsCount=0`;
+    const res = await fetch(url, {
+      signal: ctrl.signal,
+      // Yahoo intermittently blocks non-browser UAs.
+      headers: { "User-Agent": "Mozilla/5.0 EdgeNiq/1.0" },
+      cache: "no-store",
+    });
+    clearTimeout(timer);
+    if (!res.ok) return true; // fail open on HTTP error
     const json = (await res.json()) as {
-      chart?: { result?: unknown[] | null; error?: { code?: string } };
+      quotes?: Array<{ symbol?: string; quoteType?: string }>;
     };
-    const ok = !!json.chart?.result?.length && !json.chart?.error;
-    _validatedTickers.set(ticker, ok);
-    return ok;
+    const quotes = json.quotes ?? [];
+    // Exact symbol match — Yahoo's search returns fuzzy matches by
+    // default (e.g. searching "AAP" surfaces AAPL). We don't want
+    // that. The user typed exactly this string; only accept if a
+    // tradable instrument exists with that exact symbol.
+    const match = quotes.some(
+      (q) => (q.symbol ?? "").toUpperCase() === ticker,
+    );
+    _validatedTickers.set(ticker, match);
+    return match;
   } catch {
-    // Network error / abort — fail open.
-    return true;
+    return true; // fail open on network error / abort
   }
 }
 
