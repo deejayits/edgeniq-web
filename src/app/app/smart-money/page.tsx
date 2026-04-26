@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Info, TrendingUp, Shield } from "lucide-react";
 import { supabaseAdmin } from "@/lib/supabase/server";
+import { isEliteAccess } from "@/lib/access";
 import { TargetCard } from "./target-card";
 import {
   TARGET_TYPE_DESC,
@@ -22,18 +23,6 @@ export const dynamic = "force-dynamic";
 // Smart Money — browse + follow politicians, hedge funds, insiders,
 // activists. Elite-tier feature. Mimic (auto-shadow-trade) requires
 // the Live Trading add-on on top of Elite.
-
-function isEliteAccess(user: {
-  role?: string;
-  subPlan?: string;
-  subStatus?: string;
-}): boolean {
-  if (user.role === "admin" || user.role === "primary_admin") return true;
-  const status = (user.subStatus ?? "").toLowerCase();
-  if (status === "expired") return false;
-  if (status === "trial") return true;
-  return (user.subPlan ?? "").toLowerCase() === "elite";
-}
 
 export default async function SmartMoneyPage({
   searchParams,

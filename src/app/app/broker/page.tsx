@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { supabaseAdmin } from "@/lib/supabase/server";
+import { isEliteAccess } from "@/lib/access";
 import { ConnectForm } from "./connect-form";
 import { ConnectedHeader } from "./connected-header";
 import { RulesCard, type RuleRow } from "./rules-card";
@@ -43,18 +44,6 @@ type TradeRow = {
   mode: string;
   error_message: string | null;
 };
-
-function isEliteAccess(user: {
-  role?: string;
-  subPlan?: string;
-  subStatus?: string;
-}): boolean {
-  if (user.role === "admin" || user.role === "primary_admin") return true;
-  const status = (user.subStatus ?? "").toLowerCase();
-  if (status === "expired") return false;
-  if (status === "trial") return true;
-  return (user.subPlan ?? "").toLowerCase() === "elite";
-}
 
 export default async function BrokerPage() {
   const session = await auth();

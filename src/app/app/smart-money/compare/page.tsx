@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowLeft, Info, TrendingUp } from "lucide-react";
 import { supabaseAdmin } from "@/lib/supabase/server";
+import { isEliteAccess } from "@/lib/access";
 import { ComparePicker } from "./compare-picker";
 import { CompareChart } from "./compare-chart";
 import {
@@ -26,18 +27,6 @@ const TYPE_ACCENT: Record<TargetType, string> = {
 };
 
 const SERIES_COLOR = ["emerald-400", "violet-400", "amber-400"] as const;
-
-function isEliteAccess(user: {
-  role?: string;
-  subPlan?: string;
-  subStatus?: string;
-}): boolean {
-  if (user.role === "admin" || user.role === "primary_admin") return true;
-  const status = (user.subStatus ?? "").toLowerCase();
-  if (status === "expired") return false;
-  if (status === "trial") return true;
-  return (user.subPlan ?? "").toLowerCase() === "elite";
-}
 
 function fmtMoney(n: number | null): string {
   if (n == null || n <= 0) return "—";

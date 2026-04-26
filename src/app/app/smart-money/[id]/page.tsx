@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ExternalLink, Info, Clock, HardDriveDownload } from "lucide-react";
 import { supabaseAdmin } from "@/lib/supabase/server";
+import { isEliteAccess } from "@/lib/access";
 import { ActivityChart } from "../activity-chart";
 import { FollowControls } from "../follow-controls";
 import {
@@ -33,18 +34,6 @@ function avatarInitials(name: string): string {
     .slice(0, 2)
     .join("")
     .toUpperCase();
-}
-
-function isEliteAccess(user: {
-  role?: string;
-  subPlan?: string;
-  subStatus?: string;
-}): boolean {
-  if (user.role === "admin" || user.role === "primary_admin") return true;
-  const status = (user.subStatus ?? "").toLowerCase();
-  if (status === "expired") return false;
-  if (status === "trial") return true;
-  return (user.subPlan ?? "").toLowerCase() === "elite";
 }
 
 function fmtMoney(n: number | null): string {
