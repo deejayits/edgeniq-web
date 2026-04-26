@@ -113,15 +113,15 @@ function Hero() {
             Live signals on Telegram
           </div>
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight leading-[1.05]">
-            For traders who hate{" "}
-            <span className="text-muted-foreground">Discord groups.</span>
+            Trading signals,{" "}
+            <span className="text-muted-foreground">with the math shown.</span>
           </h1>
           <p className="mt-5 md:mt-6 text-base md:text-lg text-muted-foreground max-w-xl leading-relaxed">
-            Every signal carries a 0–100 score, a letter grade, and the
-            5 components that produced it. Filtered through your risk
-            profile, regime gate, and liquidity floor before it reaches
-            you. No caller ego, no FOMO timer, no green-screenshot
-            culture. Just the math, on Telegram.
+            Every signal ships with a 0–100 score, a letter grade, and
+            the 5 components that produced it. Filtered through your
+            risk profile, regime gate, and liquidity floor before it
+            reaches you. No hype, no FOMO, no curated highlight reel —
+            just the math, delivered to Telegram.
           </p>
           <div className="mt-8 flex items-center gap-3 flex-wrap">
             <TelegramStartDialog
@@ -463,32 +463,32 @@ function WhyDifferent() {
     {
       icon: Eye,
       title: "Math, not personalities",
-      body: "Every signal ships with a 0–100 score, letter grade, and the 5 components that produced it (trend, volume, momentum, price action, triggers). A Discord caller will never tell you that. We do, mechanically, every time.",
+      body: "Every signal ships with a 0–100 score, letter grade, and the 5 components that produced it: trend, volume, momentum, price action, triggers. You see the reasoning, not just the call.",
     },
     {
       icon: ShieldCheck,
       title: "Filtered before you see it",
-      body: "Thousands of tickers run through 5-factor scoring + multi-timeframe confirmation + regime gate + liquidity floor + earnings filter + your risk profile. Typically 1–5 signals/day. Discord rooms hit you with 30; you take the ones you remember.",
+      body: "Thousands of tickers run through 5-factor scoring + multi-timeframe confirmation + regime gate + liquidity floor + earnings filter + your risk profile. Typically 1–5 signals a day. Quality, not flood.",
     },
     {
       icon: Zap,
       title: "Auditable & deterministic",
-      body: "Same conditions = same signal, every time. No caller-changed-his-mind on Wednesday. /why explains scanner state in real time. /history shows every closed trade — wins, stops, expireds. No highlight reels.",
+      body: "Same conditions produce the same signal, every time. /why explains the scanner's current state in real time. /history shows every closed trade — wins, stops, and expireds. No highlight reels.",
     },
     {
       icon: BellRing,
       title: "Risk-profile aware",
-      body: "Conservative users don't see $4 stocks gapping 12%. Aggressive users do. Discord rooms send the same calls to everyone, regardless of account size or appetite.",
+      body: "Conservative users don't see $4 stocks gapping 12%. Aggressive users do. Your alerts reflect your account size and appetite — not a one-size-fits-all broadcast.",
     },
     {
       icon: Target,
       title: "Positions get tracked",
-      body: "Confirm a signal and the bot watches it for you — alerts on T1/T2/T3 hits and stops, moves your stop to breakeven once T1 prints, fires an EOD flatten 15 min before close. Discord? You're on your own once you click buy.",
+      body: "Confirm a signal and the bot watches it for you — alerts on T1/T2/T3 hits and stops, moves your stop to breakeven once T1 prints, fires an EOD flatten 15 min before close. Discipline, automated.",
     },
     {
       icon: Sparkles,
       title: "Smart Money, not gut money",
-      body: "Form 4 insider buys (2-day SEC latency, the fastest legal smart-money signal). 13F holdings from Buffett, Burry, Dalio, Ackman, Tepper, Icahn, Klarman. Congressional STOCK Act filings. Disclosed positions, not pundits.",
+      body: "Form 4 insider buys with ~2-day SEC latency — the fastest legal smart-money signal available. 13F holdings from Buffett, Burry, Dalio, Ackman, Tepper, Icahn, Klarman. Congressional STOCK Act filings. Disclosed positions, not pundits.",
     },
   ];
   return (
@@ -498,13 +498,14 @@ function WhyDifferent() {
           Why EdgeNiq
         </div>
         <h2 className="text-3xl md:text-4xl font-semibold tracking-tight">
-          The Discord for people who hate Discords.
+          Built for traders who want to see the work.
         </h2>
         <p className="text-sm md:text-base text-muted-foreground mt-3 leading-relaxed">
-          Discord trading rooms are entertainment dressed as edge —
-          a personality calling trades, a chat full of FOMO, a feed
-          of green screenshots that mysteriously omits the losses.
-          EdgeNiq is the opposite of that.
+          Most signal services are entertainment dressed as edge —
+          callers, hype, and a feed of curated wins. EdgeNiq shows
+          you the math behind every alert, applies your risk
+          profile, and tracks every position from entry to exit. No
+          black box, no highlight reel.
         </p>
       </div>
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -610,13 +611,13 @@ function Pricing() {
           Pricing
         </div>
         <h2 className="text-3xl md:text-4xl font-semibold tracking-tight">
-          Software pricing, not personality pricing.
+          Software pricing, not guru pricing.
         </h2>
         <p className="mt-4 text-muted-foreground max-w-xl mx-auto">
-          Top trading Discords charge $200–$500/mo for human callers
-          and chat-room access. EdgeNiq runs the math for you at a
-          fraction of that. Start with a free 7-day Elite trial — no
-          card required.
+          Most signal services charge several hundred dollars a month
+          for personality-driven calls. EdgeNiq runs the math for you
+          at a fraction of that. Start with a free 7-day Elite
+          trial — no card required.
         </p>
       </div>
       <div className="grid md:grid-cols-3 gap-6 mb-16">
