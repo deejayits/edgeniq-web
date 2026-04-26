@@ -12,7 +12,7 @@
 // either succeeds silently or shows the error inline. Smaller surface
 // = fewer cross-component coordination bugs.
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { ChevronDown, Check, Plus, X, Loader2 } from "lucide-react";
 import { ConvictionBadge } from "@/components/conviction-badge";
 import {
@@ -51,10 +51,28 @@ function ErrorLine({ msg }: { msg: string | null }) {
   );
 }
 
+// Auto-dismiss inline error after a few seconds. Without this, a
+// rejected attempt (bad ticker, server validation) leaves a stale
+// red message hanging next to the form forever — looks like the
+// problem persists even after the user has moved on. 5s is long
+// enough to read, short enough to feel transient.
+function useAutoClearError(
+  error: string | null,
+  setError: (e: string | null) => void,
+  delayMs = 5000,
+) {
+  useEffect(() => {
+    if (!error) return;
+    const t = setTimeout(() => setError(null), delayMs);
+    return () => clearTimeout(t);
+  }, [error, setError, delayMs]);
+}
+
 export function RiskProfileEditor({ value }: { value: string }) {
   const [pending, startTransition] = useTransition();
   const [optimistic, setOptimistic] = useState<string>(value);
   const [error, setError] = useState<string | null>(null);
+  useAutoClearError(error, setError);
   const current = RISK_OPTIONS.find((o) => o.value === optimistic) ?? RISK_OPTIONS[1];
 
   return (
@@ -99,6 +117,7 @@ export function StrategyEditor({ value }: { value: string }) {
   const [pending, startTransition] = useTransition();
   const [optimistic, setOptimistic] = useState<string>(value);
   const [error, setError] = useState<string | null>(null);
+  useAutoClearError(error, setError);
 
   return (
     <div className="flex items-center gap-2">
@@ -142,6 +161,7 @@ export function MinPriceEditor({ value }: { value: number }) {
   const [pending, startTransition] = useTransition();
   const [optimistic, setOptimistic] = useState<number>(value);
   const [error, setError] = useState<string | null>(null);
+  useAutoClearError(error, setError);
 
   return (
     <div className="flex flex-col items-end gap-1">
@@ -200,6 +220,7 @@ export function WatchlistEditor({
   const [tickers, setTickers] = useState<string[]>(initial);
   const [draft, setDraft] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
+  useAutoClearError(error, setError);
 
   function add() {
     const t = draft.trim().toUpperCase();
@@ -262,7 +283,12 @@ export function WatchlistEditor({
       >
         <input
           value={draft}
-          onChange={(e) => setDraft(e.target.value.toUpperCase())}
+          onChange={(e) => {
+            setDraft(e.target.value.toUpperCase());
+            // Clear stale error the moment they start a new attempt —
+            // less jarring than waiting for the 5s auto-dismiss.
+            if (error) setError(null);
+          }}
           placeholder="Add ticker (e.g. NVDA)"
           maxLength={10}
           className="bg-card border border-border/60 rounded-md px-3 py-1.5 text-sm font-mono w-44 placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary/50"
