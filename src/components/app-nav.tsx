@@ -14,6 +14,7 @@ const BASE_NAV = [
   { href: "/app/smart-money", label: "Smart Money" },
   { href: "/app/broker", label: "Auto-trade" },
   { href: "/app/history", label: "History" },
+  { href: "/app/backtest", label: "Backtest" },
   { href: "/app/commands", label: "Commands" },
   { href: "/app/settings", label: "Settings" },
 ];
