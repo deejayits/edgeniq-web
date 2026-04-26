@@ -311,6 +311,121 @@ function parseCompanyFromNotes(notes: string | null): string | null {
   return parts[parts.length - 1] || null;
 }
 
+// Position-change classification. We compute this at render time
+// instead of storing it in the schema because:
+//   1. It's purely derivable from the existing trade rows
+//   2. Adding a column would require backfilling every historical
+//      13F we've already ingested (and silently produce wrong
+//      classifications for the oldest filings where we have no
+//      "prior" snapshot)
+//   3. Schema-free keeps the ingest path simple — the python writer
+//      doesn't need to know about classification
+//
+// Logic:
+//   - Group trades by filed_date; the two most recent dates are the
+//     "current" and "prior" filings.
+//   - For each ticker in the current filing:
+//       not in prior        → "new"     — fresh conviction
+//       in prior, size up   → "add_on"  — increased stake
+//       in prior, size down → "trim"    → reduced stake
+//       in prior, ~unchanged → "hold"   — no signal, not surfaced
+//   - Tickers in prior but not in current = "exit" — surfaced separately
+//
+// Size-change threshold: 10% — below that we call it "hold" because
+// 13F values fluctuate with price moves between filings and we don't
+// want every position to read as "Add" / "Trim" purely from price drift.
+type PositionChange = "new" | "add_on" | "trim" | "hold" | "exit";
+
+const SIZE_CHANGE_THRESHOLD_PCT = 10;
+
+function classifyHoldings(trades: SmartMoneyTrade[]): {
+  classification: Map<string, { kind: PositionChange; deltaPct: number }>;
+  exits: { symbol: string; size: number | null }[];
+  hasPriorFiling: boolean;
+} {
+  // Group by filed_date — only consider rows that actually have one.
+  const byFiledDate = new Map<string, SmartMoneyTrade[]>();
+  for (const t of trades) {
+    const fd = t.filed_date;
+    if (!fd) continue;
+    if (!byFiledDate.has(fd)) byFiledDate.set(fd, []);
+    byFiledDate.get(fd)!.push(t);
+  }
+  const filedDates = [...byFiledDate.keys()].sort().reverse();
+  if (filedDates.length === 0) {
+    return { classification: new Map(), exits: [], hasPriorFiling: false };
+  }
+  const current = byFiledDate.get(filedDates[0]) ?? [];
+  const prior = filedDates[1] ? byFiledDate.get(filedDates[1]) ?? [] : [];
+
+  const priorByTicker = new Map<string, number>();
+  for (const t of prior) {
+    const key = (t.ticker ?? t.symbol ?? "").toUpperCase();
+    if (!key) continue;
+    priorByTicker.set(key, (priorByTicker.get(key) ?? 0) + (t.size_estimate_usd ?? 0));
+  }
+
+  const classification = new Map<string, { kind: PositionChange; deltaPct: number }>();
+  const seenInCurrent = new Set<string>();
+  for (const t of current) {
+    const key = (t.ticker ?? t.symbol ?? "").toUpperCase();
+    if (!key) continue;
+    seenInCurrent.add(key);
+    const currentSize = t.size_estimate_usd ?? 0;
+    const priorSize = priorByTicker.get(key) ?? 0;
+    if (priorSize === 0) {
+      classification.set(key, { kind: "new", deltaPct: 100 });
+      continue;
+    }
+    const deltaPct = ((currentSize - priorSize) / priorSize) * 100;
+    if (deltaPct > SIZE_CHANGE_THRESHOLD_PCT) {
+      classification.set(key, { kind: "add_on", deltaPct });
+    } else if (deltaPct < -SIZE_CHANGE_THRESHOLD_PCT) {
+      classification.set(key, { kind: "trim", deltaPct });
+    } else {
+      classification.set(key, { kind: "hold", deltaPct });
+    }
+  }
+
+  const exits: { symbol: string; size: number | null }[] = [];
+  for (const t of prior) {
+    const key = (t.ticker ?? t.symbol ?? "").toUpperCase();
+    if (!key || seenInCurrent.has(key)) continue;
+    if (!exits.some((e) => e.symbol === key)) {
+      exits.push({ symbol: key, size: t.size_estimate_usd ?? null });
+    }
+  }
+
+  return {
+    classification,
+    exits,
+    hasPriorFiling: filedDates.length >= 2,
+  };
+}
+
+const POSITION_CHANGE_BADGE: Record<
+  PositionChange,
+  { label: string; className: string } | null
+> = {
+  new: {
+    label: "New",
+    className: "border-emerald-400/40 text-emerald-300 bg-emerald-400/10",
+  },
+  add_on: {
+    label: "Add",
+    className: "border-emerald-400/30 text-emerald-300/90 bg-emerald-400/5",
+  },
+  trim: {
+    label: "Trim",
+    className: "border-amber-400/30 text-amber-300 bg-amber-400/5",
+  },
+  hold: null, // intentionally not surfaced — no signal
+  exit: {
+    label: "Exit",
+    className: "border-rose-400/30 text-rose-300 bg-rose-400/5",
+  },
+};
+
 // Fund 13F table — snapshot of holdings as of the quarterly filing.
 // No buy/sell column because 13F doesn't disclose direction; instead
 // we show % of total disclosed portfolio so users can see relative
@@ -322,7 +437,18 @@ function FundHoldingsTable({
   trades: SmartMoneyTrade[];
   totalPortfolio: number;
 }) {
-  const sorted = [...trades].sort(
+  // Limit "current filing" to the most recent filed_date and sort by
+  // size. Older snapshots stay in `trades` for classification but
+  // shouldn't appear as separate rows in the holdings table.
+  const { classification, exits, hasPriorFiling } = classifyHoldings(trades);
+  const filedDates = [
+    ...new Set(trades.map((t) => t.filed_date).filter(Boolean) as string[]),
+  ].sort().reverse();
+  const latestFiledDate = filedDates[0] ?? null;
+  const currentRows = latestFiledDate
+    ? trades.filter((t) => t.filed_date === latestFiledDate)
+    : trades;
+  const sorted = [...currentRows].sort(
     (a, b) => (b.size_estimate_usd ?? 0) - (a.size_estimate_usd ?? 0),
   );
   return (
@@ -331,8 +457,9 @@ function FundHoldingsTable({
         <div>
           <h2 className="text-sm font-medium">13F Holdings</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Positions disclosed in the latest quarterly filing, sorted
-            by size
+            {hasPriorFiling
+              ? "Latest quarterly filing — Change column shows movement vs prior quarter"
+              : "Positions disclosed in the latest quarterly filing, sorted by size"}
           </p>
         </div>
         <Badge variant="outline" className="text-[10px]">
@@ -348,6 +475,9 @@ function FundHoldingsTable({
               <tr className="border-b border-border/60 bg-muted/20 text-left text-xs text-muted-foreground">
                 <th className="px-5 py-2 font-medium">Ticker</th>
                 <th className="px-4 py-2 font-medium">Company</th>
+                <th className="px-4 py-2 font-medium">
+                  {hasPriorFiling ? "Change" : ""}
+                </th>
                 <th className="px-4 py-2 font-medium text-right">Size</th>
                 <th className="px-4 py-2 font-medium text-right">
                   % of portfolio
@@ -371,6 +501,9 @@ function FundHoldingsTable({
                 // field (ingestion appends " · {full_issuer_name}")
                 // so humans recognize "Alphabet Inc" vs "GOOGL".
                 const companyName = parseCompanyFromNotes(t.notes) ?? t.symbol;
+                const classKey = (t.ticker ?? t.symbol ?? "").toUpperCase();
+                const change = classification.get(classKey);
+                const badge = change ? POSITION_CHANGE_BADGE[change.kind] : null;
                 return (
                   <tr
                     key={t.id}
@@ -387,6 +520,22 @@ function FundHoldingsTable({
                     </td>
                     <td className="px-4 py-2.5 text-xs text-muted-foreground">
                       {companyName}
+                    </td>
+                    <td className="px-4 py-2.5">
+                      {badge ? (
+                        <span
+                          className={`inline-flex items-center text-[10px] font-medium px-1.5 py-0.5 rounded border ${badge.className}`}
+                        >
+                          {badge.label}
+                          {(change?.kind === "add_on" || change?.kind === "trim") &&
+                          change.deltaPct !== 0 ? (
+                            <span className="ml-1 opacity-80 tabular-nums">
+                              {change.deltaPct > 0 ? "+" : ""}
+                              {change.deltaPct.toFixed(0)}%
+                            </span>
+                          ) : null}
+                        </span>
+                      ) : null}
                     </td>
                     <td className="px-4 py-2.5 tabular-nums text-right">
                       {t.size_estimate_usd != null
@@ -422,6 +571,38 @@ function FundHoldingsTable({
           {sorted.length > 50 && (
             <div className="px-5 py-3 text-xs text-muted-foreground border-t border-border/60 bg-muted/10">
               Showing top 50 of {sorted.length} positions by size.
+            </div>
+          )}
+          {exits.length > 0 && (
+            <div className="px-5 py-4 text-xs border-t border-border/60 bg-rose-500/5">
+              <div className="flex items-baseline gap-2 mb-2">
+                <span className="text-rose-300 font-medium uppercase tracking-wider">
+                  Exits this filing
+                </span>
+                <span className="text-muted-foreground tabular-nums">
+                  {exits.length}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {exits.slice(0, 30).map((e) => (
+                  <span
+                    key={e.symbol}
+                    className="font-mono text-[11px] px-1.5 py-0.5 rounded border border-rose-400/30 text-rose-200 bg-rose-400/5"
+                    title={
+                      e.size != null
+                        ? `Last filed size: ${fmtMoney(e.size)}`
+                        : "Position no longer in latest filing"
+                    }
+                  >
+                    {e.symbol}
+                  </span>
+                ))}
+                {exits.length > 30 && (
+                  <span className="text-muted-foreground">
+                    +{exits.length - 30} more
+                  </span>
+                )}
+              </div>
             </div>
           )}
         </div>
