@@ -136,7 +136,7 @@ function Header({
         <h1 className="text-3xl font-semibold tracking-tight">
           Good to see you back.
         </h1>
-        <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-2xl">
+        <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-4xl">
           Here&rsquo;s where you stand right now.
         </p>
       </div>

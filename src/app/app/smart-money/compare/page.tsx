@@ -168,7 +168,7 @@ export default async function ComparePage({
           <h1 className="text-2xl font-semibold tracking-tight">
             Compare portfolios
           </h1>
-          <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-2xl">
+          <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-4xl">
             Pick up to three politicians, funds, or insiders to see
             side-by-side. Shared holdings show up below — that&rsquo;s
             where consensus-driven edge lives.
@@ -380,7 +380,7 @@ export default async function ComparePage({
 
       <Alert className="px-5 py-4 border-border/60 bg-muted/20">
         <Info className="h-4 w-4" />
-        <AlertDescription className="text-sm leading-relaxed text-muted-foreground max-w-3xl">
+        <AlertDescription className="text-sm leading-relaxed text-muted-foreground max-w-5xl">
           <b className="text-foreground">Not financial advice.</b>{" "}
           &ldquo;Shared holdings&rdquo; is a descriptive statistic, not
           a recommendation. Multiple smart-money investors arriving at

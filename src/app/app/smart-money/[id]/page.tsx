@@ -173,7 +173,7 @@ export default async function TargetDetailPage({
               </Badge>
             </div>
             {target.subtitle && (
-              <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-2xl">
+              <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-4xl">
                 {target.subtitle}
               </p>
             )}
@@ -287,7 +287,7 @@ export default async function TargetDetailPage({
 
       <Alert className="px-5 py-4 border-border/60 bg-muted/20">
         <Info className="h-4 w-4" />
-        <AlertDescription className="text-sm leading-relaxed text-muted-foreground max-w-3xl">
+        <AlertDescription className="text-sm leading-relaxed text-muted-foreground max-w-5xl">
           <b className="text-foreground">Not financial advice.</b> Data
           sourced from public SEC EDGAR + Congressional disclosure
           feeds. Congressional filings have a 30-45 day reporting

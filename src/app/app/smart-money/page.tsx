@@ -64,7 +64,7 @@ export default async function SmartMoneyPage({
           <h1 className="text-3xl font-semibold tracking-tight">
             Smart Money
           </h1>
-          <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-2xl">
+          <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-4xl">
             Follow politicians, hedge funds, and insiders. See what they
             bought before it hits the news.
           </p>
@@ -184,7 +184,7 @@ export default async function SmartMoneyPage({
           <h1 className="text-3xl font-semibold tracking-tight">
             Smart Money
           </h1>
-          <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-2xl">
+          <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-4xl">
             Follow politicians, hedge funds, and insiders. Get alerts
             when they disclose new positions — optionally mirror them
             automatically via Alpaca.
@@ -200,7 +200,7 @@ export default async function SmartMoneyPage({
 
       <Alert className="px-5 py-4 border-amber-500/30 bg-amber-500/5">
         <Info className="h-4 w-4 text-amber-300" />
-        <AlertDescription className="text-sm leading-relaxed text-amber-200/90 max-w-3xl">
+        <AlertDescription className="text-sm leading-relaxed text-amber-200/90 max-w-5xl">
           <b>Data latency matters.</b> Congressional filings are 30-45
           days stale — a buy you see today was likely placed 6+ weeks
           ago. Use for conviction, not fresh signals. Insider Form 4

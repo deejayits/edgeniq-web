@@ -74,7 +74,7 @@ export default async function SettingsPage() {
           Preferences
         </div>
         <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>
-        <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-2xl">
+        <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-4xl">
           Preferences that control which signals reach you. Trading
           changes save instantly and reach the running bot within a
           minute. Notifications still use the Telegram command on each
@@ -82,51 +82,66 @@ export default async function SettingsPage() {
         </p>
       </header>
 
-      {/* Top row: two side-by-side cards on desktop. Trading + Notifications
-          balance well visually because each holds a small batch of rows.
-          On mobile they stack as expected. */}
-      <div className="grid lg:grid-cols-2 gap-6 items-start">
-        <SettingsSection title="Trading" eyebrow="How EdgeNiq picks for you">
+      {/* Trading row 1 — three compact preferences side-by-side on desktop
+          (risk / strategy / min price). Each is a small enum control,
+          so a 3-up grid keeps them visible without scrolling and frees
+          up real estate below for the wider watchlist + notifications. */}
+      <SettingsSection title="Trading" eyebrow="How EdgeNiq picks for you">
+        <div className="grid md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border/40">
           <SettingRow
             icon={Shield}
             tone="emerald"
             label="Risk profile"
-            description="Drives sizing aggressiveness and signal selectivity"
+            description="Sizing aggressiveness and signal selectivity"
             rightSlot={
               <RiskProfileEditor value={me.risk_profile ?? "moderate"} />
             }
+            stackOnMobile
           />
           <SettingRow
             icon={Target}
             tone="violet"
             label="Strategy"
-            description="Setup-type filter applied to every signal we evaluate"
+            description="Setup-type filter for every signal"
             rightSlot={<StrategyEditor value={me.strategy ?? "balanced"} />}
+            stackOnMobile
           />
           <SettingRow
             icon={Shield}
             tone="amber"
             label="Min share price"
-            description="Penny-stock policy. $5 = SEC threshold (default)"
+            description="Penny-stock policy"
             rightSlot={
               <MinPriceEditor
                 value={typeof me.min_price === "number" ? me.min_price : 5}
               />
             }
-          />
-          <SettingRow
-            icon={Eye}
-            tone="sky"
-            label="Watchlist"
-            description="Tickers you track. Conviction score updates every 15 min during market hours."
-            rightSlot={
-              <WatchlistEditor
-                initial={watchlist.map((t) => t.toUpperCase())}
-                scoreByTicker={convictionByTicker}
-              />
-            }
             stackOnMobile
           />
+        </div>
+      </SettingsSection>
+
+      {/* Watchlist + Notifications side-by-side. Watchlist gets the
+          wider 2/3 column because users routinely run 20+ tickers and
+          each chip carries its own conviction score; notifications is
+          a short fixed list and reads well in 1/3. */}
+      <div className="grid lg:grid-cols-3 gap-6 items-start">
+        <SettingsSection
+          title="Watchlist"
+          eyebrow="Tickers you track"
+          className="lg:col-span-2"
+        >
+          <div className="px-5 py-5 space-y-4">
+            <p className="text-xs text-muted-foreground leading-relaxed max-w-3xl">
+              Conviction score blends trend, 52-week position, sector
+              relative strength, insider activity, and volatility regime.
+              Refreshed every 15 min during market hours.
+            </p>
+            <WatchlistEditor
+              initial={watchlist.map((t) => t.toUpperCase())}
+              scoreByTicker={convictionByTicker}
+            />
+          </div>
         </SettingsSection>
 
         <SettingsSection
@@ -156,7 +171,7 @@ export default async function SettingsPage() {
             tone="rose"
             label="Session alerts"
             command="—"
-            description="Pre-market, prime-time, EOD, and weekend recap notifications"
+            description="Pre-market, prime-time, EOD, and weekend recap"
             rightSlot={
               enabledSessions.length === 0 ? (
                 <span className="text-xs text-muted-foreground italic">
@@ -175,7 +190,7 @@ export default async function SettingsPage() {
             }
           />
           {enabledSessions.length > 0 && (
-            <div className="mt-2 pl-12 flex flex-wrap gap-1.5">
+            <div className="px-5 pb-4 flex flex-wrap gap-1.5">
               {enabledSessions.map((s) => (
                 <Badge
                   key={s}
@@ -259,14 +274,16 @@ function AccountStat({
 function SettingsSection({
   title,
   eyebrow,
+  className,
   children,
 }: {
   title: string;
   eyebrow?: string;
+  className?: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className="space-y-3">
+    <section className={`space-y-3 ${className ?? ""}`}>
       <div className="flex items-baseline gap-3">
         <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
           {title}
@@ -275,7 +292,7 @@ function SettingsSection({
           <span className="text-xs text-muted-foreground/70">{eyebrow}</span>
         )}
       </div>
-      <Card className="p-2 border-border/60 bg-card/50 divide-y divide-border/40 overflow-hidden">
+      <Card className="p-0 border-border/60 bg-card/50 divide-y divide-border/40 overflow-hidden">
         {children}
       </Card>
     </section>

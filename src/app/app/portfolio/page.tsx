@@ -131,7 +131,7 @@ export default async function PortfolioPage() {
           Positions
         </div>
         <h1 className="text-3xl font-semibold tracking-tight">Portfolio</h1>
-        <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-2xl">
+        <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-4xl">
           Your confirmed personal trades. Active positions show live
           progress toward targets and stop; closed show the final P&amp;L
           and how they exited.

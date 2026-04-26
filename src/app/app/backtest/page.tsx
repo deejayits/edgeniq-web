@@ -89,7 +89,7 @@ export default async function BacktestPage({
           Track record
         </div>
         <h1 className="text-3xl font-semibold tracking-tight">Backtest</h1>
-        <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-2xl">
+        <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-4xl">
           Aggregate hit rate and average gain for every signal type
           we&rsquo;ve fired, computed across the full user base.
           Refreshed nightly from the same signal log we use to grade
@@ -116,7 +116,7 @@ export default async function BacktestPage({
 
       <Alert className="px-5 py-4 border-border/60 bg-muted/20">
         <Info className="h-4 w-4" />
-        <AlertDescription className="text-sm leading-relaxed text-muted-foreground max-w-3xl">
+        <AlertDescription className="text-sm leading-relaxed text-muted-foreground max-w-5xl">
           <b className="text-foreground">Methodology.</b>{" "}
           Win = closed with positive gain. Average and median include
           winners and losers. Outcomes are computed at signal close

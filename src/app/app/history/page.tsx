@@ -68,7 +68,7 @@ export default async function HistoryPage() {
           Activity
         </div>
         <h1 className="text-3xl font-semibold tracking-tight">History</h1>
-        <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-2xl">
+        <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-4xl">
           Every signal you received that has resolved — hit a target,
           stopped out, or expired after 48h. Newest first, capped at the
           last 200.
