@@ -17,6 +17,10 @@ import { MasterKillSwitch } from "./master-kill-switch";
 import { InactiveModeBanner } from "./inactive-mode-banner";
 import { LiveView, type LiveUserState, type LiveConnection } from "./live-view";
 import { formatSymbol, formatSymbolLong } from "@/lib/options-format";
+import {
+  humanizeRejectReason,
+  summarizeAutoTrades,
+} from "@/lib/auto-trade-reasons";
 
 export const dynamic = "force-dynamic";
 
@@ -542,6 +546,18 @@ function TradesTable({ trades }: { trades: TradeRow[] }) {
       </section>
     );
   }
+  const summary = summarizeAutoTrades(trades);
+  // Compose the summary banner copy. Goal: a one-line, at-a-glance
+  // explanation so the user understands "why are 8 of 10 rejected"
+  // without clicking into individual rows.
+  const summaryParts: string[] = [];
+  if (summary.filled > 0) summaryParts.push(`${summary.filled} filled`);
+  if (summary.pending > 0) summaryParts.push(`${summary.pending} pending`);
+  if (summary.rejected > 0) summaryParts.push(`${summary.rejected} rejected`);
+  const rejectBreakdown = summary.topRejectReasons
+    .map((r) => `${r.count} ${r.label.toLowerCase()}`)
+    .join(", ");
+
   return (
     <section className="space-y-3">
       <div className="flex items-baseline justify-between">
@@ -553,6 +569,19 @@ function TradesTable({ trades }: { trades: TradeRow[] }) {
           {trades.length === 1 ? "order" : "orders"}
         </span>
       </div>
+      {summary.total > 0 && (
+        <div className="rounded-md border border-border/60 bg-muted/20 px-4 py-2.5 text-xs text-muted-foreground">
+          <span className="text-foreground tabular-nums">{summary.total}</span>{" "}
+          {summary.total === 1 ? "order" : "orders"} ·{" "}
+          {summaryParts.join(" · ")}
+          {rejectBreakdown && (
+            <>
+              <span className="text-muted-foreground/70"> · top rejects:</span>{" "}
+              <span className="text-amber-300/90">{rejectBreakdown}</span>
+            </>
+          )}
+        </div>
+      )}
       <Card className="p-0 border-border/60 bg-card/40 overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -562,53 +591,74 @@ function TradesTable({ trades }: { trades: TradeRow[] }) {
               <th className="px-4 py-2 font-medium">Side</th>
               <th className="px-4 py-2 font-medium">Qty</th>
               <th className="px-4 py-2 font-medium">Status</th>
+              <th className="px-4 py-2 font-medium">Reason</th>
               <th className="px-4 py-2 font-medium">Fill</th>
               <th className="px-4 py-2 font-medium">Submitted</th>
             </tr>
           </thead>
           <tbody>
-            {trades.map((t) => (
-              <tr
-                key={t.id}
-                className="border-b border-border/40 last:border-0"
-              >
-                <td
-                  className="px-5 py-2.5 text-xs"
-                  title={formatSymbolLong(t.symbol)}
+            {trades.map((t) => {
+              const reason = humanizeRejectReason(t.status, t.error_message);
+              return (
+                <tr
+                  key={t.id}
+                  className="border-b border-border/40 last:border-0"
                 >
-                  <div className="font-medium">{formatSymbol(t.symbol)}</div>
-                  <div className="font-mono text-[10px] text-muted-foreground/70">
-                    {t.symbol}
-                  </div>
-                </td>
-                <td className="px-4 py-2.5">
-                  <Badge
-                    variant="outline"
-                    className={
-                      t.side === "buy"
-                        ? "border-emerald-400/40 text-emerald-300 text-[10px] py-0 h-5"
-                        : "border-rose-400/40 text-rose-300 text-[10px] py-0 h-5"
-                    }
+                  <td
+                    className="px-5 py-2.5 text-xs"
+                    title={formatSymbolLong(t.symbol)}
                   >
-                    {t.side}
-                  </Badge>
-                </td>
-                <td className="px-4 py-2.5 tabular-nums">{t.qty}</td>
-                <td className="px-4 py-2.5">
-                  <Badge variant="outline" className="text-[10px] py-0 h-5">
-                    {t.status}
-                  </Badge>
-                </td>
-                <td className="px-4 py-2.5 tabular-nums">
-                  {t.avg_fill_price != null
-                    ? `$${Number(t.avg_fill_price).toFixed(2)}`
-                    : "—"}
-                </td>
-                <td className="px-4 py-2.5 text-xs text-muted-foreground">
-                  {fmtTimeUTCSafe(t.submitted_at)}
-                </td>
-              </tr>
-            ))}
+                    <div className="font-medium">{formatSymbol(t.symbol)}</div>
+                    <div className="font-mono text-[10px] text-muted-foreground/70">
+                      {t.symbol}
+                    </div>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <Badge
+                      variant="outline"
+                      className={
+                        t.side === "buy"
+                          ? "border-emerald-400/40 text-emerald-300 text-[10px] py-0 h-5"
+                          : "border-rose-400/40 text-rose-300 text-[10px] py-0 h-5"
+                      }
+                    >
+                      {t.side}
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-2.5 tabular-nums">{t.qty}</td>
+                  <td className="px-4 py-2.5">
+                    <Badge variant="outline" className="text-[10px] py-0 h-5">
+                      {t.status}
+                    </Badge>
+                  </td>
+                  <td
+                    className="px-4 py-2.5 text-xs max-w-[280px]"
+                    title={t.error_message ?? undefined}
+                  >
+                    {reason ? (
+                      <div className="space-y-0.5">
+                        <div className="text-foreground/90">{reason.label}</div>
+                        {reason.hint && (
+                          <div className="text-[10px] text-muted-foreground/70 leading-snug">
+                            {reason.hint}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground/40">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-2.5 tabular-nums">
+                    {t.avg_fill_price != null
+                      ? `$${Number(t.avg_fill_price).toFixed(2)}`
+                      : "—"}
+                  </td>
+                  <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                    {fmtTimeUTCSafe(t.submitted_at)}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
