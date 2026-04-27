@@ -18,7 +18,7 @@ import {
   MinPriceEditor,
   WatchlistEditor,
 } from "./editors";
-import { watchlistCapFromRow } from "./actions";
+import { watchlistCapFromRow } from "@/lib/watchlist-caps";
 
 export const dynamic = "force-dynamic";
 
