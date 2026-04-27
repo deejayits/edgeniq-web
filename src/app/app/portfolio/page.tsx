@@ -554,14 +554,16 @@ export default async function PortfolioPage() {
                       </td>
                       <td className="px-4 py-2.5 text-xs text-muted-foreground">
                         {new Date(
-                          /(Z|[+\-]\d{2}:?\d{2})$/.test(t.submitted_at)
+                          /(Z|[+\-]\d{2}(:?\d{2})?)$/i.test(t.submitted_at)
                             ? t.submitted_at
                             : `${t.submitted_at}Z`,
-                        ).toLocaleString([], {
+                        ).toLocaleString("en-US", {
                           month: "short",
                           day: "numeric",
                           hour: "numeric",
                           minute: "2-digit",
+                          timeZone: "America/New_York",
+                          timeZoneName: "short",
                         })}
                       </td>
                     </tr>
@@ -1106,11 +1108,17 @@ function fmtMoney(n: number | null | undefined): string {
 
 function fmtDateShort(iso: string): string {
   try {
-    return new Date(iso).toLocaleString([], {
+    // Server-component render → host TZ is UTC. Force ET so trading
+    // timestamps display correctly regardless of where Vercel runs.
+    const hasTZ = /(Z|[+\-]\d{2}(:?\d{2})?)$/i.test(iso.trim());
+    const safe = hasTZ ? iso : `${iso}Z`;
+    return new Date(safe).toLocaleString("en-US", {
       month: "short",
       day: "numeric",
       hour: "numeric",
       minute: "2-digit",
+      timeZone: "America/New_York",
+      timeZoneName: "short",
     });
   } catch {
     return "—";

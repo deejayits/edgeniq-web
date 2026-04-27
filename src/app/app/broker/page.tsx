@@ -487,35 +487,24 @@ function ModeTabs({
   );
 }
 
-// Supabase's `timestamptz` columns occasionally come back without an
-// explicit timezone suffix (driver / version dependent), e.g.
-// "2026-04-27T13:30:00" instead of "2026-04-27T13:30:00+00:00".
-// JavaScript's Date constructor treats the former as LOCAL time, so a
-// 9:30 AM ET trade (13:30 UTC) renders as 1:30 PM in the browser.
-// Append a Z when the suffix is missing so the value is always
-// interpreted as UTC, then let toLocaleTimeString convert to the
-// browser's local timezone like normal.
+// This page is a server component, so Date formatting runs on Vercel's
+// servers (TZ=UTC). Without a fixed timeZone, toLocaleTimeString just
+// echoes the UTC value — so 13:30 UTC renders as "1:30 PM" instead of
+// the trader's expected "9:30 AM ET". Force America/New_York since
+// trading hours are universally quoted in ET; this also keeps SSR and
+// hydrated output identical regardless of the user's browser TZ.
 function fmtTimeUTCSafe(s: string | null | undefined): string {
   if (!s) return "—";
-  // Detect if the string already carries a timezone marker. Postgres
-  // timestamptz can come back in several forms depending on driver:
-  //   2026-04-27T13:30:00.123Z
-  //   2026-04-27T13:30:00+00:00
-  //   2026-04-27T13:30:00+0000
-  //   2026-04-27T13:30:00+00
-  //   2026-04-27 13:30:00+00       (space separator)
-  //   2026-04-27T13:30:00          (NO TZ — the bug case; JS treats
-  //                                  this as LOCAL time)
-  // The previous regex only matched 4-digit offsets, so a 2-digit
-  // "+00" would be missed and we'd skip the Z append, leaving the
-  // bug unfixed for that format. Now matches Z OR any +/-N{2,4}
-  // suffix (with optional colon), so all postgres serializations
-  // are caught and naked timestamps get force-UTC'd.
+  // timestamptz from postgres can drop its TZ suffix on some driver
+  // paths (e.g. "2026-04-27T13:30:00"). Append Z so we always parse
+  // as UTC before reformatting.
   const hasTZ = /(Z|[+\-]\d{2}(:?\d{2})?)$/i.test(s.trim());
   const safe = hasTZ ? s : `${s}Z`;
-  return new Date(safe).toLocaleTimeString([], {
+  return new Date(safe).toLocaleTimeString("en-US", {
     hour: "numeric",
     minute: "2-digit",
+    timeZone: "America/New_York",
+    timeZoneName: "short",
   });
 }
 
