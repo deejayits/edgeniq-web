@@ -133,7 +133,9 @@ export async function saveAlpacaConnection(
         connected_at: new Date().toISOString(),
         last_used_at: new Date().toISOString(),
       },
-      { onConflict: "chat_id,broker" },
+      // Conflict key includes mode after the live-mode migration —
+      // (chat_id, broker, mode) is unique so paper + live can coexist.
+      { onConflict: "chat_id,broker,mode" },
     );
   if (error) return { ok: false, error: error.message };
 
@@ -162,11 +164,15 @@ export async function saveAlpacaConnection(
 export async function disconnectBroker(): Promise<ActionResult> {
   const chatId = await requireElite();
   const supabase = supabaseAdmin();
+  // Scoped to mode='paper' so disconnecting your paper account
+  // doesn't accidentally tear down a live connection too. Live has
+  // its own disconnect action in live-actions.ts.
   const { error } = await supabase
     .from("broker_connections")
     .update({ is_active: false })
     .eq("chat_id", chatId)
-    .eq("broker", "alpaca");
+    .eq("broker", "alpaca")
+    .eq("mode", "paper");
   if (error) return { ok: false, error: error.message };
   revalidatePath("/app/broker");
   return { ok: true };
