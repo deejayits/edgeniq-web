@@ -142,18 +142,23 @@ export default async function BacktestPage({
 
       <Alert className="px-5 py-4 border-border/60 bg-muted/20">
         <Info className="h-4 w-4" />
-        <AlertDescription className="text-sm leading-relaxed text-muted-foreground max-w-5xl">
-          <b className="text-foreground">Methodology.</b>{" "}
-          Win = closed with positive gain. Average and median include
-          winners and losers. Outcomes are computed at signal close
-          (TP1/TP2/stop or manual exit), not on a fixed holding
-          period — so &ldquo;avg gain&rdquo; reflects what a user who
-          took every signal would&rsquo;ve realized on average, not a
-          buy-and-hold backtest. Cells with{" "}
-          <span className="text-amber-300">n &lt; 30</span> are flagged
-          as preliminary — small samples produce noisy hit-rate numbers
-          (a single early winner reads as 100%) and shouldn&rsquo;t be
-          treated as a track record yet.
+        <AlertDescription className="text-sm leading-relaxed text-muted-foreground max-w-3xl space-y-2">
+          <p>
+            <b className="text-foreground">Methodology.</b> Win = closed
+            with positive gain. Average and median include winners and
+            losers. Outcomes are computed at signal close (TP1 / TP2 /
+            stop or manual exit), not on a fixed holding period — so
+            &ldquo;avg gain&rdquo; reflects what a user who took every
+            signal would&rsquo;ve realized on average, not a
+            buy-and-hold backtest.
+          </p>
+          <p>
+            Cells with{" "}
+            <span className="font-medium text-amber-300">n &lt; 30</span>{" "}
+            are flagged as preliminary — small samples produce noisy
+            hit-rate numbers (a single early winner reads as 100%) and
+            shouldn&rsquo;t be treated as a track record yet.
+          </p>
         </AlertDescription>
       </Alert>
 
