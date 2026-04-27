@@ -66,6 +66,30 @@ type EnrichedTrade = PersonalTradeRow & {
   livePrice?: number | null;
 };
 
+// Options trades — separate table from personal_trades because the
+// schema is contract-specific (OPRA symbol, strike, expiry, side).
+// Confirmed via the "Did you enter this options trade?" Telegram
+// follow-up.
+type PersonalOptionsTradeRow = {
+  personal_options_trade_id: string;
+  symbol: string;
+  underlying: string;
+  side: "call" | "put";
+  strike: number;
+  expiry: string;
+  contracts: number;
+  user_entry_price: number;
+  underlying_price_at_entry: number;
+  confirmed_at: string;
+  personal_target_price: number;
+  personal_stop_price: number;
+  status: "active" | "closed";
+  outcome: string | null;
+  closed_at: string | null;
+  closed_option_price: number | null;
+  user_pnl_pct: number | null;
+};
+
 export default async function PortfolioPage() {
   const session = await auth();
   const tgUserId = (session?.user as { tgUserId?: number } | undefined)?.tgUserId;
@@ -84,6 +108,21 @@ export default async function PortfolioPage() {
     .limit(50);
 
   const trades = (tradeRows ?? []) as PersonalTradeRow[];
+
+  // Confirmed options trades — separate table from personal_trades.
+  // Limited to 50 most recent (active + closed) so the page stays
+  // bounded for power users.
+  const { data: optTradeRows } = await db
+    .from("personal_options_trades")
+    .select(
+      "personal_options_trade_id, symbol, underlying, side, strike, expiry, contracts, user_entry_price, underlying_price_at_entry, confirmed_at, personal_target_price, personal_stop_price, status, outcome, closed_at, closed_option_price, user_pnl_pct",
+    )
+    .eq("chat_id", tgUserId)
+    .order("confirmed_at", { ascending: false })
+    .limit(50);
+  const optionsTrades = (optTradeRows ?? []) as PersonalOptionsTradeRow[];
+  const activeOptions = optionsTrades.filter((t) => t.status === "active");
+  const closedOptions = optionsTrades.filter((t) => t.status === "closed");
 
   // Join signal context in a single IN query so we don't fan out one
   // request per trade. Grade/type/regime improve the entry narrative.
@@ -161,11 +200,13 @@ export default async function PortfolioPage() {
         <div className="flex flex-wrap items-stretch gap-3">
           <HeaderStat
             label="Active"
-            value={`${active.length}`}
+            value={`${active.length + activeOptions.length}`}
             sub={
               liveUnrealized != null
                 ? `${liveUnrealized >= 0 ? "+" : ""}${liveUnrealized.toFixed(2)}% live`
-                : "—"
+                : activeOptions.length > 0
+                  ? `${active.length} stk · ${activeOptions.length} opt`
+                  : "—"
             }
             tone={
               liveUnrealized == null
@@ -177,7 +218,7 @@ export default async function PortfolioPage() {
           />
           <HeaderStat
             label="Closed"
-            value={`${closed.length}`}
+            value={`${closed.length + closedOptions.length}`}
             sub={
               closedAvgPnl != null
                 ? `${closedAvgPnl >= 0 ? "+" : ""}${closedAvgPnl.toFixed(2)}% avg`
@@ -197,7 +238,7 @@ export default async function PortfolioPage() {
       <section className="space-y-3">
         <div className="flex items-baseline justify-between">
           <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-            Active
+            Active stocks
           </h2>
           <span className="text-xs text-muted-foreground tabular-nums">
             {activeEnriched.length}{" "}
@@ -207,8 +248,8 @@ export default async function PortfolioPage() {
         {activeEnriched.length === 0 ? (
           <Card className="p-8 border-border/60 bg-card/50 text-center">
             <p className="text-sm text-muted-foreground">
-              No active trades. Confirm a signal from Telegram and it
-              will show up here.
+              No active stock trades. Confirm a signal from Telegram and
+              it will show up here.
             </p>
           </Card>
         ) : (
@@ -219,6 +260,114 @@ export default async function PortfolioPage() {
           </div>
         )}
       </section>
+
+      {/* Options trades — separate section because the schema is
+          contract-specific (OPRA symbol, strike, expiry, side) and
+          the card layout differs from stocks. Active options surface
+          their target/stop premium thresholds; closed options show
+          the realized P&L on premium. */}
+      {(activeOptions.length > 0 || closedOptions.length > 0) && (
+        <section className="space-y-3">
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+              Options
+            </h2>
+            <span className="text-xs text-muted-foreground tabular-nums">
+              {activeOptions.length}{" "}
+              {activeOptions.length === 1 ? "active" : "active"}
+              {closedOptions.length > 0 && ` · ${closedOptions.length} closed`}
+            </span>
+          </div>
+          <Card className="p-0 border-border/60 bg-card/50 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border/60 bg-muted/20 text-left text-xs text-muted-foreground">
+                    <th className="px-5 py-2 font-medium">Contract</th>
+                    <th className="px-4 py-2 font-medium">Side</th>
+                    <th className="px-4 py-2 font-medium">Strike</th>
+                    <th className="px-4 py-2 font-medium">Expiry</th>
+                    <th className="px-4 py-2 font-medium">Entry</th>
+                    <th className="px-4 py-2 font-medium">Target</th>
+                    <th className="px-4 py-2 font-medium">Stop</th>
+                    <th className="px-4 py-2 font-medium">Status</th>
+                    <th className="px-4 py-2 font-medium">P/L</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...activeOptions, ...closedOptions].map((t) => (
+                    <tr
+                      key={t.personal_options_trade_id}
+                      className="border-b border-border/40 last:border-0"
+                    >
+                      <td className="px-5 py-2.5 font-mono text-xs">
+                        {t.symbol}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <Badge
+                          variant="outline"
+                          className={
+                            t.side === "call"
+                              ? "border-emerald-400/40 text-emerald-300 text-[10px] py-0 h-5"
+                              : "border-rose-400/40 text-rose-300 text-[10px] py-0 h-5"
+                          }
+                        >
+                          {t.side}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-2.5 tabular-nums">
+                        ${t.strike.toFixed(2)}
+                      </td>
+                      <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                        {t.expiry}
+                      </td>
+                      <td className="px-4 py-2.5 tabular-nums">
+                        ${t.user_entry_price.toFixed(2)}
+                      </td>
+                      <td className="px-4 py-2.5 tabular-nums text-emerald-300">
+                        ${t.personal_target_price.toFixed(2)}
+                      </td>
+                      <td className="px-4 py-2.5 tabular-nums text-rose-300">
+                        ${t.personal_stop_price.toFixed(2)}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <Badge
+                          variant="outline"
+                          className={
+                            t.status === "active"
+                              ? "border-primary/40 text-primary text-[10px] py-0 h-5"
+                              : "text-[10px] py-0 h-5 text-muted-foreground"
+                          }
+                        >
+                          {t.status === "active"
+                            ? "active"
+                            : t.outcome ?? "closed"}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-2.5 tabular-nums">
+                        {t.user_pnl_pct != null ? (
+                          <span
+                            className={
+                              t.user_pnl_pct >= 0
+                                ? "text-emerald-400"
+                                : "text-destructive"
+                            }
+                          >
+                            {t.user_pnl_pct >= 0 ? "+" : ""}
+                            {t.user_pnl_pct.toFixed(1)}%
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </section>
+      )}
 
       <section className="space-y-3">
         <div className="flex items-baseline justify-between">
