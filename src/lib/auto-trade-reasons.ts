@@ -25,7 +25,13 @@ const REASON_PATTERNS: ReadonlyArray<{
 }> = [
   // --- Account / funds ------------------------------------------------
   {
-    match: /insufficient (buying power|funds)|buying.power|403100/i,
+    // Alpaca's "buying power" rejection codes:
+    //   40310000 — 403 with cost_basis: not enough BP for this order
+    //   403100   — older 4-digit form (kept for safety)
+    //   plus any plain "insufficient" / "buying.power" wording.
+    // The cost_basis field also signals the same condition when the
+    // truncated message hides the explicit code.
+    match: /insufficient (buying power|funds)|buying.power|40310000|403100|cost_basis/i,
     reason: {
       label: "Insufficient buying power",
       hint: "Add funds in Alpaca or shrink position size",
