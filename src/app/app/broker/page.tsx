@@ -481,6 +481,24 @@ function ModeTabs({
   );
 }
 
+// Supabase's `timestamptz` columns occasionally come back without an
+// explicit timezone suffix (driver / version dependent), e.g.
+// "2026-04-27T13:30:00" instead of "2026-04-27T13:30:00+00:00".
+// JavaScript's Date constructor treats the former as LOCAL time, so a
+// 9:30 AM ET trade (13:30 UTC) renders as 1:30 PM in the browser.
+// Append a Z when the suffix is missing so the value is always
+// interpreted as UTC, then let toLocaleTimeString convert to the
+// browser's local timezone like normal.
+function fmtTimeUTCSafe(s: string | null | undefined): string {
+  if (!s) return "—";
+  const hasTZ = /(Z|[+\-]\d{2}:?\d{2})$/.test(s);
+  const safe = hasTZ ? s : `${s}Z`;
+  return new Date(safe).toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 function defaultRule(
   signalType: "stocks" | "options",
   mode: "paper" | "live",
@@ -570,10 +588,7 @@ function TradesTable({ trades }: { trades: TradeRow[] }) {
                     : "—"}
                 </td>
                 <td className="px-4 py-2.5 text-xs text-muted-foreground">
-                  {new Date(t.submitted_at).toLocaleTimeString([], {
-                    hour: "numeric",
-                    minute: "2-digit",
-                  })}
+                  {fmtTimeUTCSafe(t.submitted_at)}
                 </td>
               </tr>
             ))}
