@@ -674,11 +674,17 @@ async function fetchLivePricesForActive(
   if (symbols.length === 0) return out;
 
   const db = supabaseAdmin();
+  // Quote fetching uses the paper connection — Alpaca's data API is
+  // the same hostname regardless of paper/live key, and Phase 4a
+  // routes orders through paper anyway. Scoping to mode='paper'
+  // also avoids the multiple-rows error from .maybeSingle() now that
+  // paper + live broker_connections can coexist for the same user.
   const { data: conn } = await db
     .from("broker_connections")
     .select("encrypted_api_key, encrypted_api_secret, mode")
     .eq("chat_id", chatId)
     .eq("broker", "alpaca")
+    .eq("mode", "paper")
     .eq("is_active", true)
     .maybeSingle();
   if (!conn) return out;

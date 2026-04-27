@@ -256,57 +256,56 @@ export function WatchlistEditor({
   }
 
   return (
-    <div className="space-y-3">
-      {tickers.length === 0 ? (
-        <p className="text-xs text-muted-foreground italic">
-          No tickers yet — add your first below.
-        </p>
-      ) : (
-        <div className="flex flex-wrap gap-1.5">
-          {tickers.map((t) => (
-            <WatchlistChip
-              key={t}
-              ticker={t}
-              score={scoreByTicker[t.toUpperCase()] ?? null}
-              onRemove={() => remove(t)}
-              disabled={pending}
-            />
-          ))}
-        </div>
-      )}
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          add();
-        }}
-        className="flex items-center gap-2"
-      >
-        <input
-          value={draft}
-          onChange={(e) => {
-            setDraft(e.target.value.toUpperCase());
-            // Clear stale error the moment they start a new attempt —
-            // less jarring than waiting for the 5s auto-dismiss.
-            if (error) setError(null);
+    <div className="space-y-2">
+      {/* Chips and the add-ticker input share one flex-wrap so the
+          input naturally tucks into the empty space at the end of the
+          last chip row. Previously the input was on its own row below
+          the chips, leaving a wide right-side gap when the chip count
+          didn't fill the line. */}
+      <div className="flex flex-wrap items-center gap-2">
+        {tickers.map((t) => (
+          <WatchlistChip
+            key={t}
+            ticker={t}
+            score={scoreByTicker[t.toUpperCase()] ?? null}
+            onRemove={() => remove(t)}
+            disabled={pending}
+          />
+        ))}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            add();
           }}
-          placeholder="Add ticker (e.g. NVDA)"
-          maxLength={10}
-          className="bg-card border border-border/60 rounded-md px-3 py-1.5 text-sm font-mono w-44 placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary/50"
-        />
-        <button
-          type="submit"
-          disabled={pending || !draft.trim()}
-          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-sm bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25 disabled:opacity-40 disabled:cursor-not-allowed transition"
+          className="inline-flex items-center gap-1.5"
         >
-          {pending ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <Plus className="h-3.5 w-3.5" />
-          )}
-          Add
-        </button>
-        <ErrorLine msg={error} />
-      </form>
+          <input
+            value={draft}
+            onChange={(e) => {
+              setDraft(e.target.value.toUpperCase());
+              if (error) setError(null);
+            }}
+            placeholder={
+              tickers.length === 0 ? "Add your first ticker (e.g. NVDA)" : "Add ticker"
+            }
+            maxLength={10}
+            className="bg-card border border-border/60 rounded-md px-3 py-1.5 text-sm font-mono w-44 placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary/50"
+          />
+          <button
+            type="submit"
+            disabled={pending || !draft.trim()}
+            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-sm bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            aria-label="Add ticker"
+          >
+            {pending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Plus className="h-3.5 w-3.5" />
+            )}
+          </button>
+        </form>
+      </div>
+      <ErrorLine msg={error} />
     </div>
   );
 }
