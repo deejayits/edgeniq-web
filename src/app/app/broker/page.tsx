@@ -554,6 +554,7 @@ function TradesTable({ trades }: { trades: TradeRow[] }) {
   // without clicking into individual rows.
   const summaryParts: string[] = [];
   if (summary.filled > 0) summaryParts.push(`${summary.filled} filled`);
+  if (summary.closed > 0) summaryParts.push(`${summary.closed} closed`);
   if (summary.pending > 0) summaryParts.push(`${summary.pending} pending`);
   if (summary.rejected > 0) summaryParts.push(`${summary.rejected} rejected`);
   const rejectBreakdown = summary.topRejectReasons

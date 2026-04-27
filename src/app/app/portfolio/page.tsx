@@ -157,14 +157,14 @@ export default async function PortfolioPage() {
     )
     .eq("chat_id", tgUserId)
     .gte("submitted_at", since30d.toISOString())
-    // Show every status except known-failures. The bot writes
-    // Alpaca's INITIAL response status (usually "accepted") and
-    // doesn't go back to update the row when the order actually
-    // fills — so an earlier filter of status='filled' missed every
-    // real position. Inclusive filter (NOT IN failure states)
-    // captures the user's actual exposure regardless of whether
-    // the row's status field is stale.
-    .not("status", "in", '("rejected","canceled","expired")')
+    // Open positions only. Earlier this query was inclusive of
+    // status='closed' rows (positions exited via target / stop /
+    // EOD flatten), making the "Auto-trade fills" section read like
+    // the user still held them. Hide closed too. Also restrict to
+    // side='buy' so the SELL rows the close paths now insert don't
+    // re-appear here as if they were open longs.
+    .not("status", "in", '("rejected","canceled","expired","closed")')
+    .eq("side", "buy")
     .order("submitted_at", { ascending: false })
     .limit(50);
   const autoTrades = (autoTradeRows ?? []) as AutoTradeRow[];

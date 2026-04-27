@@ -153,10 +153,21 @@ export function humanizeRejectReason(
   status: string | null | undefined,
   errorMessage: string | null | undefined,
 ): AutoTradeReason | null {
-  // Filled / accepted / pending — no reason to show.
+  // Filled / accepted / pending / closed — no reason to show. "Closed"
+  // means the position fully ran its lifecycle (EOD-flatten,
+  // target_hit, stop_hit) which is a SUCCESS state, not a reject.
+  // Without this clause, /broker rendered "Rejected (no detail
+  // captured)" on rows that had cleanly closed at a profit — exactly
+  // the bug user reported.
   if (!status) return null;
   const s = status.toLowerCase();
-  if (s === "filled" || s === "partial" || s === "accepted" || s === "submitted") {
+  if (
+    s === "filled" ||
+    s === "partial" ||
+    s === "accepted" ||
+    s === "submitted" ||
+    s === "closed"
+  ) {
     return null;
   }
   if (!errorMessage) {
@@ -187,11 +198,13 @@ export function summarizeAutoTrades(
 ): {
   total: number;
   filled: number;
+  closed: number;
   rejected: number;
   pending: number;
   topRejectReasons: ReadonlyArray<{ label: string; count: number }>;
 } {
   let filled = 0;
+  let closed = 0;
   let rejected = 0;
   let pending = 0;
   const reasonCounts = new Map<string, number>();
@@ -199,6 +212,12 @@ export function summarizeAutoTrades(
     const s = (t.status || "").toLowerCase();
     if (s === "filled" || s === "partial") {
       filled++;
+    } else if (s === "closed") {
+      // Successfully ran lifecycle (EOD flatten / target hit / stop
+      // hit) — a separate bucket from "still open and filled" so the
+      // summary banner can read "2 closed today" without conflating
+      // with currently-held positions.
+      closed++;
     } else if (s === "rejected" || s === "canceled" || s === "expired") {
       rejected++;
       const r = humanizeRejectReason(t.status, t.error_message);
@@ -214,6 +233,7 @@ export function summarizeAutoTrades(
   return {
     total: trades.length,
     filled,
+    closed,
     rejected,
     pending,
     topRejectReasons,
