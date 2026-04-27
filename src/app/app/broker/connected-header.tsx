@@ -42,34 +42,36 @@ export function ConnectedHeader({
   };
 
   return (
-    <Card className="p-6 border-emerald-400/30 bg-emerald-400/5 flex items-start gap-4">
-      <div className="h-10 w-10 rounded-md bg-emerald-400/15 border border-emerald-400/30 flex items-center justify-center shrink-0">
-        <CircleCheck className="h-5 w-5 text-emerald-300" />
+    <Card className="p-5 border-emerald-400/30 bg-emerald-400/5 flex items-center gap-4">
+      <div className="h-8 w-8 rounded-md bg-emerald-400/15 border border-emerald-400/30 flex items-center justify-center shrink-0">
+        <CircleCheck className="h-4 w-4 text-emerald-300" />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <h3 className="font-medium">Connected to Alpaca</h3>
-          <Badge className="bg-primary/15 text-primary border border-primary/30 text-[10px] py-0 h-5">
-            paper
-          </Badge>
+          <h3 className="font-medium text-sm">Paper account connected</h3>
           {accountStatus && (
-            <Badge variant="outline" className="text-[10px] py-0 h-5">
-              {accountStatus}
+            <Badge
+              variant="outline"
+              className="text-[10px] py-0 h-5 border-emerald-400/30 text-emerald-300/90 capitalize"
+            >
+              {accountStatus.toLowerCase()}
             </Badge>
           )}
         </div>
-        <p className="text-xs text-muted-foreground mt-1">
-          Account <code>{accountId ?? "—"}</code> · buying power{" "}
-          <b className="text-foreground">
-            ${(buyingPower ?? 0).toLocaleString()}
-          </b>{" "}
-          at connect time · since{" "}
+        <p className="text-xs text-muted-foreground mt-1 tabular-nums">
+          <code className="text-muted-foreground">{accountId ?? "—"}</code>{" "}
+          · ${(buyingPower ?? 0).toLocaleString()} buying power · since{" "}
           {new Date(connectedAt).toLocaleDateString()}
         </p>
       </div>
       <AlertDialog>
         <AlertDialogTrigger asChild>
-          <Button variant="outline" size="sm" disabled={isPending}>
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={isPending}
+            className="text-muted-foreground hover:text-foreground"
+          >
             Disconnect
           </Button>
         </AlertDialogTrigger>

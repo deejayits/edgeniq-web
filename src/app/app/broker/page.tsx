@@ -234,9 +234,8 @@ export default async function BrokerPage({
             Auto-trading
           </h1>
           <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-3xl">
-            Connect your Alpaca account and let EdgeNiq place trades on
-            qualifying signals. Paper is the default and free of risk;
-            Live mode is opt-in only.
+            Connect Alpaca and let EdgeNiq place trades on qualifying
+            signals. Paper is the default; Live is opt-in only.
           </p>
         </div>
         <div className="flex items-stretch gap-3">
@@ -372,11 +371,11 @@ export default async function BrokerPage({
   );
 }
 
-// Mode tabs at the top of /app/broker. Visual selector only — does
-// NOT call any server action. The active dot in the tab label
-// reflects which mode is currently the order-routing target (read
-// from users.active_broker_mode), which may differ from which tab
-// the user is currently viewing.
+// Mode tabs at the top of /app/broker. Pill-style segmented control.
+// Visual selector only — picking a tab does NOT call any action.
+// The "ACTIVE" pill inside a tab indicates which mode is currently
+// the order-routing target (users.active_broker_mode), which may
+// differ from which tab the user is currently viewing.
 function ModeTabs({
   activeMode,
   visibleTab,
@@ -389,7 +388,7 @@ function ModeTabs({
     { mode: "live", label: "Live" },
   ];
   return (
-    <div className="flex items-center gap-1 border-b border-border/40 -mb-4">
+    <div className="inline-flex items-center gap-1 p-1 bg-card/40 rounded-lg border border-border/60">
       {tabs.map((t) => {
         const isVisible = visibleTab === t.mode;
         const isActive = activeMode === t.mode;
@@ -399,26 +398,28 @@ function ModeTabs({
             key={t.mode}
             href={`/app/broker?mode=${t.mode}`}
             scroll={false}
-            className={`relative px-4 py-2.5 text-sm font-medium transition border-b-2 -mb-px flex items-center gap-2 ${
+            className={`px-5 py-2 text-sm font-medium rounded-md transition inline-flex items-center gap-2 ${
               isVisible
                 ? isLive
-                  ? "border-rose-400 text-rose-200"
-                  : "border-primary text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground"
+                  ? "bg-rose-500/15 text-rose-200 border border-rose-500/40"
+                  : "bg-primary/15 text-primary border border-primary/40"
+                : "text-muted-foreground border border-transparent hover:text-foreground hover:bg-muted/30"
             }`}
           >
             {t.label}
-            {/* Pulse dot indicates which mode is currently routing
-                orders. Visible across both tabs so users on the
-                paper tab can still see "live is the active mode". */}
+            {/* "ACTIVE" pill shows which mode is currently routing
+                orders. Visible from either tab so a user on Paper
+                still sees "Live" tagged active when applicable. */}
             {isActive && (
               <span
-                className={`h-1.5 w-1.5 rounded-full ${
+                className={`text-[9px] uppercase font-mono tracking-wider px-1.5 py-0.5 rounded ${
                   isLive
-                    ? "bg-rose-400 shadow-[0_0_8px_oklch(0.7_0.18_15)]"
-                    : "bg-emerald-400 shadow-[0_0_8px_oklch(0.69_0.16_165)]"
+                    ? "bg-rose-500/20 text-rose-300"
+                    : "bg-emerald-400/20 text-emerald-300"
                 }`}
-              />
+              >
+                Active
+              </span>
             )}
           </Link>
         );
