@@ -520,28 +520,33 @@ export async function updateLiveCaps(opts: {
   const { chatId } = await requireLiveEligible();
   const updates: Record<string, number | string> = {};
 
+  // Caps are integer dollars. Number.isFinite alone accepts 1e18
+  // (which silently overflows the DB numeric range) — switch to
+  // Number.isInteger for both bounds and type. The DB CHECK
+  // constraints catch range violations, but pre-DB validation gives
+  // a friendly message.
   if (opts.position_usd !== undefined) {
     if (
-      !Number.isFinite(opts.position_usd) ||
+      !Number.isInteger(opts.position_usd) ||
       opts.position_usd < LIMITS.position_usd.min ||
       opts.position_usd > LIMITS.position_usd.max
     ) {
       return {
         ok: false,
-        error: `Position cap must be $${LIMITS.position_usd.min}–$${LIMITS.position_usd.max.toLocaleString()}`,
+        error: `Position cap must be a whole dollar amount $${LIMITS.position_usd.min}–$${LIMITS.position_usd.max.toLocaleString()}`,
       };
     }
     updates.live_max_position_usd = opts.position_usd;
   }
   if (opts.daily_loss_usd !== undefined) {
     if (
-      !Number.isFinite(opts.daily_loss_usd) ||
+      !Number.isInteger(opts.daily_loss_usd) ||
       opts.daily_loss_usd < LIMITS.daily_loss_usd.min ||
       opts.daily_loss_usd > LIMITS.daily_loss_usd.max
     ) {
       return {
         ok: false,
-        error: `Daily loss cap must be $${LIMITS.daily_loss_usd.min}–$${LIMITS.daily_loss_usd.max.toLocaleString()}`,
+        error: `Daily loss cap must be a whole dollar amount $${LIMITS.daily_loss_usd.min}–$${LIMITS.daily_loss_usd.max.toLocaleString()}`,
       };
     }
     updates.live_max_daily_loss_usd = opts.daily_loss_usd;

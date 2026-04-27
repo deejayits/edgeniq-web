@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { signIn } from "@/auth";
 import { verifyTelegramAuth } from "@/lib/telegram-auth";
 import { supabaseAdmin } from "@/lib/supabase/server";
+import { checkRateLimit, clientIp } from "@/lib/rate-limit";
 import { env } from "@/env";
 
 // Telegram Login Widget redirects here with auth params as query string.
@@ -10,6 +11,29 @@ import { env } from "@/env";
 // CredentialsSignin error was opaque — now the user sees the actual
 // reason (bad hash / user not onboarded / soft-deleted / stale auth).
 export async function GET(req: NextRequest) {
+  // Per-IP rate limit. The Telegram signature check is cheap on its
+  // own (HMAC-SHA256), but the Supabase user lookup that follows is
+  // a network round-trip — and a flood of unauthenticated callbacks
+  // burns Vercel function quota even if every signature fails. 10
+  // attempts per 5 min per IP is generous for legitimate users
+  // (one login + a couple retries) and brutal for a brute-forcer.
+  const ip = clientIp(req.headers);
+  const limit = checkRateLimit("auth-callback", ip, 10, 5 * 60 * 1000);
+  if (!limit.ok) {
+    console.warn(
+      "[telegram-callback] rate-limited ip=%s reset_in=%dms",
+      ip,
+      limit.resetMs,
+    );
+    return NextResponse.redirect(
+      new URL(
+        "/login?error=signin_failed&reason=" +
+          encodeURIComponent("too many attempts — try again in a few minutes"),
+        req.url,
+      ),
+    );
+  }
+
   const params = Object.fromEntries(req.nextUrl.searchParams.entries());
 
   // 1. Verify the Telegram signature.

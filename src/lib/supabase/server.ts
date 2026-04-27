@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { auth } from "@/auth";
 import { env } from "@/env";
 
 // Service-role client — bypasses RLS. Use only in server components,
@@ -21,4 +22,31 @@ export function supabaseAdmin(): SupabaseClient {
     },
   });
   return _admin;
+}
+
+/**
+ * Same client as supabaseAdmin() but enforces session presence
+ * before handing it back. Use this in server actions / route
+ * handlers where you want a hard "no anonymous access" guarantee
+ * AND you'll filter by the returned chat_id on every query.
+ *
+ * Returns the chat_id alongside so callers don't have to call
+ * auth() twice. Throws on missing session — there's no graceful
+ * fallback for an action that's supposed to be authenticated.
+ *
+ * NOT a substitute for ownership filtering (.eq("chat_id", chatId))
+ * — service-role still bypasses RLS. This wrapper just removes the
+ * "forgot to check session" footgun. Defense-in-depth.
+ */
+export async function requireUserSupabase(): Promise<{
+  sb: SupabaseClient;
+  chatId: number;
+}> {
+  const session = await auth();
+  const chatId = (session?.user as { tgUserId?: number } | undefined)
+    ?.tgUserId;
+  if (!chatId) {
+    throw new Error("unauthorized: requireUserSupabase needs a session");
+  }
+  return { sb: supabaseAdmin(), chatId };
 }

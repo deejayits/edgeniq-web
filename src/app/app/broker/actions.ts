@@ -384,7 +384,12 @@ export async function engageKillSwitch(
   } catch (exc) {
     // Don't fail the whole kill-switch because Alpaca cancel-all errored.
     // The rails flip has already stopped new orders. Log for the admin.
-    console.error("kill switch: cancel-all failed (rails still engaged)", exc);
+    // Log only the message — the raw exception object can include the
+    // request body / response snippet from AlpacaError, which leaks
+    // implementation detail to whoever reads server logs. Message-only
+    // is enough for diagnosing transient failures.
+    const msg = exc instanceof Error ? exc.message : "unknown error";
+    console.error("kill switch: cancel-all failed (rails still engaged):", msg);
   }
 
   // High-stakes change → Telegram audit row.

@@ -17,6 +17,36 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  // Security headers. Defense-in-depth — Vercel terminates HTTPS so
+  // HSTS keeps the user on HTTPS, X-Content-Type-Options stops MIME
+  // sniffing, X-Frame-Options blocks click-jacking via iframe, and
+  // Referrer-Policy strips full URL leaks to upstream. CSP is left
+  // intentionally loose for now (the Telegram Login Widget pulls
+  // from oauth.telegram.org and inline-evals its widget; tightening
+  // CSP needs a coordinated allow-list per third-party we embed).
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=31536000; includeSubDomains; preload",
+          },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "DENY" },
+          {
+            key: "Referrer-Policy",
+            value: "strict-origin-when-cross-origin",
+          },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()",
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

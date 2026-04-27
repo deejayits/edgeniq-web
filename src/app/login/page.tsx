@@ -30,7 +30,7 @@ export default async function LoginPage({
   const session = await auth();
   if (session?.user) {
     const params0 = await searchParams;
-    redirect(params0.next && params0.next.startsWith("/") ? params0.next : "/app");
+    redirect(safeNextPath(params0.next));
   }
 
   const params = await searchParams;
@@ -142,6 +142,33 @@ export default async function LoginPage({
       </footer>
     </div>
   );
+}
+
+/**
+ * Validate the `?next=` redirect target. Defends against the open-
+ * redirect vector where a startsWith("/") check accepts protocol-
+ * relative URLs:
+ *   /login?next=//attacker.com         → redirects off-domain
+ *   /login?next=/\\attacker.com        → backslash gets normalized
+ *   /login?next=//user@phishing.com    → userinfo trick
+ *
+ * Only allow plain on-site paths: must start with a single "/", must
+ * not contain protocol-relative or scheme tricks, must not contain
+ * @ (userinfo) or backslash (Windows path normalization edge case).
+ * Falls back to "/app" on any rejection.
+ */
+function safeNextPath(next: string | undefined): string {
+  if (!next) return "/app";
+  if (typeof next !== "string") return "/app";
+  if (!next.startsWith("/")) return "/app";
+  if (next.startsWith("//")) return "/app";
+  if (next.startsWith("/\\")) return "/app";
+  if (next.includes("@")) return "/app";
+  if (next.includes("\\")) return "/app";
+  // Reject anything that looks like an absolute URL even after the
+  // leading slash trick: "/" followed by a scheme-y prefix.
+  if (/^\/[a-z][a-z0-9+\-.]*:/i.test(next)) return "/app";
+  return next;
 }
 
 function errorMessage(

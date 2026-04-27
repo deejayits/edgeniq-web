@@ -50,6 +50,26 @@ const ALLOWED_MIN_PRICES = [0, 1, 5] as const;
 // Yahoo. BRK.B / GOOG.A / RDS.A type symbols still pass.
 const TICKER_RE = /^[A-Z]{1,5}(\.[A-Z])?$/;
 
+// Reserved-word denylist. Defense-in-depth — Supabase queries are
+// parameterized so SQL injection isn't possible today, but a future
+// developer interpolating a ticker into a raw SQL string (or
+// reflecting it into another system that does) would have a free
+// keyword injection. Cheap to block at the input boundary.
+const RESERVED_TICKERS = new Set([
+  "NULL",
+  "TRUE",
+  "FALSE",
+  "AND",
+  "OR",
+  "NOT",
+  "SELECT",
+  "INSERT",
+  "UPDATE",
+  "DELETE",
+  "DROP",
+  "UNION",
+]);
+
 // Per-tier watchlist caps live in @/lib/watchlist-caps so they can be
 // imported from both server actions ("use server", async-exports
 // only) and server components. The lookup wrapper here just hits
@@ -192,7 +212,7 @@ export async function addWatchlistTicker(raw: string): Promise<ActionResult> {
   try {
     const { chatId } = await requireUser();
     const ticker = raw.trim().toUpperCase();
-    if (!TICKER_RE.test(ticker)) {
+    if (!TICKER_RE.test(ticker) || RESERVED_TICKERS.has(ticker)) {
       return {
         ok: false,
         error: "Ticker must be 1-5 letters (optionally .X for share class)",

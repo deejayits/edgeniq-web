@@ -43,6 +43,44 @@ export async function POST(req: Request) {
     );
   }
 
+  // Length + shape validation. Without these, a malicious client
+  // could submit a 10MB endpoint URL or binary garbage in the keys
+  // and inflate the push_subscriptions table indefinitely (endpoint
+  // is the upsert PK, so unique junk endpoints accumulate one row
+  // per attempt). Conservative caps based on the actual W3C Push
+  // spec field lengths.
+  if (
+    typeof endpoint !== "string" ||
+    endpoint.length > 1000 ||
+    !endpoint.startsWith("https://")
+  ) {
+    return NextResponse.json(
+      { ok: false, error: "invalid_endpoint" },
+      { status: 400 },
+    );
+  }
+  // p256dh and auth are urlsafe-base64. Allow [A-Za-z0-9_=-]{,200}.
+  // Matching length is ~88 chars for p256dh, ~24 for auth so 200 is
+  // generous.
+  const KEY_RE = /^[A-Za-z0-9_=-]{1,200}$/;
+  if (
+    typeof p256dh !== "string" ||
+    !KEY_RE.test(p256dh) ||
+    typeof authSecret !== "string" ||
+    !KEY_RE.test(authSecret)
+  ) {
+    return NextResponse.json(
+      { ok: false, error: "invalid_keys" },
+      { status: 400 },
+    );
+  }
+  // Trim user agent to a sane length; we only use it for diagnostic
+  // display, not for auth.
+  const userAgent =
+    typeof body.userAgent === "string"
+      ? body.userAgent.slice(0, 500)
+      : null;
+
   const sb = supabaseAdmin();
   const { error } = await sb.from("push_subscriptions").upsert(
     {

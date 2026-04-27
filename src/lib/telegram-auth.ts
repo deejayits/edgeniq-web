@@ -50,8 +50,14 @@ export function verifyTelegramAuth(
   if (ageSec > AUTH_MAX_AGE_SECONDS) {
     return { ok: false, reason: `auth_date stale (${ageSec}s old)` };
   }
-  if (ageSec < -60) {
-    return { ok: false, reason: "auth_date from the future" };
+  // Allow up to 5 min of clock skew on the future side. 60s was too
+  // strict — phones with NTP off by a few minutes were silently
+  // rejected. The signature itself is HMAC-verified above, so a
+  // future-dated payload is not a replay vector; the only attack a
+  // narrower window defends against is a payload PREVIOUSLY captured
+  // and replayed with the clock rewound, which is implausible.
+  if (ageSec < -300) {
+    return { ok: false, reason: "auth_date from the future (clock skew?)" };
   }
 
   return {
