@@ -6,6 +6,7 @@ import { HeaderStat } from "@/components/header-stat";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { AlpacaClient } from "@/lib/alpaca";
 import { decrypt, type EncryptedBlob } from "@/lib/crypto";
+import { formatSymbol, formatSymbolLong } from "@/lib/options-format";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -378,8 +379,16 @@ export default async function PortfolioPage() {
                       key={t.personal_options_trade_id}
                       className="border-b border-border/40 last:border-0"
                     >
-                      <td className="px-5 py-2.5 font-mono text-xs">
-                        {t.symbol}
+                      <td
+                        className="px-5 py-2.5 text-xs"
+                        title={formatSymbolLong(t.symbol)}
+                      >
+                        <div className="font-medium">
+                          {formatSymbol(t.symbol)}
+                        </div>
+                        <div className="font-mono text-[10px] text-muted-foreground/70">
+                          {t.symbol}
+                        </div>
                       </td>
                       <td className="px-4 py-2.5">
                         <Badge
@@ -492,8 +501,16 @@ export default async function PortfolioPage() {
                       key={t.id}
                       className="border-b border-border/40 last:border-0"
                     >
-                      <td className="px-5 py-2.5 font-mono text-xs">
-                        {t.symbol}
+                      <td
+                        className="px-5 py-2.5 text-xs"
+                        title={formatSymbolLong(t.symbol)}
+                      >
+                        <div className="font-medium">
+                          {formatSymbol(t.symbol)}
+                        </div>
+                        <div className="font-mono text-[10px] text-muted-foreground/70">
+                          {t.symbol}
+                        </div>
                       </td>
                       <td className="px-4 py-2.5">
                         <Badge

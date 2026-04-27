@@ -16,6 +16,7 @@ import { AutoTradeMasterToggle } from "./master-toggle";
 import { MasterKillSwitch } from "./master-kill-switch";
 import { InactiveModeBanner } from "./inactive-mode-banner";
 import { LiveView, type LiveUserState, type LiveConnection } from "./live-view";
+import { formatSymbol, formatSymbolLong } from "@/lib/options-format";
 
 export const dynamic = "force-dynamic";
 
@@ -582,7 +583,15 @@ function TradesTable({ trades }: { trades: TradeRow[] }) {
                 key={t.id}
                 className="border-b border-border/40 last:border-0"
               >
-                <td className="px-5 py-2.5 font-mono">{t.symbol}</td>
+                <td
+                  className="px-5 py-2.5 text-xs"
+                  title={formatSymbolLong(t.symbol)}
+                >
+                  <div className="font-medium">{formatSymbol(t.symbol)}</div>
+                  <div className="font-mono text-[10px] text-muted-foreground/70">
+                    {t.symbol}
+                  </div>
+                </td>
                 <td className="px-4 py-2.5">
                   <Badge
                     variant="outline"
