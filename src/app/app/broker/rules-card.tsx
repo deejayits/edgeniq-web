@@ -48,6 +48,28 @@ const POSITION_SIZE_UNIT: Record<RuleRow["position_size_type"], string> = {
   atr_based: "$ risk",
 };
 
+// Per-option help text shown under the dropdown so users understand
+// what each sizing strategy actually does. ATR-based is the least
+// obvious — the value field becomes "$ risk per ATR" rather than a
+// position size, which catches new users off guard.
+const POSITION_SIZE_HELP: Record<RuleRow["position_size_type"], string> = {
+  dollar_fixed:
+    "Risk a fixed dollar amount per trade. Every order puts the same $ on the line — predictable, easy to reason about.",
+  pct_buying_power:
+    "Position scales with your account balance. 1% on $10k = $100; on $100k = $1,000. Compounds as the account grows.",
+  share_fixed:
+    "Always trade the same number of shares. Risk varies wildly with stock price — 100 shares of $5 vs $500 is very different.",
+  atr_based:
+    "Position size = $ risk ÷ ATR (the stock's average daily price range). Larger size on quiet stocks, smaller on volatile ones. Auto-adapts to volatility.",
+};
+
+const EXECUTION_MODE_HELP: Record<RuleRow["execution_mode"], string> = {
+  off: "Bot ignores signals for this type — no buttons, no auto-submit.",
+  one_tap:
+    "Bot adds a Buy button to each matching alert. You tap to submit. Manual control with one-click execution.",
+  auto: "Bot submits orders automatically when a signal passes your rules + rails. No taps needed.",
+};
+
 export function RulesCard({ rule, title, description }: {
   rule: RuleRow;
   title: string;
@@ -139,6 +161,9 @@ export function RulesCard({ rule, title, description }: {
               </SelectItem>
             </SelectContent>
           </Select>
+          <p className="text-[11px] text-muted-foreground leading-snug">
+            {EXECUTION_MODE_HELP[draft.execution_mode]}
+          </p>
         </div>
 
         {/* Pre-trade filters */}
@@ -233,6 +258,9 @@ export function RulesCard({ rule, title, description }: {
               </span>
             </div>
           </div>
+          <p className="text-[11px] text-muted-foreground leading-snug">
+            {POSITION_SIZE_HELP[draft.position_size_type]}
+          </p>
         </div>
 
         <div className="space-y-1.5">
