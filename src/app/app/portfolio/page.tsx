@@ -320,6 +320,13 @@ export default async function PortfolioPage() {
               {closedOptions.length > 0 && ` · ${closedOptions.length} closed`}
             </span>
           </div>
+          <p className="text-[11px] text-muted-foreground leading-snug max-w-3xl">
+            Premium-based progress for options is intentionally not
+            shown as a stock-style bar — theta decay and IV crush mean
+            the premium can move opposite to the underlying, so a
+            linear bar would mislead. Days-to-expiry below indicates
+            theta pressure: under 7 days = decay accelerates fast.
+          </p>
           <Card className="p-0 border-border/60 bg-card/50 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -328,7 +335,7 @@ export default async function PortfolioPage() {
                     <th className="px-5 py-2 font-medium">Contract</th>
                     <th className="px-4 py-2 font-medium">Side</th>
                     <th className="px-4 py-2 font-medium">Strike</th>
-                    <th className="px-4 py-2 font-medium">Expiry</th>
+                    <th className="px-4 py-2 font-medium">Expiry · DTE</th>
                     <th className="px-4 py-2 font-medium">Entry</th>
                     <th className="px-4 py-2 font-medium">Target</th>
                     <th className="px-4 py-2 font-medium">Stop</th>
@@ -337,7 +344,36 @@ export default async function PortfolioPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {[...activeOptions, ...closedOptions].map((t) => (
+                  {[...activeOptions, ...closedOptions].map((t) => {
+                    // Days-to-expiry computed from the contract's
+                    // expiry date. Negative when the contract has
+                    // already expired (we'd typically have closed_at
+                    // populated by then). Color tones mirror theta
+                    // pressure: <7d = rose (decay accelerates),
+                    // 7-21d = amber (manageable), >21d = muted.
+                    const dte = (() => {
+                      try {
+                        const exp = new Date(`${t.expiry}T16:00:00Z`);
+                        const now = new Date();
+                        return Math.floor(
+                          (exp.getTime() - now.getTime()) /
+                            (1000 * 60 * 60 * 24),
+                        );
+                      } catch {
+                        return null;
+                      }
+                    })();
+                    const dteTone =
+                      dte == null
+                        ? "text-muted-foreground"
+                        : dte < 0
+                          ? "text-muted-foreground line-through"
+                          : dte < 7
+                            ? "text-rose-300"
+                            : dte < 21
+                              ? "text-amber-300"
+                              : "text-muted-foreground";
+                    return (
                     <tr
                       key={t.personal_options_trade_id}
                       className="border-b border-border/40 last:border-0"
@@ -360,8 +396,15 @@ export default async function PortfolioPage() {
                       <td className="px-4 py-2.5 tabular-nums">
                         ${t.strike.toFixed(2)}
                       </td>
-                      <td className="px-4 py-2.5 text-xs text-muted-foreground">
-                        {t.expiry}
+                      <td className="px-4 py-2.5 text-xs">
+                        <span className="text-muted-foreground">
+                          {t.expiry}
+                        </span>
+                        {dte != null && (
+                          <span className={`ml-2 tabular-nums ${dteTone}`}>
+                            · {dte < 0 ? "expired" : `${dte}d`}
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-2.5 tabular-nums">
                         ${t.user_entry_price.toFixed(2)}
@@ -403,7 +446,8 @@ export default async function PortfolioPage() {
                         )}
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

@@ -496,7 +496,21 @@ function ModeTabs({
 // browser's local timezone like normal.
 function fmtTimeUTCSafe(s: string | null | undefined): string {
   if (!s) return "—";
-  const hasTZ = /(Z|[+\-]\d{2}:?\d{2})$/.test(s);
+  // Detect if the string already carries a timezone marker. Postgres
+  // timestamptz can come back in several forms depending on driver:
+  //   2026-04-27T13:30:00.123Z
+  //   2026-04-27T13:30:00+00:00
+  //   2026-04-27T13:30:00+0000
+  //   2026-04-27T13:30:00+00
+  //   2026-04-27 13:30:00+00       (space separator)
+  //   2026-04-27T13:30:00          (NO TZ — the bug case; JS treats
+  //                                  this as LOCAL time)
+  // The previous regex only matched 4-digit offsets, so a 2-digit
+  // "+00" would be missed and we'd skip the Z append, leaving the
+  // bug unfixed for that format. Now matches Z OR any +/-N{2,4}
+  // suffix (with optional colon), so all postgres serializations
+  // are caught and naked timestamps get force-UTC'd.
+  const hasTZ = /(Z|[+\-]\d{2}(:?\d{2})?)$/i.test(s.trim());
   const safe = hasTZ ? s : `${s}Z`;
   return new Date(safe).toLocaleTimeString([], {
     hour: "numeric",
