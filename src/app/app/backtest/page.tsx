@@ -44,6 +44,8 @@ const SIGNAL_TYPE_LABEL: Record<string, string> = {
   options: "Options signals",
   etf_calls: "ETF directional calls",
   smart_money: "Smart Money trades",
+  auto_trade_options: "Auto-trade · options",
+  auto_trade_stocks: "Auto-trade · stocks",
 };
 
 export default async function BacktestPage({
@@ -61,14 +63,133 @@ export default async function BacktestPage({
   })();
 
   const db = supabaseAdmin();
-  const { data: rowsRaw } = await db
-    .from("signal_backtests")
-    .select("*")
-    .eq("window_days", windowDays);
+  // Backtest comes from two sources:
+  //   1. signal_backtests (precomputed nightly from signal_history) —
+  //      covers /confirm-tracked signals and the original "Stocks" /
+  //      "Options" / "ETF directional calls" / "Smart Money" buckets.
+  //   2. auto_trades SELL closes for THIS user — covers auto-traded
+  //      options + stocks. Computed live here because the nightly
+  //      aggregator hasn't been extended to read from auto_trades
+  //      yet, but the user explicitly asked these to factor in (a
+  //      realized $498 day shouldn't be invisible to the track
+  //      record). Surfaced as a separate "auto_trade_*" signal_type
+  //      so it doesn't conflate with the manual-confirm hit rate.
+  const sinceFilter = windowDays === 0
+    ? null
+    : new Date(Date.now() - windowDays * 86_400_000).toISOString();
+  const tgUserId = (session?.user as { tgUserId?: number } | undefined)?.tgUserId;
+  const [{ data: rowsRaw }, autoCloseRes] = await Promise.all([
+    db.from("signal_backtests").select("*").eq("window_days", windowDays),
+    (async () => {
+      if (!tgUserId) return { data: null };
+      let q = db
+        .from("auto_trades")
+        .select(
+          "id, symbol, signal_type, qty, avg_fill_price, submitted_at, closed_at, realized_pnl, parent_trade_id",
+        )
+        .eq("chat_id", tgUserId)
+        .eq("side", "sell")
+        .not("parent_trade_id", "is", null);
+      if (sinceFilter) q = q.gte("closed_at", sinceFilter);
+      return q;
+    })(),
+  ]);
 
   const rows = ((rowsRaw ?? []) as BacktestRow[]).filter(
     (r) => r.n_signals > 0,
   );
+
+  // Compute live auto-trade aggregates and append them as virtual
+  // signal_type rows so the existing render code picks them up.
+  const autoCloses = (autoCloseRes.data ?? []) as Array<{
+    id: string;
+    symbol: string;
+    signal_type: string | null;
+    qty: number | null;
+    avg_fill_price: number | null;
+    submitted_at: string;
+    closed_at: string | null;
+    realized_pnl: number | null;
+    parent_trade_id: string | null;
+  }>;
+  if (autoCloses.length > 0) {
+    const parentIds = autoCloses
+      .map((r) => r.parent_trade_id)
+      .filter((v): v is string => !!v);
+    let parentMap = new Map<
+      string,
+      { id: string; avg_fill_price: number | null; submitted_at: string }
+    >();
+    if (parentIds.length > 0) {
+      const { data: parents } = await db
+        .from("auto_trades")
+        .select("id, avg_fill_price, submitted_at")
+        .in("id", parentIds);
+      parentMap = new Map(
+        ((parents ?? []) as Array<{
+          id: string;
+          avg_fill_price: number | null;
+          submitted_at: string;
+        }>).map((p) => [p.id, p]),
+      );
+    }
+    type Computed = { gainPct: number; holdMins: number };
+    const byType = new Map<string, Computed[]>();
+    for (const r of autoCloses) {
+      const parent = r.parent_trade_id ? parentMap.get(r.parent_trade_id) : null;
+      const entry = Number(parent?.avg_fill_price ?? 0);
+      const exit = Number(r.avg_fill_price ?? 0);
+      if (entry <= 0 || exit <= 0) continue;
+      const gainPct = ((exit - entry) / entry) * 100;
+      const holdMins =
+        parent?.submitted_at && r.closed_at
+          ? Math.max(
+              0,
+              Math.round(
+                (Date.parse(r.closed_at) - Date.parse(parent.submitted_at)) /
+                  60000,
+              ),
+            )
+          : 0;
+      const typeKey =
+        r.signal_type === "options"
+          ? "auto_trade_options"
+          : "auto_trade_stocks";
+      const bucket = byType.get(typeKey) ?? [];
+      bucket.push({ gainPct, holdMins });
+      byType.set(typeKey, bucket);
+    }
+    const median = (xs: number[]) => {
+      if (xs.length === 0) return 0;
+      const sorted = [...xs].sort((a, b) => a - b);
+      const m = Math.floor(sorted.length / 2);
+      return sorted.length % 2
+        ? sorted[m]
+        : (sorted[m - 1] + sorted[m]) / 2;
+    };
+    for (const [typeKey, items] of byType) {
+      const gains = items.map((i) => i.gainPct);
+      const winners = gains.filter((g) => g > 0).length;
+      rows.push({
+        signal_type: typeKey,
+        grade: "all",
+        window_days: windowDays,
+        n_signals: items.length,
+        n_winners: winners,
+        win_rate_pct:
+          items.length > 0 ? (winners / items.length) * 100 : 0,
+        avg_gain_pct:
+          items.length > 0
+            ? gains.reduce((s, g) => s + g, 0) / items.length
+            : 0,
+        median_gain_pct: median(gains),
+        median_hold_mins: median(items.map((i) => i.holdMins)),
+        best_gain_pct: Math.max(...gains, 0),
+        worst_gain_pct: Math.min(...gains, 0),
+        last_computed: new Date().toISOString(),
+      });
+    }
+  }
 
   // Group by signal_type with the "all" grade pulled out as the
   // headline so the user sees the top-line number first, then can

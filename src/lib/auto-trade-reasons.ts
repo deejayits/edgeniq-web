@@ -189,10 +189,26 @@ export function humanizeRejectReason(
 }
 
 // Bucket the trades for the summary banner. Returns `total / filled /
-// rejected` plus a top-3 reject reason breakdown for actionable copy.
+// closed / rejected / pending` plus a top-3 reject reason breakdown
+// for actionable copy.
+//
+// Bucketing rules — accounts for the BUY-stays-filled + SELL-is-closed
+// pattern:
+//   - "closed" = any row where status='closed' OR (side='sell' AND
+//     parent_trade_id is set). Captures both legacy BUY-mutated rows
+//     and the new SELL close rows.
+//   - "filled" = BUY rows that filled and have NO SELL child yet.
+//     Excludes BUYs whose close already shipped (their id appears as
+//     a parent_trade_id on some sell row).
+//   - "total" counts entry attempts, not the SELL close rows we
+//     insert per close — so 10 BUYs that all closed read as "10
+//     attempted · 10 closed", not "20 attempted".
 export function summarizeAutoTrades(
   trades: ReadonlyArray<{
+    id?: string | null;
     status: string | null;
+    side?: string | null;
+    parent_trade_id?: string | null;
     error_message: string | null;
   }>,
 ): {
@@ -203,21 +219,37 @@ export function summarizeAutoTrades(
   pending: number;
   topRejectReasons: ReadonlyArray<{ label: string; count: number }>;
 } {
+  // Pre-pass: which BUY ids have a SELL child? Those BUYs are closed
+  // even if their own status still reads 'filled'.
+  const sellParentIds = new Set<string>();
+  for (const t of trades) {
+    if ((t.side || "").toLowerCase() === "sell" && t.parent_trade_id) {
+      sellParentIds.add(t.parent_trade_id);
+    }
+  }
   let filled = 0;
   let closed = 0;
   let rejected = 0;
   let pending = 0;
+  let sellRows = 0;
   const reasonCounts = new Map<string, number>();
   for (const t of trades) {
     const s = (t.status || "").toLowerCase();
-    if (s === "filled" || s === "partial") {
-      filled++;
-    } else if (s === "closed") {
-      // Successfully ran lifecycle (EOD flatten / target hit / stop
-      // hit) — a separate bucket from "still open and filled" so the
-      // summary banner can read "2 closed today" without conflating
-      // with currently-held positions.
+    const side = (t.side || "").toLowerCase();
+    const isSellClose = side === "sell" && !!t.parent_trade_id;
+    if (isSellClose) {
+      sellRows++;
       closed++;
+      continue;
+    }
+    if (s === "closed") {
+      // Legacy: BUY row mutated to status='closed' (pre-fix data).
+      closed++;
+    } else if (s === "filled" || s === "partial") {
+      // BUY filled. If a SELL child exists this row's been closed —
+      // counted in `closed` via that child, not here.
+      if (t.id && sellParentIds.has(t.id)) continue;
+      filled++;
     } else if (s === "rejected" || s === "canceled" || s === "expired") {
       rejected++;
       const r = humanizeRejectReason(t.status, t.error_message);
@@ -231,7 +263,9 @@ export function summarizeAutoTrades(
     .sort((a, b) => b.count - a.count)
     .slice(0, 3);
   return {
-    total: trades.length,
+    // total = entry attempts only. Subtract the SELL close rows so
+    // "10 orders" doesn't read "20 orders" once their closes ship.
+    total: trades.length - sellRows,
     filled,
     closed,
     rejected,

@@ -144,30 +144,81 @@ export default async function PortfolioPage() {
     avg_fill_price: number | null;
     submitted_at: string;
     filled_at: string | null;
+    closed_at: string | null;
     order_class: string | null;
     mode: string;
     error_message: string | null;
+  };
+  type ClosedAutoTradeRow = {
+    id: string;
+    symbol: string;
+    side: string;
+    qty: number;
+    status: string;
+    avg_fill_price: number | null;
+    submitted_at: string;
+    closed_at: string | null;
+    realized_pnl: number | null;
+    close_reason: string | null;
+    parent_trade_id: string | null;
+    signal_type: string | null;
+    mode: string;
   };
   const since30d = new Date();
   since30d.setDate(since30d.getDate() - 30);
   const { data: autoTradeRows } = await db
     .from("auto_trades")
     .select(
-      "id, symbol, side, qty, status, avg_fill_price, submitted_at, filled_at, order_class, mode, error_message",
+      "id, symbol, side, qty, status, avg_fill_price, submitted_at, filled_at, closed_at, order_class, mode, error_message",
     )
     .eq("chat_id", tgUserId)
     .gte("submitted_at", since30d.toISOString())
-    // Open positions only. Earlier this query was inclusive of
-    // status='closed' rows (positions exited via target / stop /
-    // EOD flatten), making the "Auto-trade fills" section read like
-    // the user still held them. Hide closed too. Also restrict to
-    // side='buy' so the SELL rows the close paths now insert don't
-    // re-appear here as if they were open longs.
+    // Open positions only. Filter by closed_at IS NULL because BUY
+    // rows now keep status='filled' even after the close paths run
+    // (only the new SELL row carries 'closed' status). Relying on
+    // status alone would surface exited positions as still-open.
     .not("status", "in", '("rejected","canceled","expired","closed")')
     .eq("side", "buy")
+    .is("closed_at", null)
     .order("submitted_at", { ascending: false })
     .limit(50);
   const autoTrades = (autoTradeRows ?? []) as AutoTradeRow[];
+
+  // Closed auto-trades — pulls SELL close rows (parent_trade_id is set,
+  // status='closed', realized_pnl populated) so the user sees what
+  // exited today / this week with entry → exit prices and P&L. Without
+  // this section, auto-traded options that hit target / EOD-flattened
+  // showed up nowhere on /portfolio after they closed — exactly the
+  // "where are my closed SPY/QQQ?" question.
+  const { data: closedAutoRows } = await db
+    .from("auto_trades")
+    .select(
+      "id, symbol, side, qty, status, avg_fill_price, submitted_at, closed_at, realized_pnl, close_reason, parent_trade_id, signal_type, mode",
+    )
+    .eq("chat_id", tgUserId)
+    .eq("side", "sell")
+    .not("parent_trade_id", "is", null)
+    .gte("submitted_at", since30d.toISOString())
+    .order("closed_at", { ascending: false })
+    .limit(30);
+  const closedAutos = (closedAutoRows ?? []) as ClosedAutoTradeRow[];
+  // Pull parent BUYs for the closed SELL rows so we can show the
+  // entry price too (SELL row's avg_fill_price IS the close price).
+  const parentIds = closedAutos
+    .map((r) => r.parent_trade_id)
+    .filter((v): v is string => !!v);
+  let parentByIdAuto = new Map<string, ClosedAutoTradeRow>();
+  if (parentIds.length > 0) {
+    const { data: parents } = await db
+      .from("auto_trades")
+      .select(
+        "id, symbol, side, qty, status, avg_fill_price, submitted_at, closed_at, realized_pnl, close_reason, parent_trade_id, signal_type, mode",
+      )
+      .in("id", parentIds);
+    parentByIdAuto = new Map(
+      ((parents ?? []) as ClosedAutoTradeRow[]).map((r) => [r.id, r]),
+    );
+  }
 
   // Join signal context in a single IN query so we don't fan out one
   // request per trade. Grade/type/regime improve the entry narrative.
@@ -278,19 +329,39 @@ export default async function PortfolioPage() {
           />
           <HeaderStat
             label="Closed"
-            value={`${closed.length + closedOptions.length}`}
-            sub={
-              closedAvgPnl != null
-                ? `${closedAvgPnl >= 0 ? "+" : ""}${closedAvgPnl.toFixed(2)}% avg`
-                : "—"
-            }
-            tone={
-              closedAvgPnl == null
-                ? "muted"
-                : closedAvgPnl >= 0
-                  ? "emerald"
-                  : "rose"
-            }
+            value={`${closed.length + closedOptions.length + closedAutos.length}`}
+            sub={(() => {
+              // Show realized $ from auto-trade closes when we have
+              // any (concrete dollar P&L beats the % avg from manual
+              // confirms since auto-trade closes carry true realized
+              // P&L). Fall back to the personal-trade % avg.
+              const autoPnlSum = closedAutos.reduce(
+                (acc, r) => acc + (Number(r.realized_pnl) || 0),
+                0,
+              );
+              if (closedAutos.length > 0) {
+                const sign = autoPnlSum >= 0 ? "+" : "−";
+                return `${sign}$${Math.abs(autoPnlSum).toLocaleString(
+                  undefined,
+                  { minimumFractionDigits: 2, maximumFractionDigits: 2 },
+                )} realized`;
+              }
+              if (closedAvgPnl != null) {
+                return `${closedAvgPnl >= 0 ? "+" : ""}${closedAvgPnl.toFixed(2)}% avg`;
+              }
+              return "—";
+            })()}
+            tone={(() => {
+              if (closedAutos.length > 0) {
+                const autoPnlSum = closedAutos.reduce(
+                  (acc, r) => acc + (Number(r.realized_pnl) || 0),
+                  0,
+                );
+                return autoPnlSum >= 0 ? "emerald" : "rose";
+              }
+              if (closedAvgPnl == null) return "muted";
+              return closedAvgPnl >= 0 ? "emerald" : "rose";
+            })()}
           />
         </div>
       </header>
@@ -583,6 +654,128 @@ export default async function PortfolioPage() {
                       </td>
                     </tr>
                   ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </section>
+      )}
+
+      {/* Closed auto-trades. SELL close rows (target hit, stop hit,
+          EOD flatten) with realized P&L. Without this block, auto-
+          traded options that exited the same day disappeared from
+          /portfolio entirely — Active Stocks doesn't show them, and
+          the personal_trades-only "Recently closed" list at the
+          bottom never picked them up either. */}
+      {closedAutos.length > 0 && (
+        <section className="space-y-3">
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+              Closed auto-trades
+            </h2>
+            <span className="text-xs text-muted-foreground tabular-nums">
+              {closedAutos.length} close{closedAutos.length === 1 ? "" : "s"}
+              {" · last 30d"}
+            </span>
+          </div>
+          <Card className="p-0 border-border/60 bg-card/50 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border/60 bg-muted/20 text-left text-xs text-muted-foreground">
+                    <th className="px-5 py-2 font-medium">Symbol</th>
+                    <th className="px-4 py-2 font-medium">Qty</th>
+                    <th className="px-4 py-2 font-medium">Entry → Exit</th>
+                    <th className="px-4 py-2 font-medium">P&amp;L</th>
+                    <th className="px-4 py-2 font-medium">Reason</th>
+                    <th className="px-4 py-2 font-medium">Closed</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {closedAutos.map((t) => {
+                    const parent = t.parent_trade_id
+                      ? parentByIdAuto.get(t.parent_trade_id)
+                      : undefined;
+                    const entryPx = parent?.avg_fill_price ?? null;
+                    const exitPx = t.avg_fill_price;
+                    const pnl = t.realized_pnl;
+                    const reasonLabel = (() => {
+                      switch ((t.close_reason ?? "").toLowerCase()) {
+                        case "target_hit":
+                          return "🎯 Target hit";
+                        case "stop_hit":
+                          return "🛑 Stop hit";
+                        case "eod_close":
+                          return "🌆 EOD flatten";
+                        default:
+                          return t.close_reason ?? "—";
+                      }
+                    })();
+                    const closedTs = t.closed_at ?? t.submitted_at;
+                    return (
+                      <tr
+                        key={t.id}
+                        className="border-b border-border/40 last:border-0"
+                      >
+                        <td
+                          className="px-5 py-2.5 text-xs"
+                          title={formatSymbolLong(t.symbol)}
+                        >
+                          <div className="font-medium">
+                            {formatSymbol(t.symbol)}
+                          </div>
+                          <div className="font-mono text-[10px] text-muted-foreground/70">
+                            {t.symbol}
+                          </div>
+                        </td>
+                        <td className="px-4 py-2.5 tabular-nums">{t.qty}</td>
+                        <td className="px-4 py-2.5 text-xs tabular-nums text-muted-foreground">
+                          {entryPx != null
+                            ? `$${Number(entryPx).toFixed(2)}`
+                            : "—"}
+                          {" → "}
+                          <span className="text-foreground/90">
+                            {exitPx != null
+                              ? `$${Number(exitPx).toFixed(2)}`
+                              : "—"}
+                          </span>
+                        </td>
+                        <td
+                          className={`px-4 py-2.5 tabular-nums text-xs ${
+                            pnl == null
+                              ? "text-muted-foreground"
+                              : pnl >= 0
+                                ? "text-emerald-300"
+                                : "text-rose-300"
+                          }`}
+                        >
+                          {pnl == null
+                            ? "—"
+                            : `${pnl >= 0 ? "+" : "−"}$${Math.abs(
+                                Number(pnl),
+                              ).toLocaleString(undefined, {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}`}
+                        </td>
+                        <td className="px-4 py-2.5 text-xs">{reasonLabel}</td>
+                        <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                          {new Date(
+                            /(Z|[+\-]\d{2}(:?\d{2})?)$/i.test(closedTs)
+                              ? closedTs
+                              : `${closedTs}Z`,
+                          ).toLocaleString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            hour: "numeric",
+                            minute: "2-digit",
+                            timeZone: "America/New_York",
+                            timeZoneName: "short",
+                          })}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

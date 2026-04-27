@@ -28,29 +28,50 @@ export default async function AppHome() {
   const db = supabaseAdmin();
   const since = new Date(Date.now() - 7 * 86_400_000).toISOString();
 
-  const [{ data: me }, { data: openTrades }, { data: recentSignals }] =
-    await Promise.all([
-      db
-        .from("users")
-        .select("username, risk_profile, strategy, sub_plan, watchlist")
-        .eq("chat_id", tgUserId)
-        .single(),
-      db
-        .from("personal_trades")
-        .select("personal_trade_id, ticker, confirmed_at, status")
-        .eq("chat_id", tgUserId)
-        .eq("status", "active")
-        .order("confirmed_at", { ascending: false }),
-      db
-        .from("signal_history")
-        .select(
-          "id, ticker, signal_type, exit_reason, gain_pct, closed_at, grade",
-        )
-        .eq("user_chat_id", tgUserId)
-        .gte("closed_at", since)
-        .order("closed_at", { ascending: false })
-        .limit(20),
-    ]);
+  const [
+    { data: me },
+    { data: openTrades },
+    { data: recentSignals },
+    { data: recentAutoCloses },
+  ] = await Promise.all([
+    db
+      .from("users")
+      .select("username, risk_profile, strategy, sub_plan, watchlist")
+      .eq("chat_id", tgUserId)
+      .single(),
+    db
+      .from("personal_trades")
+      .select("personal_trade_id, ticker, confirmed_at, status")
+      .eq("chat_id", tgUserId)
+      .eq("status", "active")
+      .order("confirmed_at", { ascending: false }),
+    db
+      .from("signal_history")
+      .select(
+        "id, ticker, signal_type, exit_reason, gain_pct, closed_at, grade",
+      )
+      .eq("user_chat_id", tgUserId)
+      .gte("closed_at", since)
+      .order("closed_at", { ascending: false })
+      .limit(20),
+    // Auto-trade closes (SELL rows the close paths insert) — folded
+    // into "Signals Resolved" so the count reflects ALL closed
+    // outcomes today, not just /confirm-tracked manual signals. The
+    // user explicitly asked: should this include closed auto-trades?
+    // Yes — a TP-hit on auto-traded SPY is just as much a "resolved"
+    // signal as a manual confirm.
+    db
+      .from("auto_trades")
+      .select(
+        "id, symbol, signal_type, close_reason, realized_pnl, closed_at",
+      )
+      .eq("chat_id", tgUserId)
+      .eq("side", "sell")
+      .not("parent_trade_id", "is", null)
+      .gte("closed_at", since)
+      .order("closed_at", { ascending: false })
+      .limit(20),
+  ]);
 
   // Top-conviction watchlist tickers — pull scores for the user's
   // watchlist and surface the highest-scoring 5 as a "look here first"
@@ -72,12 +93,25 @@ export default async function AppHome() {
       .map((r) => ({ ticker: r.ticker, score: r.score }));
   }
 
-  const resolvedLast24h = (recentSignals ?? []).filter(
-    (r) => Date.parse(r.closed_at) >= Date.now() - 86_400_000,
-  ).length;
+  const cutoff24h = Date.now() - 86_400_000;
+  const resolvedLast24h =
+    (recentSignals ?? []).filter(
+      (r) => Date.parse(r.closed_at) >= cutoff24h,
+    ).length +
+    (recentAutoCloses ?? []).filter(
+      (r) => r.closed_at != null && Date.parse(r.closed_at) >= cutoff24h,
+    ).length;
 
+  // Sparkline blends signal_history closes + auto-trade SELL closes
+  // so a day where the auto-trader hit 5 targets isn't graphed as
+  // empty just because the user didn't /confirm any of them.
   const signalSpark = buildDailyCounts(
-    (recentSignals ?? []).map((r) => r.closed_at),
+    [
+      ...(recentSignals ?? []).map((r) => r.closed_at),
+      ...(recentAutoCloses ?? [])
+        .map((r) => r.closed_at)
+        .filter((v): v is string => !!v),
+    ],
     7,
   );
 
@@ -114,7 +148,10 @@ export default async function AppHome() {
 
       <TopConviction items={topConviction} watchlistEmpty={watchlist.length === 0} />
 
-      <RecentActivity signals={recentSignals ?? []} />
+      <RecentActivity
+        signals={recentSignals ?? []}
+        autoCloses={recentAutoCloses ?? []}
+      />
 
       <HotkeyHint />
     </div>
@@ -305,6 +342,7 @@ function TopConviction({
 
 function RecentActivity({
   signals,
+  autoCloses,
 }: {
   signals: Array<{
     id: number;
@@ -315,7 +353,61 @@ function RecentActivity({
     closed_at: string;
     grade: string;
   }>;
+  autoCloses: Array<{
+    id: string;
+    symbol: string;
+    signal_type: string | null;
+    close_reason: string | null;
+    realized_pnl: number | null;
+    closed_at: string | null;
+  }>;
 }) {
+  // Merge signal_history closes (manual /confirm flow) with auto-trade
+  // SELL closes (auto-trader exit). Both are "resolved" outcomes from
+  // the user's perspective — the dashboard shouldn't pretend
+  // auto-trade closes don't exist just because they have no
+  // /confirm-tracked signal_history row.
+  type Activity = {
+    key: string;
+    ticker: string;
+    typeLabel: string;
+    reason: string;
+    win: boolean;
+    pnlText: string;
+    closedAt: string;
+    isAuto: boolean;
+  };
+  const items: Activity[] = [
+    ...signals.map((s) => ({
+      key: `sig-${s.id}`,
+      ticker: s.ticker,
+      typeLabel: s.signal_type || "signal",
+      reason: s.exit_reason.replace(/_/g, " "),
+      win: s.gain_pct > 0,
+      pnlText: `${s.gain_pct >= 0 ? "+" : ""}${s.gain_pct.toFixed(2)}%`,
+      closedAt: s.closed_at,
+      isAuto: false,
+    })),
+    ...autoCloses
+      .filter((a) => a.closed_at)
+      .map((a) => {
+        const pnl = Number(a.realized_pnl ?? 0);
+        const reasonRaw = (a.close_reason || "closed").replace(/_/g, " ");
+        return {
+          key: `auto-${a.id}`,
+          ticker: a.symbol,
+          typeLabel: a.signal_type === "options" ? "auto-trade · options" : "auto-trade",
+          reason: reasonRaw,
+          win: pnl >= 0,
+          pnlText: `${pnl >= 0 ? "+" : "−"}$${Math.abs(pnl).toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}`,
+          closedAt: a.closed_at as string,
+          isAuto: true,
+        };
+      }),
+  ].sort((a, b) => Date.parse(b.closedAt) - Date.parse(a.closedAt));
   return (
     <section>
       <div className="flex items-baseline justify-between mb-4">
@@ -324,7 +416,7 @@ function RecentActivity({
         </h2>
         <span className="text-xs text-muted-foreground">Last 7 days</span>
       </div>
-      {signals.length === 0 ? (
+      {items.length === 0 ? (
         <Card className="p-8 border-border/60 bg-card/50 text-center">
           <p className="text-sm text-muted-foreground">
             No resolved signals in the last 7 days. When a signal hits a
@@ -333,11 +425,11 @@ function RecentActivity({
         </Card>
       ) : (
         <Card className="border-border/60 bg-card/50 divide-y divide-border/40">
-          {signals.map((s) => {
-            const win = s.gain_pct > 0;
+          {items.map((s) => {
+            const win = s.win;
             return (
               <div
-                key={s.id}
+                key={s.key}
                 className="px-5 py-3.5 flex items-center gap-4"
               >
                 <div
@@ -359,12 +451,11 @@ function RecentActivity({
                       {s.ticker}
                     </span>
                     <span className="text-xs text-muted-foreground truncate">
-                      {s.signal_type || "signal"} ·{" "}
-                      {s.exit_reason.replace(/_/g, " ")}
+                      {s.typeLabel} · {s.reason}
                     </span>
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {relativeTime(s.closed_at)}
+                    {relativeTime(s.closedAt)}
                   </div>
                 </div>
                 <div
@@ -377,8 +468,7 @@ function RecentActivity({
                   ) : (
                     <ArrowDownRight className="h-3.5 w-3.5" />
                   )}
-                  {win ? "+" : ""}
-                  {s.gain_pct.toFixed(2)}%
+                  {s.pnlText}
                 </div>
               </div>
             );

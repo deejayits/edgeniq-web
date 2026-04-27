@@ -51,6 +51,11 @@ type TradeRow = {
   avg_fill_price: number | null;
   submitted_at: string;
   filled_at: string | null;
+  closed_at: string | null;
+  realized_pnl: number | null;
+  close_reason: string | null;
+  parent_trade_id: string | null;
+  signal_type: string | null;
   order_class: string | null;
   mode: string;
   error_message: string | null;
@@ -168,7 +173,7 @@ export default async function BrokerPage({
     supabase
       .from("auto_trades")
       .select(
-        "id, symbol, side, qty, status, avg_fill_price, submitted_at, filled_at, order_class, mode, error_message",
+        "id, symbol, side, qty, status, avg_fill_price, submitted_at, filled_at, closed_at, realized_pnl, close_reason, parent_trade_id, signal_type, order_class, mode, error_message",
       )
       .eq("chat_id", user.tgUserId)
       .gte("submitted_at", todayStart.toISOString())
@@ -232,7 +237,12 @@ export default async function BrokerPage({
   // Right-rail stats for the header. The "Active rules" count
   // reflects rules in the *currently active routing mode* — that
   // mirrors what the bot will actually evaluate when a signal fires.
-  const todaysOrders = trades.length;
+  // Order count = entry attempts only; close paths now insert a
+  // SELL row per close, so trades.length counts both directions.
+  const sellCloseRows = trades.filter(
+    (t) => (t.side || "").toLowerCase() === "sell" && t.parent_trade_id,
+  ).length;
+  const todaysOrders = trades.length - sellCloseRows;
   const activeModeRules = activeMode === "live" ? liveRules : paperRules;
   const activeRulesCount = activeModeRules.filter(
     (r) => r.execution_mode === "auto" || r.execution_mode === "one_tap",
@@ -512,6 +522,23 @@ function fmtTimeUTCSafe(s: string | null | undefined): string {
   });
 }
 
+// Map auto_trades.close_reason to a UI-friendly label for SELL-close
+// rows. Used by the Reason column so closed positions read like
+// "🎯 Take-profit hit" instead of an empty cell.
+function closeReasonHuman(reason: string | null | undefined): string | null {
+  if (!reason) return null;
+  switch (reason.toLowerCase()) {
+    case "target_hit":
+      return "🎯 Target hit";
+    case "stop_hit":
+      return "🛑 Stop hit";
+    case "eod_close":
+      return "🌆 EOD flatten";
+    default:
+      return reason.replace(/_/g, " ");
+  }
+}
+
 function defaultRule(
   signalType: "stocks" | "options",
   mode: "paper" | "live",
@@ -568,8 +595,8 @@ function TradesTable({ trades }: { trades: TradeRow[] }) {
           Today&rsquo;s auto-trades
         </h2>
         <span className="text-xs text-muted-foreground tabular-nums">
-          {trades.length}{" "}
-          {trades.length === 1 ? "order" : "orders"}
+          {summary.total}{" "}
+          {summary.total === 1 ? "order" : "orders"}
         </span>
       </div>
       {summary.total > 0 && (
@@ -602,6 +629,12 @@ function TradesTable({ trades }: { trades: TradeRow[] }) {
           <tbody>
             {trades.map((t) => {
               const reason = humanizeRejectReason(t.status, t.error_message);
+              const isClose =
+                (t.side || "").toLowerCase() === "sell" && t.parent_trade_id;
+              const closeReasonLabel = isClose
+                ? closeReasonHuman(t.close_reason)
+                : null;
+              const pnl = t.realized_pnl;
               return (
                 <tr
                   key={t.id}
@@ -638,7 +671,26 @@ function TradesTable({ trades }: { trades: TradeRow[] }) {
                     className="px-4 py-2.5 text-xs max-w-[280px]"
                     title={t.error_message ?? undefined}
                   >
-                    {reason ? (
+                    {closeReasonLabel ? (
+                      <div className="space-y-0.5">
+                        <div className="text-foreground/90">{closeReasonLabel}</div>
+                        {pnl != null && (
+                          <div
+                            className={`text-[10px] tabular-nums leading-snug ${
+                              pnl >= 0
+                                ? "text-emerald-300"
+                                : "text-rose-300"
+                            }`}
+                          >
+                            {pnl >= 0 ? "+" : "−"}$
+                            {Math.abs(Number(pnl)).toLocaleString(undefined, {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    ) : reason ? (
                       <div className="space-y-0.5">
                         <div className="text-foreground/90">{reason.label}</div>
                         {reason.hint && (
