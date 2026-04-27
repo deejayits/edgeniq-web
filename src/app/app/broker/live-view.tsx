@@ -34,6 +34,7 @@ import { LiveModeSwitcher } from "./live-mode-switcher";
 import { LiveCapsStrip } from "./live-caps-strip";
 import { ConnectionStrip } from "./connection-strip";
 import { AutoTradeMasterToggle } from "./master-toggle";
+import { InactiveModeBanner } from "./inactive-mode-banner";
 import { LIVE_DISCLAIMER_VERSION } from "./live-config";
 
 export type LiveUserState = {
@@ -59,14 +60,16 @@ export type LiveConnection = {
 export function LiveView({
   user,
   liveConn,
+  isActiveRoutingMode,
   rulesContext,
 }: {
   user: LiveUserState;
   liveConn: LiveConnection;
-  /** Auto-trade rule summary surfaced from the parent page so the
-      Live tab's master toggle reflects the same per-signal-type
-      rules the bot evaluates. Identical shape to what the paper
-      tab uses; rules table is shared between modes. */
+  /** True iff users.active_broker_mode === 'live'. Used to mute
+      the master auto-trade toggle when the user is configuring live
+      while paper is the active routing target — saves intent
+      without giving the false impression that orders fire. */
+  isActiveRoutingMode: boolean;
   rulesContext: {
     anyActive: boolean;
     activeCount: number;
@@ -88,6 +91,19 @@ export function LiveView({
 
   return (
     <div className="space-y-6">
+      {/* Inactive-mode banner — when user is on the Live tab but
+          paper is the active routing target. Most common when they
+          opened the live tab to inspect/configure but haven't
+          flipped the switch. The READY_TO_SWITCH state already
+          renders the LiveModeSwitcher CTA below, but the banner
+          adds an explicit "your changes here won't fire" framing. */}
+      {state === "READY_TO_SWITCH" && (
+        <InactiveModeBanner
+          visibleTab="live"
+          activeMode={user.activeBrokerMode}
+        />
+      )}
+
       {/* Persistent banner — shown ONLY when live is the active mode.
           Big, red, can't-miss. Establishes the "this is real money"
           context for everything below. */}
@@ -137,6 +153,7 @@ export function LiveView({
                 </h2>
                 <AutoTradeMasterToggle
                   mode="live"
+                  isActiveRoutingMode={isActiveRoutingMode}
                   anyActive={rulesContext.anyActive}
                   activeCount={rulesContext.activeCount}
                   totalCount={rulesContext.totalCount}

@@ -14,6 +14,7 @@ import { RulesCard, type RuleRow } from "./rules-card";
 import { RiskRailsCard, type RiskRailsRow } from "./risk-rails-card";
 import { AutoTradeMasterToggle } from "./master-toggle";
 import { MasterKillSwitch } from "./master-kill-switch";
+import { InactiveModeBanner } from "./inactive-mode-banner";
 import { LiveView, type LiveUserState, type LiveConnection } from "./live-view";
 
 export const dynamic = "force-dynamic";
@@ -319,6 +320,7 @@ export default async function BrokerPage({
         <LiveView
           user={liveUserState}
           liveConn={liveConnSummary}
+          isActiveRoutingMode={activeMode === "live"}
           rulesContext={{
             anyActive: tabAnyActive,
             activeCount: tabActiveCount,
@@ -332,6 +334,17 @@ export default async function BrokerPage({
         </Card>
       ) : (
         <>
+          {/* Inactive-mode banner — visible only when this paper tab
+              is NOT the current routing target. Tells the user their
+              changes are saved-as-config and won't fire until they
+              switch back to paper. */}
+          {activeMode !== "paper" && (
+            <InactiveModeBanner
+              visibleTab="paper"
+              activeMode={activeMode}
+            />
+          )}
+
           {/* Compact connection strip (replaces the centered card) */}
           <ConnectionStrip
             mode="paper"
@@ -362,6 +375,7 @@ export default async function BrokerPage({
             </h2>
             <AutoTradeMasterToggle
               mode="paper"
+              isActiveRoutingMode={activeMode === "paper"}
               anyActive={tabAnyActive}
               activeCount={tabActiveCount}
               totalCount={tabTotal}
