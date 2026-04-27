@@ -131,8 +131,11 @@ export function LiveModeSwitcher({
             <AlertDialogDescription className="leading-relaxed">
               From the moment you confirm, qualifying signals will route
               orders to your <b>live</b> Alpaca account. Real money is
-              at risk. Paper auto-trade pauses while live is active.
-              You can switch back at any time.
+              at risk. <b>All your auto-trade rules will be reset to
+              OFF</b> — you&rsquo;ll need to explicitly re-enable each
+              signal type in live mode (a fresh, deliberate decision
+              per type). Paper rules are preserved and resume when you
+              switch back.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

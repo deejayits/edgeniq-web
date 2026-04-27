@@ -345,8 +345,29 @@ export async function switchToLive(opts: {
     .eq("chat_id", chatId);
   if (error) return { ok: false, error: error.message };
 
+  // Safety reset — disable every auto_trade_rules.execution_mode.
+  // The user just changed which broker their orders fire against;
+  // their previous "stocks=auto" decision was made in paper context
+  // and shouldn't silently carry into live. Forces a fresh, explicit
+  // opt-in for each signal type after the switch. Reverse direction
+  // (live→paper) leaves rules alone since paper is the safe default.
+  try {
+    await sb
+      .from("auto_trade_rules")
+      .update({
+        execution_mode: "off",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("chat_id", chatId);
+  } catch {
+    // Non-fatal — the mode flip already succeeded; rules being out
+    // of sync just means the user might see stale auto-on state
+    // until they hit refresh. Logged below either way.
+  }
+
   await logEvent(chatId, "mode_switched_to_live", {
     from: u.active_broker_mode,
+    auto_rules_reset: true,
   });
   revalidatePath("/app/broker");
   return { ok: true };
