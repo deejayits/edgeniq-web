@@ -376,7 +376,7 @@ function Features() {
     {
       icon: Eye,
       title: "Smart Money tracker",
-      body: "Form 4 insider buys (~2-day SEC latency, fastest legal smart-money signal), 13F holdings from Buffett, Burry, Dalio, Ackman, Tepper, Icahn, Klarman, and Congressional STOCK Act filings. Cluster alerts when multiple insiders buy the same ticker. Telegram pings when a CFO buys a name on your watchlist.",
+      body: "Form 4 insider buys (~2-day SEC latency, fastest legal smart-money signal) plus 13F holdings from Buffett, Burry, Dalio, Ackman, Tepper, Icahn, Klarman. Cluster alerts when multiple insiders buy the same ticker. Telegram pings when a CFO buys a name on your watchlist.",
     },
     {
       icon: BarChart3,
@@ -499,7 +499,7 @@ function WhyDifferent() {
     {
       icon: Sparkles,
       title: "Smart Money, not gut money",
-      body: "Form 4 insider buys (~2-day SEC latency), 13F filings from Buffett, Burry, Dalio, Ackman, Tepper, Icahn, Klarman, and Congressional STOCK Act disclosures. Cluster alerts go louder when multiple insiders buy the same name. Disclosed positions, not pundits.",
+      body: "Form 4 insider buys (~2-day SEC latency) and 13F filings from Buffett, Burry, Dalio, Ackman, Tepper, Icahn, Klarman. Cluster alerts go louder when multiple insiders buy the same name. Disclosed positions, not pundits.",
     },
   ];
   return (
@@ -607,7 +607,7 @@ function Pricing() {
         "Options alerts (unusual volume, block prints, OTM spikes)",
         "ETF directional calls — broad-market trend setups + sector rotation plays",
         "Prediction markets (Kalshi + Polymarket)",
-        "Smart Money — Form 4 insider buys, 13F filings (Buffett, Burry, Dalio, Ackman, Tepper, Icahn, Klarman), Congressional STOCK Act disclosures",
+        "Smart Money — Form 4 insider buys + 13F filings (Buffett, Burry, Dalio, Ackman, Tepper, Icahn, Klarman)",
         "Insider cluster alerts — louder ping when multiple insiders buy the same name",
         "13F position classification — see what funds added, trimmed, or exited each quarter",
         "Telegram alerts when an insider buys a ticker on your watchlist",
@@ -789,7 +789,6 @@ function FeatureMatrix() {
     { label: "Smart Money — 13F position classification (new · add · trim · exit)", free: true, pro: false, elite: true },
     { label: "Smart Money — Form 4 insider buys (~2d latency)", free: true, pro: false, elite: true },
     { label: "Smart Money — insider cluster alerts (multiple buyers, same name)", free: true, pro: false, elite: true },
-    { label: "Smart Money — Congressional STOCK Act filings", free: true, pro: false, elite: true },
     { label: "Smart Money — Telegram alerts on watchlist matches", free: true, pro: false, elite: true },
     { label: "Smart Money mirror (auto-shadow trades)", free: false, pro: false, elite: "Add-on +$49.99/mo" },
     // --- Execution -----------------------------------------------

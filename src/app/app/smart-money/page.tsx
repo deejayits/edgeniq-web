@@ -66,8 +66,8 @@ export default async function SmartMoneyPage({
             Smart Money
           </h1>
           <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-4xl">
-            Follow politicians, hedge funds, and insiders. See what they
-            bought before it hits the news.
+            Follow hedge funds and insiders. See what they bought
+            before it hits the news.
           </p>
         </header>
         <Card className="p-8 text-center border-border/60 bg-card/40 space-y-3">
@@ -75,9 +75,9 @@ export default async function SmartMoneyPage({
             Elite feature
           </Badge>
           <p className="text-sm text-muted-foreground max-w-md mx-auto">
-            Browse, follow, and optionally mirror trades from Congress,
-            hedge fund 13Fs, and insider Form 4 filings. Upgrade to
-            Elite to unlock.
+            Browse, follow, and optionally mirror trades from hedge
+            fund 13Fs and insider Form 4 filings. Upgrade to Elite
+            to unlock.
           </p>
           <Button asChild variant="outline" size="sm">
             <Link href="/#pricing">See pricing</Link>
@@ -193,8 +193,8 @@ export default async function SmartMoneyPage({
             Smart Money
           </h1>
           <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-3xl">
-            Follow politicians, hedge funds, and insiders. Get alerts
-            when they disclose new positions — optionally mirror them
+            Follow hedge funds and insiders. Get alerts when they
+            disclose new positions — optionally mirror them
             automatically via Alpaca.
           </p>
         </div>
@@ -232,11 +232,11 @@ export default async function SmartMoneyPage({
       <Alert className="px-5 py-4 border-amber-500/30 bg-amber-500/5">
         <Info className="h-4 w-4 text-amber-300" />
         <AlertDescription className="text-sm leading-relaxed text-amber-200/90 max-w-5xl">
-          <b>Data latency matters.</b> Congressional filings are 30-45
-          days stale — a buy you see today was likely placed 6+ weeks
-          ago. Use for conviction, not fresh signals. Insider Form 4
-          (2-day latency) is the fastest smart-money data — we&rsquo;ll
-          add that next.
+          <b>Data latency matters.</b> 13F filings are quarterly with a
+          45-day filing lag — funds disclose holdings well after they
+          built them. Use for conviction, not fresh signals. Insider
+          Form 4 (~2-day latency) is the fastest smart-money data;
+          cluster alerts fire when 2+ insiders buy the same name.
         </AlertDescription>
       </Alert>
 
