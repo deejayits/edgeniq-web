@@ -67,7 +67,7 @@ export function RiskRailsCard({ rails }: { rails: RiskRailsRow }) {
         </div>
       </div>
 
-      <div className="grid sm:grid-cols-2 gap-3">
+      <div className="grid sm:grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <Label className="text-xs">Max open positions</Label>
           <Input
@@ -79,6 +79,11 @@ export function RiskRailsCard({ rails }: { rails: RiskRailsRow }) {
             onChange={(e) => setMaxPositions(Number(e.target.value))}
             className="h-9"
           />
+          <p className="text-[11px] text-muted-foreground leading-snug">
+            How many positions can be open at once across stocks +
+            options. New signals skip when you&rsquo;re at the cap;
+            they resume after one closes.
+          </p>
         </div>
         <div className="space-y-1.5">
           <Label className="text-xs">Max allocation per ticker (%)</Label>
@@ -96,6 +101,11 @@ export function RiskRailsCard({ rails }: { rails: RiskRailsRow }) {
               %
             </span>
           </div>
+          <p className="text-[11px] text-muted-foreground leading-snug">
+            Limits how much of your buying power can sit in any single
+            ticker. 20% on $10k = max $2k per name. Stops a single
+            signal type from over-concentrating the account.
+          </p>
         </div>
         <div className="space-y-1.5">
           <Label className="text-xs">Max daily loss ($) — optional</Label>
@@ -113,6 +123,12 @@ export function RiskRailsCard({ rails }: { rails: RiskRailsRow }) {
               className="h-9 pl-7"
             />
           </div>
+          <p className="text-[11px] text-muted-foreground leading-snug">
+            Hard dollar floor on a single day&rsquo;s realized loss.
+            Hit it and auto-trade pauses for the rest of the ET
+            session — protects capital on bad days. Leave blank to
+            skip this guardrail.
+          </p>
         </div>
         <div className="space-y-1.5">
           <Label className="text-xs">Max daily loss (%) — optional</Label>
@@ -130,13 +146,19 @@ export function RiskRailsCard({ rails }: { rails: RiskRailsRow }) {
               %
             </span>
           </div>
+          <p className="text-[11px] text-muted-foreground leading-snug">
+            Same idea as the dollar limit but as a percentage of
+            account value — more useful as the account grows. 5% on
+            a $50k account = $2,500. Use whichever feels natural.
+          </p>
         </div>
       </div>
 
-      <p className="text-[11px] text-muted-foreground leading-relaxed">
-        Either (or both) daily-loss limits will halt auto-trading for the
-        rest of the ET trading day once hit. Leave blank to disable that
-        guardrail.
+      <p className="text-[11px] text-amber-200/70 leading-relaxed border-l-2 border-amber-500/30 pl-3">
+        These rails are evaluated <b>before</b> the per-signal rules.
+        If a rail trips, every order skips regardless of how strong the
+        signal is. Designed to fail safe — better to miss a trade than
+        compound a bad day.
       </p>
 
       <div className="flex justify-end">

@@ -181,6 +181,12 @@ export function RulesCard({ rule, title, description }: {
               }
               className="h-9"
             />
+            <p className="text-[11px] text-muted-foreground leading-snug">
+              Every signal carries a 0&ndash;100 conviction score (5
+              factors blended). 65&ndash;70 is a balanced floor; 80+
+              is highly selective. Higher = fewer trades, stronger
+              setups.
+            </p>
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Max daily orders</Label>
@@ -195,14 +201,21 @@ export function RulesCard({ rule, title, description }: {
               }
               className="h-9"
             />
+            <p className="text-[11px] text-muted-foreground leading-snug">
+              Per-day cap on auto-submitted orders for this signal
+              type. Once hit, further matching signals skip until
+              tomorrow. Stops a signal-spam day from running away.
+            </p>
           </div>
         </div>
 
         <div className="flex items-center justify-between rounded-md border border-border/60 px-3 py-2">
-          <div>
+          <div className="flex-1 pr-3">
             <Label className="text-sm">Watchlist only</Label>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Only execute for tickers on your watchlist
+            <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
+              ON: auto-trade fires only for tickers you&rsquo;ve added
+              to your /watchlist. OFF: any qualifying ticker the
+              scanner finds — wider coverage, less curation.
             </p>
           </div>
           <Switch
@@ -275,9 +288,11 @@ export function RulesCard({ rule, title, description }: {
             }
             className="h-9"
           />
-          <p className="text-[11px] text-muted-foreground">
-            0 = no cooldown. Pauses auto-trade for this signal type after a
-            stop-out.
+          <p className="text-[11px] text-muted-foreground leading-snug">
+            After a stop-out, pause auto-trade for THIS signal type for N
+            minutes. Stops the bot from chasing back into the same setup
+            after a fresh loss. 0 disables; 30&ndash;60 is a typical
+            tilt-protection setting.
           </p>
         </div>
       </div>

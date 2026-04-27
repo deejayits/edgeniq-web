@@ -254,8 +254,13 @@ export default async function BrokerPage({
             Auto-trading
           </h1>
           <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-3xl">
-            Connect Alpaca and let EdgeNiq place trades on qualifying
-            signals. Paper is the default; Live is opt-in only.
+            EdgeNiq watches signals, applies the rules below, and
+            submits orders to your Alpaca account when one passes
+            every gate. <b className="text-foreground">Paper</b> uses
+            virtual money — no risk, full feature parity for testing.{" "}
+            <b className="text-foreground">Live</b> is opt-in only and
+            requires the Live Trading add-on. New to auto-trade? Start
+            on Paper, watch a few setups close, then decide.
           </p>
         </div>
         <div className="flex items-stretch gap-3">

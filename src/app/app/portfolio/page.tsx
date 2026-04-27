@@ -156,8 +156,14 @@ export default async function PortfolioPage() {
     )
     .eq("chat_id", tgUserId)
     .gte("submitted_at", since30d.toISOString())
+    .in("status", ["filled", "partially_filled"])
     .order("submitted_at", { ascending: false })
     .limit(50);
+  // Only show auto-trades that ACTUALLY became positions. Rejected /
+  // canceled / pending orders belong on /app/broker (where users
+  // debug what fired) — surfacing them on Portfolio looked like the
+  // user had 10 positions when really only 2 filled. Portfolio's job
+  // is "what do I own right now?"
   const autoTrades = (autoTradeRows ?? []) as AutoTradeRow[];
 
   // Join signal context in a single IN query so we don't fan out one
@@ -405,18 +411,20 @@ export default async function PortfolioPage() {
         </section>
       )}
 
-      {/* Auto-traded orders the bot submitted on the user's behalf.
-          Shown separately from manually-confirmed positions so the
-          distinction stays clear (auto = bot routed; active stocks /
-          options sections = user explicitly tapped to enter). */}
+      {/* Auto-trade fills — orders the bot submitted that ACTUALLY
+          turned into positions (filled or partially_filled). Rejected
+          / canceled / pending orders are intentionally NOT shown here
+          — they live on /app/broker for debugging what fired. This
+          page is "what do I own right now?", not "what did the bot
+          attempt today?" */}
       {autoTrades.length > 0 && (
         <section className="space-y-3">
           <div className="flex items-baseline justify-between">
             <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-              Auto-traded by bot
+              Auto-trade fills
             </h2>
             <span className="text-xs text-muted-foreground tabular-nums">
-              {autoTrades.length} order{autoTrades.length === 1 ? "" : "s"}
+              {autoTrades.length} fill{autoTrades.length === 1 ? "" : "s"}
               {" · last 30d"}
             </span>
           </div>
@@ -459,14 +467,7 @@ export default async function PortfolioPage() {
                       <td className="px-4 py-2.5">
                         <Badge
                           variant="outline"
-                          className={`text-[10px] py-0 h-5 ${
-                            t.status === "filled"
-                              ? "border-emerald-400/40 text-emerald-300"
-                              : t.status === "rejected" ||
-                                  t.status === "canceled"
-                                ? "border-rose-400/40 text-rose-300"
-                                : "text-muted-foreground"
-                          }`}
+                          className="border-emerald-400/40 text-emerald-300 text-[10px] py-0 h-5"
                         >
                           {t.status}
                         </Badge>
