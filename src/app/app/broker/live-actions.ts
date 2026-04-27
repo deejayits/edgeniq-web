@@ -24,15 +24,11 @@ import { auth } from "@/auth";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { encrypt, type EncryptedBlob } from "@/lib/crypto";
 import { AlpacaError, testConnection } from "@/lib/alpaca";
+import { LIVE_DISCLAIMER_VERSION } from "./live-config";
 
 type ActionResult<T = undefined> =
   | { ok: true; data?: T }
   | { ok: false; error: string };
-
-// Bumped when the disclaimer text changes materially. Old
-// acknowledgements stop counting; users must re-accept. Keep this in
-// lockstep with the disclaimer copy on /app/broker/live.
-export const LIVE_DISCLAIMER_VERSION = 1;
 
 // Floors / ceilings that the SQL CHECK constraints also enforce.
 // Re-validated here so we can return a friendly error instead of a
@@ -224,12 +220,24 @@ export async function saveLiveAlpacaConnection(
 export async function disconnectLiveBroker(): Promise<ActionResult> {
   const { chatId } = await requireLiveEligible();
   const sb = supabaseAdmin();
-  // Hard-disable trading at the same time — disconnecting the broker
-  // without flipping the enabled flag would leave a stale "enabled"
-  // state that snaps back the moment a new connection is added.
+  // Disconnect = three things, in this order:
+  //
+  //   1. Mark the live broker_connection inactive (drops live key)
+  //   2. Flip active_broker_mode back to 'paper' (route orders to
+  //      paper from this moment forward)
+  //   3. Flip live_trading_enabled false (so re-connecting later
+  //      doesn't silently re-enable — user must opt back in)
+  //
+  // PAPER state is intentionally untouched: auto_trade_rules,
+  // auto_trade_risk_rails, paper kill switch all keep their settings.
+  // Disconnecting live should NOT also pause paper trading.
   await sb
     .from("users")
-    .update({ live_trading_enabled: false })
+    .update({
+      live_trading_enabled: false,
+      active_broker_mode: "paper",
+      last_mode_switch_at: new Date().toISOString(),
+    })
     .eq("chat_id", chatId);
   const { error } = await sb
     .from("broker_connections")
@@ -238,7 +246,138 @@ export async function disconnectLiveBroker(): Promise<ActionResult> {
     .eq("broker", "alpaca")
     .eq("mode", "live");
   if (error) return { ok: false, error: error.message };
-  await logEvent(chatId, "live_disconnected", {});
+  await logEvent(chatId, "live_disconnected", {
+    active_mode_after: "paper",
+  });
+  revalidatePath("/app/broker");
+  return { ok: true };
+}
+
+// ----------------------------------------------------------------------
+// Mode switching — strict mutex between paper and live
+// ----------------------------------------------------------------------
+
+/**
+ * Switch the active broker mode to 'live'. Walks every gate before
+ * flipping. ANY failure leaves the user in their current mode (no
+ * partial state). Returns specific errors so the UI can route the
+ * user to the missing prerequisite.
+ *
+ * Pre-conditions verified server-side (do NOT trust the client):
+ *   1. Elite tier + Live add-on (requireLiveEligible)
+ *   2. live_trading_enabled = true (user opted in via web)
+ *   3. live_acknowledged_at not null AND version current
+ *   4. live broker_connection exists AND is_active
+ *   5. Caller passed an explicit `confirm: true` so accidental
+ *      double-clicks on a state-changing button can't flip mode.
+ */
+export async function switchToLive(opts: {
+  confirm: boolean;
+}): Promise<ActionResult> {
+  if (!opts?.confirm) {
+    return { ok: false, error: "Confirmation required" };
+  }
+  const { chatId } = await requireLiveEligible();
+  const sb = supabaseAdmin();
+
+  const { data: u } = await sb
+    .from("users")
+    .select(
+      "live_trading_enabled, live_acknowledged_at, live_acknowledged_version, active_broker_mode",
+    )
+    .eq("chat_id", chatId)
+    .maybeSingle();
+  if (!u) return { ok: false, error: "user not found" };
+
+  if (u.active_broker_mode === "live") {
+    // Idempotent — already live.
+    return { ok: true };
+  }
+  if (!u.live_trading_enabled) {
+    return {
+      ok: false,
+      error: "Enable Live Trading first (Settings → Live tab).",
+    };
+  }
+  if (
+    !u.live_acknowledged_at ||
+    (u.live_acknowledged_version ?? 0) < LIVE_DISCLAIMER_VERSION
+  ) {
+    return {
+      ok: false,
+      error: "Sign the live-trading disclaimer first.",
+    };
+  }
+  const { data: conn } = await sb
+    .from("broker_connections")
+    .select("id, account_status")
+    .eq("chat_id", chatId)
+    .eq("broker", "alpaca")
+    .eq("mode", "live")
+    .eq("is_active", true)
+    .maybeSingle();
+  if (!conn) {
+    return {
+      ok: false,
+      error: "Connect a live Alpaca account first.",
+    };
+  }
+  // Fail-safe: if Alpaca told us this account is RESTRICTED or
+  // ACCOUNT_CLOSED at connect time, don't let the user route orders
+  // to it. Status reflects whatever was returned by /v2/account when
+  // the connection was saved.
+  const blocked = ["INACTIVE", "ACCOUNT_CLOSED", "ACCOUNT_UPDATED"].includes(
+    (conn.account_status ?? "").toUpperCase(),
+  );
+  if (blocked) {
+    return {
+      ok: false,
+      error: `Live Alpaca account status is "${conn.account_status}" — not eligible for trading.`,
+    };
+  }
+
+  const { error } = await sb
+    .from("users")
+    .update({
+      active_broker_mode: "live",
+      last_mode_switch_at: new Date().toISOString(),
+    })
+    .eq("chat_id", chatId);
+  if (error) return { ok: false, error: error.message };
+
+  await logEvent(chatId, "mode_switched_to_live", {
+    from: u.active_broker_mode,
+  });
+  revalidatePath("/app/broker");
+  return { ok: true };
+}
+
+/**
+ * Switch active broker mode back to 'paper'. Always allowed, no
+ * gates — switching DOWN to safer state should never be friction.
+ * Idempotent (safe to call when already on paper).
+ */
+export async function switchToPaper(): Promise<ActionResult> {
+  const { chatId } = await requireLiveEligible();
+  const sb = supabaseAdmin();
+  const { data: u } = await sb
+    .from("users")
+    .select("active_broker_mode")
+    .eq("chat_id", chatId)
+    .maybeSingle();
+  if (!u) return { ok: false, error: "user not found" };
+  if (u.active_broker_mode === "paper") return { ok: true };
+
+  const { error } = await sb
+    .from("users")
+    .update({
+      active_broker_mode: "paper",
+      last_mode_switch_at: new Date().toISOString(),
+    })
+    .eq("chat_id", chatId);
+  if (error) return { ok: false, error: error.message };
+
+  await logEvent(chatId, "mode_switched_to_paper", { from: "live" });
   revalidatePath("/app/broker");
   return { ok: true };
 }
@@ -307,15 +446,26 @@ export async function setLiveTradingEnabled(
     }
   }
 
+  // Failsafe: if we're disabling live, also switch active mode back
+  // to paper. Otherwise the user could end up with active_broker_mode
+  // = 'live' but live_trading_enabled = false, which the bot would
+  // then refuse to trade on (correct behavior, but confusing). Force
+  // the flag set and active mode set in one transaction.
+  const updates: Record<string, unknown> = { live_trading_enabled: enabled };
+  if (!enabled) {
+    updates.active_broker_mode = "paper";
+    updates.last_mode_switch_at = new Date().toISOString();
+  }
+
   const { error } = await sb
     .from("users")
-    .update({ live_trading_enabled: enabled })
+    .update(updates)
     .eq("chat_id", chatId);
   if (error) return { ok: false, error: error.message };
   await logEvent(
     chatId,
     enabled ? "live_trading_enabled" : "live_trading_disabled",
-    {},
+    !enabled ? { active_mode_forced: "paper" } : {},
   );
   revalidatePath("/app/broker");
   return { ok: true };
@@ -404,16 +554,23 @@ export async function engageLiveKillSwitch(
 ): Promise<ActionResult> {
   const { chatId } = await requireLiveEligible();
   const sb = supabaseAdmin();
-  // Live kill switch flips live_trading_enabled OFF. Re-enabling
-  // requires the user to go through setLiveTradingEnabled again,
-  // which re-checks all gates. No silent re-arm.
+  // Live kill switch flips live_trading_enabled OFF AND switches
+  // active_broker_mode back to paper. Three reasons all rolled up:
+  //   - flag false  → can't re-enable without going through opt-in
+  //   - mode paper  → any in-flight signal evaluation routes to paper
+  //   - audit row   → forensic record of the trip
   const { error } = await sb
     .from("users")
-    .update({ live_trading_enabled: false })
+    .update({
+      live_trading_enabled: false,
+      active_broker_mode: "paper",
+      last_mode_switch_at: new Date().toISOString(),
+    })
     .eq("chat_id", chatId);
   if (error) return { ok: false, error: error.message };
   await logEvent(chatId, "live_kill_switch_engaged", {
     reason: reason?.slice(0, 200) ?? "user-engaged",
+    active_mode_forced: "paper",
   });
   revalidatePath("/app/broker");
   return { ok: true };

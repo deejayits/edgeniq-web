@@ -14,11 +14,15 @@ import { RulesCard, type RuleRow } from "./rules-card";
 import { RiskRailsCard, type RiskRailsRow } from "./risk-rails-card";
 import { KillSwitchCard } from "./kill-switch-card";
 import { AutoTradeMasterToggle } from "./master-toggle";
+import { LiveView, type LiveUserState, type LiveConnection } from "./live-view";
 
 export const dynamic = "force-dynamic";
 
-// Paper-only auto-trading via Alpaca. Elite-tier feature (paper-mode
-// is in Elite; live-mode will be its own tier when it ships).
+// Auto-trading via Alpaca. Two modes coexist as separate broker
+// connections (paper / live) but only ONE is the order-routing
+// target at a time — users.active_broker_mode is the single source
+// of truth. Paper is the default and safe baseline; live requires
+// the Live Trading add-on plus a multi-step opt-in.
 
 type BrokerConnection = {
   chat_id: number;
@@ -46,7 +50,11 @@ type TradeRow = {
   error_message: string | null;
 };
 
-export default async function BrokerPage() {
+export default async function BrokerPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ mode?: string }>;
+}) {
   const session = await auth();
   const user = session?.user as
     | {
@@ -57,20 +65,50 @@ export default async function BrokerPage() {
     | undefined;
   if (!user?.tgUserId) redirect("/login?next=/app/broker");
 
+  const params = await searchParams;
+  // ?mode= controls which TAB is shown (visual). It does NOT change
+  // active_broker_mode (the routing target). Default to whatever the
+  // user's actual active mode is so the URL reflects what's live.
+  const requestedTab =
+    params.mode === "live" || params.mode === "paper" ? params.mode : null;
+
   const supabase = supabaseAdmin();
 
-  // Fetch the user's sub_status server-side (session only carries plan,
-  // not status, so we look it up here for the gate).
-  const { data: userRow } = await supabase
+  // Local row type — Supabase's generated types don't yet include
+  // the live_* columns added by 20260427140000_alpaca_live_mode.sql.
+  // The shape here mirrors the migration. Once codegen runs against
+  // the updated schema, this cast becomes redundant.
+  type UserRowExt = {
+    sub_plan: string | null;
+    sub_status: string | null;
+    addon_live_trading: boolean | null;
+    live_trading_enabled: boolean | null;
+    live_acknowledged_at: string | null;
+    live_acknowledged_version: number | null;
+    live_max_position_usd: number | null;
+    live_max_daily_loss_usd: number | null;
+    live_max_open_positions: number | null;
+    live_confirmation_level: "strict" | "standard" | null;
+    active_broker_mode: "paper" | "live" | null;
+  };
+
+  // Pull the full user row — we need many fields for live-mode gating.
+  const { data: userRowRaw } = await supabase
     .from("users")
-    .select("sub_plan, sub_status")
+    .select(
+      "sub_plan, sub_status, addon_live_trading, " +
+        "live_trading_enabled, live_acknowledged_at, live_acknowledged_version, " +
+        "live_max_position_usd, live_max_daily_loss_usd, live_max_open_positions, " +
+        "live_confirmation_level, active_broker_mode",
+    )
     .eq("chat_id", user.tgUserId)
     .maybeSingle();
+  const userRow = (userRowRaw as unknown) as UserRowExt | null;
 
   const eliteish = isEliteAccess({
     role: user.role,
     subPlan: userRow?.sub_plan ?? user.subPlan,
-    subStatus: userRow?.sub_status,
+    subStatus: userRow?.sub_status ?? undefined,
   });
 
   if (!eliteish) {
@@ -100,7 +138,10 @@ export default async function BrokerPage() {
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
 
-  const [connRes, rulesRes, railsRes, tradesRes] = await Promise.all([
+  const [connsRes, rulesRes, railsRes, tradesRes] = await Promise.all([
+    // Pull BOTH paper and live connections — page renders the right
+    // one based on which tab is active. .maybeSingle() is wrong now
+    // that two rows can match.
     supabase
       .from("broker_connections")
       .select(
@@ -108,8 +149,7 @@ export default async function BrokerPage() {
       )
       .eq("chat_id", user.tgUserId)
       .eq("broker", "alpaca")
-      .eq("is_active", true)
-      .maybeSingle(),
+      .eq("is_active", true),
     supabase
       .from("auto_trade_rules")
       .select("*")
@@ -130,10 +170,43 @@ export default async function BrokerPage() {
       .limit(50),
   ]);
 
-  const conn = connRes.data as BrokerConnection | null;
+  const conns = ((connsRes.data ?? []) as unknown) as BrokerConnection[];
+  const paperConn = conns.find((c) => c.mode === "paper") ?? null;
+  const liveConn = conns.find((c) => c.mode === "live") ?? null;
   const rules = ((rulesRes.data ?? []) as unknown) as RuleRow[];
   const rails = (railsRes.data as unknown) as RiskRailsRow | null;
   const trades = ((tradesRes.data ?? []) as unknown) as TradeRow[];
+
+  // Resolve which tab to show. Priority: explicit ?mode= URL param,
+  // then user's active mode, then paper as the safe default.
+  const activeMode: "paper" | "live" =
+    (userRow?.active_broker_mode as "paper" | "live" | null) ?? "paper";
+  const visibleTab: "paper" | "live" = requestedTab ?? activeMode;
+
+  // Live state bundle — passed down to LiveView for the state machine
+  // resolution. Admin role bypass for the addon entitlement matches
+  // the bot-side has_elite_access pattern.
+  const isAdmin = user.role === "admin" || user.role === "primary_admin";
+  const liveUserState: LiveUserState = {
+    hasAddon: !!userRow?.addon_live_trading || isAdmin,
+    liveTradingEnabled: !!userRow?.live_trading_enabled,
+    liveAcknowledgedAt: userRow?.live_acknowledged_at ?? null,
+    liveAcknowledgedVersion: userRow?.live_acknowledged_version ?? 0,
+    activeBrokerMode: activeMode,
+    liveMaxPositionUsd: Number(userRow?.live_max_position_usd ?? 100),
+    liveMaxDailyLossUsd: Number(userRow?.live_max_daily_loss_usd ?? 200),
+    liveMaxOpenPositions: Number(userRow?.live_max_open_positions ?? 2),
+    liveConfirmationLevel:
+      (userRow?.live_confirmation_level as "strict" | "standard") ?? "strict",
+  };
+  const liveConnSummary: LiveConnection = liveConn
+    ? {
+        account_id: liveConn.account_id,
+        account_status: liveConn.account_status,
+        buying_power_at_connect: liveConn.buying_power_at_connect,
+        connected_at: liveConn.connected_at,
+      }
+    : null;
 
   const stockRule =
     rules.find((r) => r.signal_type === "stocks") ?? defaultRule("stocks");
@@ -161,17 +234,17 @@ export default async function BrokerPage() {
             Auto-trading
           </h1>
           <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-3xl">
-            Connect your Alpaca paper account and let EdgeNiq place
-            trades on qualifying signals. Paper mode only for now — no
-            real money at risk.
+            Connect your Alpaca account and let EdgeNiq place trades on
+            qualifying signals. Paper is the default and free of risk;
+            Live mode is opt-in only.
           </p>
         </div>
         <div className="flex items-stretch gap-3">
           <HeaderStat
-            label="Status"
-            value={conn ? "Connected" : "Off"}
-            sub={conn ? "Alpaca · paper" : "not connected"}
-            tone={conn ? "emerald" : "muted"}
+            label="Active mode"
+            value={activeMode === "live" ? "LIVE" : "Paper"}
+            sub={activeMode === "live" ? "real money" : "no risk"}
+            tone={activeMode === "live" ? "rose" : "primary"}
           />
           <HeaderStat
             label="Active rules"
@@ -194,7 +267,16 @@ export default async function BrokerPage() {
         </div>
       </header>
 
-      {!conn ? (
+      {/* Tabs — visual selector only. Picking a tab does NOT change
+          active_broker_mode. The mode-flip happens via explicit
+          confirm in the Live tab. Keeping visual + routing state
+          decoupled is intentional: a stray click on a tab can never
+          put real money at risk. */}
+      <ModeTabs activeMode={activeMode} visibleTab={visibleTab} />
+
+      {visibleTab === "live" ? (
+        <LiveView user={liveUserState} liveConn={liveConnSummary} />
+      ) : !paperConn ? (
         <Card className="p-6 border-border/60 bg-card/40">
           <h2 className="font-medium mb-4">Connect Alpaca</h2>
           <ConnectForm />
@@ -202,10 +284,10 @@ export default async function BrokerPage() {
       ) : (
         <>
           <ConnectedHeader
-            accountId={conn.account_id}
-            accountStatus={conn.account_status}
-            buyingPower={conn.buying_power_at_connect}
-            connectedAt={conn.connected_at}
+            accountId={paperConn.account_id}
+            accountStatus={paperConn.account_status}
+            buyingPower={paperConn.buying_power_at_connect}
+            connectedAt={paperConn.connected_at}
           />
 
           <Alert className="px-5 py-4 border-border/60 bg-muted/20">
@@ -286,6 +368,61 @@ export default async function BrokerPage() {
           <TradesTable trades={trades} />
         </>
       )}
+    </div>
+  );
+}
+
+// Mode tabs at the top of /app/broker. Visual selector only — does
+// NOT call any server action. The active dot in the tab label
+// reflects which mode is currently the order-routing target (read
+// from users.active_broker_mode), which may differ from which tab
+// the user is currently viewing.
+function ModeTabs({
+  activeMode,
+  visibleTab,
+}: {
+  activeMode: "paper" | "live";
+  visibleTab: "paper" | "live";
+}) {
+  const tabs: { mode: "paper" | "live"; label: string }[] = [
+    { mode: "paper", label: "Paper" },
+    { mode: "live", label: "Live" },
+  ];
+  return (
+    <div className="flex items-center gap-1 border-b border-border/40 -mb-4">
+      {tabs.map((t) => {
+        const isVisible = visibleTab === t.mode;
+        const isActive = activeMode === t.mode;
+        const isLive = t.mode === "live";
+        return (
+          <Link
+            key={t.mode}
+            href={`/app/broker?mode=${t.mode}`}
+            scroll={false}
+            className={`relative px-4 py-2.5 text-sm font-medium transition border-b-2 -mb-px flex items-center gap-2 ${
+              isVisible
+                ? isLive
+                  ? "border-rose-400 text-rose-200"
+                  : "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {t.label}
+            {/* Pulse dot indicates which mode is currently routing
+                orders. Visible across both tabs so users on the
+                paper tab can still see "live is the active mode". */}
+            {isActive && (
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${
+                  isLive
+                    ? "bg-rose-400 shadow-[0_0_8px_oklch(0.7_0.18_15)]"
+                    : "bg-emerald-400 shadow-[0_0_8px_oklch(0.69_0.16_165)]"
+                }`}
+              />
+            )}
+          </Link>
+        );
+      })}
     </div>
   );
 }
