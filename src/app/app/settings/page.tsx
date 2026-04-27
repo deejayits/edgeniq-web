@@ -4,14 +4,12 @@ import { Badge } from "@/components/ui/badge";
 import { HeaderStat } from "@/components/header-stat";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import {
-  Activity,
   Bell,
   BellRing,
   CalendarClock,
   Eye,
   Shield,
   Target,
-  UserCircle,
 } from "lucide-react";
 import { PushSubscribeButton } from "@/components/push-subscribe-button";
 import {
@@ -169,33 +167,35 @@ export default async function SettingsPage() {
         </div>
       </SettingsSection>
 
-      {/* Watchlist + Notifications side-by-side. Watchlist gets the
-          wider 2/3 column because users routinely run 20+ tickers and
-          each chip carries its own conviction score; notifications is
-          a short fixed list and reads well in 1/3. */}
-      <div className="grid lg:grid-cols-3 gap-6 items-start">
-        <SettingsSection
-          title="Watchlist"
-          eyebrow="Tickers you track"
-          className="lg:col-span-2"
-        >
-          <div className="px-5 py-5 space-y-4">
-            <p className="text-xs text-muted-foreground leading-relaxed max-w-3xl">
-              Conviction score blends trend, 52-week position, sector
-              relative strength, insider activity, and volatility regime.
-              Refreshed every 15 min during market hours.
-            </p>
-            <WatchlistEditor
-              initial={watchlist.map((t) => t.toUpperCase())}
-              scoreByTicker={convictionByTicker}
-            />
-          </div>
-        </SettingsSection>
+      {/* Watchlist — full width. Each conviction-scored chip is wider
+          than a normal badge (ticker + score + delete X) so users with
+          20-50 tickers get the row real estate to scan them quickly. */}
+      <SettingsSection
+        title="Watchlist"
+        eyebrow="Tickers you track"
+      >
+        <div className="px-5 py-5 space-y-4">
+          <p className="text-xs text-muted-foreground leading-relaxed max-w-4xl">
+            Conviction score blends trend, 52-week position, sector
+            relative strength, insider activity, and volatility regime.
+            Refreshed every 15 min during market hours.
+          </p>
+          <WatchlistEditor
+            initial={watchlist.map((t) => t.toUpperCase())}
+            scoreByTicker={convictionByTicker}
+          />
+        </div>
+      </SettingsSection>
 
-        <SettingsSection
-          title="Notifications"
-          eyebrow="What reaches your phone"
-        >
+      {/* Notifications — full width with rows that don't crush the
+          description text. Alert types + Browser alerts side-by-side
+          on desktop since both are short toggles; Session alerts is
+          its own row because the chip list expands wide. */}
+      <SettingsSection
+        title="Notifications"
+        eyebrow="What reaches your phone"
+      >
+        <div className="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border/40">
           <SettingRow
             icon={Bell}
             tone="amber"
@@ -218,20 +218,21 @@ export default async function SettingsPage() {
             icon={BellRing}
             tone="primary"
             label="Browser alerts"
-            description="Get push notifications on this device when signals fire — same payload as Telegram. Per-device, opt-in."
+            description="Push notifications on this device when signals fire — same payload as Telegram. Opt-in, per device."
             rightSlot={<PushSubscribeButton />}
           />
-          <SettingRow
-            icon={CalendarClock}
-            tone="rose"
-            label="Session alerts"
-            command="—"
-            description="Pre-market, prime-time, EOD, and weekend recap"
-            rightSlot={
-              enabledSessions.length === 0 ? (
-                <span className="text-xs text-muted-foreground italic">
-                  none enabled
-                </span>
+        </div>
+        <SettingRow
+          icon={CalendarClock}
+          tone="rose"
+          label="Session alerts"
+          command="—"
+          description="Pre-market, prime-time, EOD, and weekend recap"
+          rightSlot={
+            enabledSessions.length === 0 ? (
+              <span className="text-xs text-muted-foreground italic">
+                none enabled
+              </span>
               ) : (
                 <Badge
                   variant="outline"
@@ -244,68 +245,26 @@ export default async function SettingsPage() {
               )
             }
           />
-          {enabledSessions.length > 0 && (
-            <div className="px-5 pb-4 flex flex-wrap gap-1.5">
-              {enabledSessions.map((s) => (
-                <Badge
-                  key={s}
-                  variant="outline"
-                  className="text-[10px] py-0 h-5 text-muted-foreground capitalize"
-                >
-                  {s.replace(/_/g, " ")}
-                </Badge>
-              ))}
-            </div>
-          )}
-        </SettingsSection>
-      </div>
-
-      {/* Role row — only surfaced for admins since regular users are
-          always "user". Avoids a useless "Role: user" tile for the
-          99% case while keeping admin/primary_admin visible to the
-          people who care. Plan + Status moved to the header tiles. */}
-      {me.role && me.role !== "user" && (
-        <SettingsSection title="Account" eyebrow="Internal">
-          <div className="px-5 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-md flex items-center justify-center border bg-violet-400/10 border-violet-400/30">
-                <Shield className="h-4 w-4 text-violet-300" />
-              </div>
-              <div className="text-sm font-medium">Role</div>
-            </div>
-            <ValuePill>{me.role}</ValuePill>
+        {enabledSessions.length > 0 && (
+          <div className="px-5 pb-4 flex flex-wrap gap-1.5">
+            {enabledSessions.map((s) => (
+              <Badge
+                key={s}
+                variant="outline"
+                className="text-[10px] py-0 h-5 text-muted-foreground capitalize"
+              >
+                {s.replace(/_/g, " ")}
+              </Badge>
+            ))}
           </div>
-        </SettingsSection>
-      )}
-    </div>
-  );
-}
+        )}
+      </SettingsSection>
 
-function AccountStat({
-  icon: Icon,
-  tone,
-  label,
-  value,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  tone: keyof typeof TONE_CLASSES;
-  label: string;
-  value: React.ReactNode;
-}) {
-  const t = TONE_CLASSES[tone];
-  return (
-    <div className="px-5 py-5 flex items-center gap-4">
-      <div
-        className={`h-9 w-9 rounded-md flex items-center justify-center shrink-0 border ${t.bg} ${t.border}`}
-      >
-        <Icon className={`h-4 w-4 ${t.text}`} />
-      </div>
-      <div className="flex-1 min-w-0 flex items-center justify-between gap-3">
-        <div className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
-          {label}
-        </div>
-        <div>{value}</div>
-      </div>
+      {/* Plan + Status are already in the header HeaderStat tiles.
+          Role for non-admins is always "user" (no signal); for admins,
+          the "EdgeNiqAdmin" username in the top-right user menu
+          already conveys it. So the bottom Account section is gone —
+          everything it surfaced is already visible above. */}
     </div>
   );
 }
@@ -439,24 +398,3 @@ function ValuePill({ children }: { children: React.ReactNode }) {
   );
 }
 
-function planClass(plan: string): string {
-  switch (plan.toLowerCase()) {
-    case "elite":
-      return "bg-violet-400/15 text-violet-300 border border-violet-400/30 capitalize";
-    case "pro":
-      return "bg-emerald-400/15 text-emerald-300 border border-emerald-400/30 capitalize";
-    default:
-      return "bg-muted/40 text-muted-foreground border border-border/60 capitalize";
-  }
-}
-
-function statusClass(status: string): string {
-  const s = status.toLowerCase();
-  if (s === "active" || s === "trial") {
-    return "bg-emerald-400/15 text-emerald-300 border border-emerald-400/30 capitalize";
-  }
-  if (s === "expired" || s === "suspended") {
-    return "bg-rose-400/15 text-rose-300 border border-rose-400/30 capitalize";
-  }
-  return "bg-muted/40 text-muted-foreground border border-border/60 capitalize";
-}

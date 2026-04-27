@@ -61,12 +61,12 @@ export function LiveModeSwitcher({
     return (
       <Card className="p-5 border-border/60 bg-card/50">
         <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div>
+          <div className="flex-1 min-w-0">
             <h2 className="text-sm font-medium flex items-center gap-2">
               <Shield className="h-3.5 w-3.5 text-emerald-300" />
               Switch back to Paper
             </h2>
-            <p className="text-xs text-muted-foreground mt-1 max-w-md">
+            <p className="text-xs text-muted-foreground mt-1">
               Stops all live order routing immediately. Paper auto-trade
               settings are preserved.
             </p>
@@ -95,9 +95,9 @@ export function LiveModeSwitcher({
     <Card className="p-6 border-rose-500/40 bg-rose-500/5">
       <div className="flex items-start gap-3 mb-4">
         <AlertTriangle className="h-5 w-5 text-rose-300 shrink-0 mt-0.5" />
-        <div>
+        <div className="flex-1 min-w-0">
           <h2 className="text-lg font-semibold">Ready to go live</h2>
-          <p className="text-sm text-muted-foreground mt-1 leading-relaxed max-w-2xl">
+          <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
             Disclaimer signed. Live Alpaca account connected. Caps set
             ({confirmationLevel} confirmation). Switching activates
             real-money order routing for every signal that fires from

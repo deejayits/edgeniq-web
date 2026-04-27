@@ -293,12 +293,6 @@ export async function switchToLive(opts: {
     // Idempotent — already live.
     return { ok: true };
   }
-  if (!u.live_trading_enabled) {
-    return {
-      ok: false,
-      error: "Enable Live Trading first (Settings → Live tab).",
-    };
-  }
   if (
     !u.live_acknowledged_at ||
     (u.live_acknowledged_version ?? 0) < LIVE_DISCLAIMER_VERSION
@@ -336,10 +330,16 @@ export async function switchToLive(opts: {
     };
   }
 
+  // Flip both flags in one update. live_trading_enabled becomes
+  // 'true' permanently after first switch — used as the "ever opted
+  // in" audit signal, separate from the active mode flag. Switching
+  // back to paper does NOT clear it; only kill switch / explicit
+  // disable does.
   const { error } = await sb
     .from("users")
     .update({
       active_broker_mode: "live",
+      live_trading_enabled: true,
       last_mode_switch_at: new Date().toISOString(),
     })
     .eq("chat_id", chatId);
