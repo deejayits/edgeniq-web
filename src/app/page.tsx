@@ -594,9 +594,9 @@ function Pricing() {
       stripePlan: "pro" as "pro" | "elite" | null,
       highlights: [
         "Stock signals — only for tickers on your watchlist",
-        "Up to 5 tickers on your watchlist",
+        "Watchlist up to 50 tickers",
         "Conviction score (0–100) per watchlist ticker",
-        "4 risk profiles + 6 strategy templates",
+        "3 risk profiles (Conservative · Moderate · Aggressive) + 6 strategy templates",
         "Volatility-regime-aware sizing on every alert",
         "Live position monitor + portfolio advisor",
         "Edit preferences from web or Telegram — your call",
@@ -618,7 +618,7 @@ function Pricing() {
       stripePlan: "elite" as "pro" | "elite" | null,
       highlights: [
         "Everything in Pro, plus:",
-        "Unlimited watchlist with conviction scoring on every ticker",
+        "Watchlist up to 50 tickers + whole-market discovery beyond",
         "Whole-market discovery — not just your list",
         "Liquidity-floor + relative-strength filtering",
         "Options alerts (unusual volume, block prints, OTM spikes)",
@@ -791,7 +791,7 @@ function FeatureMatrix() {
   }> = [
     // --- Signal discovery ---------------------------------------
     { label: "Stock signals", free: "Whole market", pro: "Watchlist only", elite: "Whole market (discovery)" },
-    { label: "Watchlist size", free: "5 tickers", pro: "5 tickers", elite: "Unlimited" },
+    { label: "Watchlist size", free: "50 tickers", pro: "50 tickers", elite: "50 tickers" },
     { label: "Conviction score (0–100) per watchlist ticker", free: true, pro: true, elite: true },
     { label: "Relative strength vs SPY factor", free: true, pro: true, elite: true },
     { label: "Liquidity filter ($5M+ daily $-volume)", free: true, pro: true, elite: true },
@@ -815,7 +815,7 @@ function FeatureMatrix() {
     { label: "Volatility-regime sizing (auto halves in elevated)", free: true, pro: true, elite: true },
     { label: "Kill switch + risk rails", free: true, pro: false, elite: true },
     // --- Personalization -----------------------------------------
-    { label: "Risk profiles (Safe / Balanced / Aggressive / Custom)", free: "All 4", pro: "All 4", elite: "All 4" },
+    { label: "Risk profiles (Conservative · Moderate · Aggressive)", free: "All 3", pro: "All 3", elite: "All 3" },
     { label: "Strategy templates (momentum, mean-reversion, +4 more)", free: "All 6", pro: "All 6", elite: "All 6" },
     { label: "Per-user target ladders (YOUR entry, YOUR targets)", free: true, pro: true, elite: true },
     // --- Analytics + dashboards ----------------------------------
