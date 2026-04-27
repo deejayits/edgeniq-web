@@ -15,6 +15,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { ChevronDown, Check, Plus, X, Loader2 } from "lucide-react";
 import { ConvictionBadge } from "@/components/conviction-badge";
+import { Slider } from "@/components/ui/slider";
 import {
   updateRiskProfile,
   updateStrategy,
@@ -132,47 +133,89 @@ export function RiskProfileEditor({ value }: { value: string }) {
   const [optimistic, setOptimistic] = useState<string>(value);
   const [error, setError] = useState<string | null>(null);
   useAutoClearError(error, setError);
-  const current = RISK_OPTIONS.find((o) => o.value === optimistic) ?? RISK_OPTIONS[1];
+
+  // Slider position is index into RISK_OPTIONS. Snap-only — slider
+  // visually communicates "spectrum" but the underlying model is
+  // exactly three named presets (Conservative / Moderate / Aggressive)
+  // because backtest stratification, signal caps, and target ladders
+  // are all keyed on preset name. A continuous risk axis would break
+  // every one of those — keeping it snap-only preserves the discrete
+  // contract while honoring the slider metaphor.
+  const idx = Math.max(
+    0,
+    RISK_OPTIONS.findIndex((o) => o.value === optimistic),
+  );
+  const current = RISK_OPTIONS[idx] ?? RISK_OPTIONS[1];
+
+  const handleChange = (next: string) => {
+    if (next === optimistic) return;
+    const prev = optimistic;
+    setOptimistic(next);
+    setError(null);
+    startTransition(async () => {
+      const res = await updateRiskProfile(next);
+      if (!res.ok) {
+        setOptimistic(prev);
+        setError(res.error);
+      }
+    });
+  };
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2">
-        <div className="relative flex-1">
-          <select
-            value={optimistic}
-            disabled={pending}
-            onChange={(e) => {
-              const next = e.target.value;
-              const prev = optimistic;
-              setOptimistic(next);
-              setError(null);
-              startTransition(async () => {
-                const res = await updateRiskProfile(next);
-                if (!res.ok) {
-                  setOptimistic(prev);
-                  setError(res.error);
-                }
-              });
-            }}
-            className={`appearance-none w-full pl-3 pr-7 py-1.5 rounded-md bg-card border border-border/60 text-sm font-medium ${current.tone} hover:border-border focus:outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer disabled:opacity-50`}
-          >
-            {RISK_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value} className="text-foreground">
+    <div className="space-y-3">
+      {/* Three-stop snap slider. Aesthetic upgrade from the dropdown
+          — same backend behavior. The Slider component is from shadcn
+          (Radix Slider primitive). step=1, min=0, max=2 gives
+          exactly three positions, which snap to the preset names. */}
+      <div className="relative pt-1">
+        <Slider
+          value={[idx]}
+          min={0}
+          max={RISK_OPTIONS.length - 1}
+          step={1}
+          disabled={pending}
+          onValueChange={(v) => {
+            const nextIdx = v[0] ?? 1;
+            const next = RISK_OPTIONS[nextIdx]?.value;
+            if (next) handleChange(next);
+          }}
+          className="cursor-pointer"
+          aria-label="Risk profile"
+        />
+        {/* Tick labels under each stop. Width matches the slider's
+            full track so the labels line up with the thumb positions
+            at 0% / 50% / 100%. */}
+        <div className="mt-2 flex justify-between text-[11px] font-medium">
+          {RISK_OPTIONS.map((o, i) => {
+            const active = i === idx;
+            return (
+              <button
+                key={o.value}
+                type="button"
+                onClick={() => handleChange(o.value)}
+                disabled={pending}
+                className={`transition-colors ${
+                  active
+                    ? `${o.tone}`
+                    : "text-muted-foreground/60 hover:text-muted-foreground"
+                } disabled:opacity-50`}
+              >
                 {o.label}
-              </option>
-            ))}
-          </select>
-          {pending ? (
-            <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-muted-foreground pointer-events-none" />
-          ) : (
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-          )}
+              </button>
+            );
+          })}
         </div>
       </div>
+      <div className="flex items-start gap-2">
+        {pending && (
+          <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground mt-0.5 shrink-0" />
+        )}
+        <p className="text-[11px] text-muted-foreground leading-snug">
+          <span className={`font-medium ${current.tone}`}>{current.label}.</span>{" "}
+          {current.help}
+        </p>
+      </div>
       <ErrorLine msg={error} />
-      <p className="text-[11px] text-muted-foreground leading-snug">
-        {current.help}
-      </p>
     </div>
   );
 }
