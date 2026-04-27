@@ -128,42 +128,41 @@ export default async function SettingsPage() {
         </div>
       </header>
 
-      {/* Trading row 1 — three compact preferences side-by-side on desktop
-          (risk / strategy / min price). Each is a small enum control,
-          so a 3-up grid keeps them visible without scrolling and frees
-          up real estate below for the wider watchlist + notifications. */}
+      {/* Trading prefs — three vertical cards in a 3-up grid. Earlier
+          revisions tried to put the editor on the right of the label
+          via SettingRow, but the per-option help text wraps to multiple
+          lines and there isn't horizontal room for both label + 20rem
+          editor + 20rem help in a 1/3-width cell. Stacking vertically
+          (label/eyebrow on top, editor + per-option help underneath)
+          uses the cell's full width and keeps everything readable. */}
       <SettingsSection title="Trading" eyebrow="How EdgeNiq picks for you">
         <div className="grid md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border/40">
-          <SettingRow
+          <TradingPrefCell
             icon={Shield}
             tone="emerald"
             label="Risk profile"
-            description="Sizing aggressiveness and signal selectivity"
-            rightSlot={
-              <RiskProfileEditor value={me.risk_profile ?? "moderate"} />
-            }
-            stackOnMobile
-          />
-          <SettingRow
+            eyebrow="Sizing + selectivity"
+          >
+            <RiskProfileEditor value={me.risk_profile ?? "moderate"} />
+          </TradingPrefCell>
+          <TradingPrefCell
             icon={Target}
             tone="violet"
             label="Strategy"
-            description="Setup-type filter for every signal"
-            rightSlot={<StrategyEditor value={me.strategy ?? "balanced"} />}
-            stackOnMobile
-          />
-          <SettingRow
+            eyebrow="Setup-type filter"
+          >
+            <StrategyEditor value={me.strategy ?? "balanced"} />
+          </TradingPrefCell>
+          <TradingPrefCell
             icon={Shield}
             tone="amber"
             label="Min share price"
-            description="Penny-stock policy"
-            rightSlot={
-              <MinPriceEditor
-                value={typeof me.min_price === "number" ? me.min_price : 5}
-              />
-            }
-            stackOnMobile
-          />
+            eyebrow="Penny-stock policy"
+          >
+            <MinPriceEditor
+              value={typeof me.min_price === "number" ? me.min_price : 5}
+            />
+          </TradingPrefCell>
         </div>
       </SettingsSection>
 
@@ -395,6 +394,44 @@ function ValuePill({ children }: { children: React.ReactNode }) {
     <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-muted/40 border border-border/60 font-mono text-xs capitalize">
       {children}
     </span>
+  );
+}
+
+// Vertical cell for the Trading 3-up grid. Stacks label+eyebrow on
+// top of the editor so per-option help text below the editor has the
+// full cell width to wrap into. Used instead of SettingRow because
+// SettingRow's left/right split doesn't work in narrow cells.
+function TradingPrefCell({
+  icon: Icon,
+  tone,
+  label,
+  eyebrow,
+  children,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  tone: keyof typeof TONE_CLASSES;
+  label: string;
+  eyebrow: string;
+  children: React.ReactNode;
+}) {
+  const t = TONE_CLASSES[tone];
+  return (
+    <div className="px-5 py-5 space-y-4">
+      <div className="flex items-start gap-3">
+        <div
+          className={`h-9 w-9 rounded-md flex items-center justify-center shrink-0 border ${t.bg} ${t.border}`}
+        >
+          <Icon className={`h-4 w-4 ${t.text}`} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-medium">{label}</div>
+          <div className="text-[11px] text-muted-foreground mt-0.5 uppercase tracking-wider">
+            {eyebrow}
+          </div>
+        </div>
+      </div>
+      <div>{children}</div>
+    </div>
   );
 }
 

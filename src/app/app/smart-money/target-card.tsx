@@ -118,12 +118,19 @@ export function TargetCard({ target }: { target: TargetWithStats }) {
                     </span>
                   )}
                 </>
-              ) : target.target_type === "politician" ||
-                target.target_type === "insider" ||
-                target.target_type === "activist" ? (
-                <span className="italic">
-                  Data ingestion coming soon
-                </span>
+              ) : target.target_type === "politician" ? (
+                // Politician data ingestion is currently paused — STOCK
+                // Act feeds were removed pending a more reliable source.
+                // Be honest about it instead of "coming soon" which
+                // implies imminent.
+                <span className="italic">Politician tracking paused</span>
+              ) : target.target_type === "insider" ? (
+                // Form 4 ingestion IS live; an empty row here means the
+                // insider had no Form 4 buys in 90d, not that we don't
+                // track them.
+                <span className="italic">No Form 4 buys in last 90d</span>
+              ) : target.target_type === "activist" ? (
+                <span className="italic">No 13D/13G filings in 90d</span>
               ) : (
                 <span className="italic">Pending next SEC cron</span>
               )}

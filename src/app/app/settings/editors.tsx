@@ -135,10 +135,9 @@ export function RiskProfileEditor({ value }: { value: string }) {
   const current = RISK_OPTIONS.find((o) => o.value === optimistic) ?? RISK_OPTIONS[1];
 
   return (
-    <div className="flex flex-col items-end gap-1.5 max-w-xs">
+    <div className="space-y-2">
       <div className="flex items-center gap-2">
-        <ErrorLine msg={error} />
-        <div className="relative">
+        <div className="relative flex-1">
           <select
             value={optimistic}
             disabled={pending}
@@ -155,7 +154,7 @@ export function RiskProfileEditor({ value }: { value: string }) {
                 }
               });
             }}
-            className={`appearance-none pl-3 pr-7 py-1.5 rounded-md bg-card border border-border/60 text-sm font-medium ${current.tone} hover:border-border focus:outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer disabled:opacity-50`}
+            className={`appearance-none w-full pl-3 pr-7 py-1.5 rounded-md bg-card border border-border/60 text-sm font-medium ${current.tone} hover:border-border focus:outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer disabled:opacity-50`}
           >
             {RISK_OPTIONS.map((o) => (
               <option key={o.value} value={o.value} className="text-foreground">
@@ -170,7 +169,8 @@ export function RiskProfileEditor({ value }: { value: string }) {
           )}
         </div>
       </div>
-      <p className="text-[11px] text-muted-foreground leading-snug text-right">
+      <ErrorLine msg={error} />
+      <p className="text-[11px] text-muted-foreground leading-snug">
         {current.help}
       </p>
     </div>
@@ -186,42 +186,40 @@ export function StrategyEditor({ value }: { value: string }) {
     STRATEGY_OPTIONS.find((o) => o.value === optimistic) ?? STRATEGY_OPTIONS[0];
 
   return (
-    <div className="flex flex-col items-end gap-1.5 max-w-xs">
-      <div className="flex items-center gap-2">
-        <ErrorLine msg={error} />
-        <div className="relative">
-          <select
-            value={optimistic}
-            disabled={pending}
-            onChange={(e) => {
-              const next = e.target.value;
-              const prev = optimistic;
-              setOptimistic(next);
-              setError(null);
-              startTransition(async () => {
-                const res = await updateStrategy(next);
-                if (!res.ok) {
-                  setOptimistic(prev);
-                  setError(res.error);
-                }
-              });
-            }}
-            className="appearance-none pl-3 pr-7 py-1.5 rounded-md bg-card border border-border/60 text-sm font-medium hover:border-border focus:outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer disabled:opacity-50"
-          >
-            {STRATEGY_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value} className="text-foreground">
-                {o.label}
-              </option>
-            ))}
-          </select>
-          {pending ? (
-            <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-muted-foreground pointer-events-none" />
-          ) : (
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-          )}
-        </div>
+    <div className="space-y-2">
+      <div className="relative">
+        <select
+          value={optimistic}
+          disabled={pending}
+          onChange={(e) => {
+            const next = e.target.value;
+            const prev = optimistic;
+            setOptimistic(next);
+            setError(null);
+            startTransition(async () => {
+              const res = await updateStrategy(next);
+              if (!res.ok) {
+                setOptimistic(prev);
+                setError(res.error);
+              }
+            });
+          }}
+          className="appearance-none w-full pl-3 pr-7 py-1.5 rounded-md bg-card border border-border/60 text-sm font-medium hover:border-border focus:outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer disabled:opacity-50"
+        >
+          {STRATEGY_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value} className="text-foreground">
+              {o.label}
+            </option>
+          ))}
+        </select>
+        {pending ? (
+          <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-muted-foreground pointer-events-none" />
+        ) : (
+          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+        )}
       </div>
-      <p className="text-[11px] text-muted-foreground leading-snug text-right">
+      <ErrorLine msg={error} />
+      <p className="text-[11px] text-muted-foreground leading-snug">
         {current.help}
       </p>
     </div>
@@ -237,9 +235,8 @@ export function MinPriceEditor({ value }: { value: number }) {
     PRICE_TIERS.find((t) => t.value === optimistic) ?? PRICE_TIERS[2];
 
   return (
-    <div className="flex flex-col items-end gap-1.5 max-w-xs">
-      <ErrorLine msg={error} />
-      <div className="inline-flex rounded-md border border-border/60 bg-card overflow-hidden">
+    <div className="space-y-2">
+      <div className="inline-flex w-full rounded-md border border-border/60 bg-card overflow-hidden">
         {PRICE_TIERS.map((t) => {
           const active = optimistic === t.value;
           return (
@@ -261,7 +258,7 @@ export function MinPriceEditor({ value }: { value: number }) {
                 });
               }}
               title={t.sub}
-              className={`px-3 py-1.5 text-sm font-mono border-r border-border/40 last:border-0 transition disabled:opacity-50 ${
+              className={`flex-1 px-3 py-1.5 text-sm font-mono border-r border-border/40 last:border-0 transition disabled:opacity-50 ${
                 active
                   ? "bg-primary/15 text-primary"
                   : "text-muted-foreground hover:bg-muted/30 hover:text-foreground"
@@ -275,7 +272,8 @@ export function MinPriceEditor({ value }: { value: number }) {
           );
         })}
       </div>
-      <p className="text-[11px] text-muted-foreground leading-snug text-right">
+      <ErrorLine msg={error} />
+      <p className="text-[11px] text-muted-foreground leading-snug">
         {current.help}
       </p>
     </div>
