@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { supabaseAdmin } from "@/lib/supabase/server";
+import { formatSymbol, formatSymbolLong } from "@/lib/options-format";
 import {
   Activity,
   ArrowDownRight,
@@ -271,7 +272,7 @@ export default async function HistoryPage() {
           }
           hint={
             bestTrade
-              ? `${bestTrade.ticker} · ${worstTrade?.ticker ?? "—"}`
+              ? `${formatSymbol(bestTrade.ticker)} · ${worstTrade?.ticker ? formatSymbol(worstTrade.ticker) : "—"}`
               : "Top + bottom outliers"
           }
         />
@@ -314,8 +315,11 @@ export default async function HistoryPage() {
                               <ArrowDownRight className="h-3.5 w-3.5" />
                             )}
                           </div>
-                          <span className="font-semibold tabular-nums">
-                            {r.ticker}
+                          <span
+                            className="font-semibold tabular-nums"
+                            title={formatSymbolLong(r.ticker)}
+                          >
+                            {formatSymbol(r.ticker)}
                           </span>
                         </div>
                       </TableCell>

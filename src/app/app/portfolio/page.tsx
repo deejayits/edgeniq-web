@@ -827,8 +827,16 @@ export default async function PortfolioPage() {
                         key={`${p.mode}:${p.symbol}`}
                         className="border-b border-border/40 last:border-0"
                       >
-                        <td className="px-5 py-2.5 text-xs">
-                          <div className="font-medium">{p.symbol}</div>
+                        <td
+                          className="px-5 py-2.5 text-xs"
+                          title={formatSymbolLong(p.symbol)}
+                        >
+                          <div className="font-medium">
+                            {formatSymbol(p.symbol)}
+                          </div>
+                          <div className="font-mono text-[10px] text-muted-foreground/70">
+                            {p.symbol}
+                          </div>
                         </td>
                         <td className="px-4 py-2.5 text-xs uppercase text-muted-foreground">
                           {p.side}

@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sparkline } from "@/components/sparkline";
 import { ConvictionBadge } from "@/components/conviction-badge";
 import { supabaseAdmin } from "@/lib/supabase/server";
+import { formatSymbol, formatSymbolLong } from "@/lib/options-format";
 import {
   Activity,
   ArrowDownRight,
@@ -447,8 +448,11 @@ function RecentActivity({
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline gap-2">
-                    <span className="font-medium tabular-nums">
-                      {s.ticker}
+                    <span
+                      className="font-medium tabular-nums truncate"
+                      title={formatSymbolLong(s.ticker)}
+                    >
+                      {formatSymbol(s.ticker)}
                     </span>
                     <span className="text-xs text-muted-foreground truncate">
                       {s.typeLabel} · {s.reason}
