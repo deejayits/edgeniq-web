@@ -149,7 +149,11 @@ export default async function BacktestPage({
           (TP1/TP2/stop or manual exit), not on a fixed holding
           period — so &ldquo;avg gain&rdquo; reflects what a user who
           took every signal would&rsquo;ve realized on average, not a
-          buy-and-hold backtest.
+          buy-and-hold backtest. Cells with{" "}
+          <span className="text-amber-300">n &lt; 30</span> are flagged
+          as preliminary — small samples produce noisy hit-rate numbers
+          (a single early winner reads as 100%) and shouldn&rsquo;t be
+          treated as a track record yet.
         </AlertDescription>
       </Alert>
 
@@ -174,6 +178,14 @@ export default async function BacktestPage({
   );
 }
 
+// Below this N, numbers are presented as "preliminary" — a tiny
+// sample produces noisy percentages (1/1 = 100% is technically true
+// but practically meaningless) and showing them in normal emphasis
+// is the kind of false-confidence signal the rest of EdgeNiq tries
+// to avoid. 30 is a common rule-of-thumb minimum for treating a
+// rate as a stable estimate.
+const MIN_RELIABLE_N = 30;
+
 function SignalTypeCard({
   signalType,
   rows,
@@ -185,6 +197,7 @@ function SignalTypeCard({
   const byGrade = rows
     .filter((r) => r.grade !== "all")
     .sort((a, b) => a.grade.localeCompare(b.grade));
+  const isPreliminary = all !== undefined && all.n_signals < MIN_RELIABLE_N;
 
   return (
     <Card className="p-0 border-border/60 bg-card/40 overflow-hidden">
@@ -193,14 +206,24 @@ function SignalTypeCard({
           <h2 className="text-sm font-medium flex items-center gap-2">
             <TrendingUp className="h-3.5 w-3.5 text-emerald-300" />
             {SIGNAL_TYPE_LABEL[signalType] ?? signalType}
+            {isPreliminary && (
+              <Badge
+                variant="outline"
+                className="border-amber-400/40 bg-amber-400/10 text-amber-300 text-[10px] py-0 h-5"
+              >
+                Preliminary · n={all?.n_signals ?? 0}
+              </Badge>
+            )}
           </h2>
           {all && (
             <p className="text-xs text-muted-foreground mt-1">
               {all.n_signals} signals · {all.n_winners} winners
+              {isPreliminary &&
+                ` · need ${MIN_RELIABLE_N - all.n_signals} more for reliable rate`}
             </p>
           )}
         </div>
-        {all && (
+        {all && !isPreliminary && (
           <div className="flex items-center gap-3">
             <Stat
               label="Win rate"
@@ -225,6 +248,15 @@ function SignalTypeCard({
             />
           </div>
         )}
+        {all && isPreliminary && (
+          // Sample is too small to claim a hit rate. Show the raw
+          // counts with no emphasis — no big "100%" stat tile that
+          // a glancing reader would mistake for a track record.
+          <div className="text-xs text-muted-foreground tabular-nums">
+            {all.n_winners}/{all.n_signals} closed positive · still
+            gathering data
+          </div>
+        )}
       </div>
       {byGrade.length > 0 && (
         <div className="overflow-x-auto">
@@ -242,7 +274,14 @@ function SignalTypeCard({
               </tr>
             </thead>
             <tbody>
-              {byGrade.map((r) => (
+              {byGrade.map((r) => {
+                const tooSmall = r.n_signals < MIN_RELIABLE_N;
+                // Tone the win-rate / avg-gain columns down to muted
+                // when the row's n is too small. The number is still
+                // visible (transparency) but no longer dressed in
+                // emerald/primary/amber — a 100% rate on n=1 should
+                // not visually outshine a 62% rate on n=200.
+                return (
                 <tr
                   key={`${r.grade}-${r.window_days}`}
                   className="border-b border-border/40 last:border-0"
@@ -257,23 +296,32 @@ function SignalTypeCard({
                   </td>
                   <td className="px-4 py-2.5 tabular-nums text-right text-muted-foreground">
                     {r.n_signals}
+                    {tooSmall && (
+                      <span className="ml-1.5 text-[9px] uppercase tracking-wider text-amber-300/80">
+                        prelim
+                      </span>
+                    )}
                   </td>
                   <td
                     className={`px-4 py-2.5 tabular-nums text-right ${
-                      r.win_rate_pct >= 60
-                        ? "text-emerald-300"
-                        : r.win_rate_pct >= 50
-                          ? "text-primary"
-                          : "text-amber-300"
+                      tooSmall
+                        ? "text-muted-foreground"
+                        : r.win_rate_pct >= 60
+                          ? "text-emerald-300"
+                          : r.win_rate_pct >= 50
+                            ? "text-primary"
+                            : "text-amber-300"
                     }`}
                   >
                     {r.win_rate_pct.toFixed(1)}%
                   </td>
                   <td
                     className={`px-4 py-2.5 tabular-nums text-right ${
-                      r.avg_gain_pct >= 0
-                        ? "text-emerald-300"
-                        : "text-rose-300"
+                      tooSmall
+                        ? "text-muted-foreground"
+                        : r.avg_gain_pct >= 0
+                          ? "text-emerald-300"
+                          : "text-rose-300"
                     }`}
                   >
                     {r.avg_gain_pct >= 0 ? "+" : ""}
@@ -294,7 +342,8 @@ function SignalTypeCard({
                     {fmtMins(r.median_hold_mins)}
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

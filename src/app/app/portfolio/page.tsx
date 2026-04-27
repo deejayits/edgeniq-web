@@ -124,6 +124,42 @@ export default async function PortfolioPage() {
   const activeOptions = optionsTrades.filter((t) => t.status === "active");
   const closedOptions = optionsTrades.filter((t) => t.status === "closed");
 
+  // Auto-traded orders the bot submitted to Alpaca on the user's
+  // behalf. Distinct from personal_trades / personal_options_trades:
+  // those require explicit user confirmation (/confirm or "I entered"
+  // button); auto_trades are submitted by the rules engine without a
+  // per-signal tap. Without surfacing them here, a user with auto-
+  // trade ON would see "no portfolio activity" while their Alpaca
+  // dashboard shows real fills — confusing AND a real-money risk
+  // (you can't manage what you can't see). Limited to today + last
+  // 30 days closed so the page doesn't unbounded-scroll for active
+  // bots.
+  type AutoTradeRow = {
+    id: string;
+    symbol: string;
+    side: string;
+    qty: number;
+    status: string;
+    avg_fill_price: number | null;
+    submitted_at: string;
+    filled_at: string | null;
+    order_class: string | null;
+    mode: string;
+    error_message: string | null;
+  };
+  const since30d = new Date();
+  since30d.setDate(since30d.getDate() - 30);
+  const { data: autoTradeRows } = await db
+    .from("auto_trades")
+    .select(
+      "id, symbol, side, qty, status, avg_fill_price, submitted_at, filled_at, order_class, mode, error_message",
+    )
+    .eq("chat_id", tgUserId)
+    .gte("submitted_at", since30d.toISOString())
+    .order("submitted_at", { ascending: false })
+    .limit(50);
+  const autoTrades = (autoTradeRows ?? []) as AutoTradeRow[];
+
   // Join signal context in a single IN query so we don't fan out one
   // request per trade. Grade/type/regime improve the entry narrative.
   const signalIds = Array.from(
@@ -359,6 +395,110 @@ export default async function PortfolioPage() {
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </section>
+      )}
+
+      {/* Auto-traded orders the bot submitted on the user's behalf.
+          Shown separately from manually-confirmed positions so the
+          distinction stays clear (auto = bot routed; active stocks /
+          options sections = user explicitly tapped to enter). */}
+      {autoTrades.length > 0 && (
+        <section className="space-y-3">
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+              Auto-traded by bot
+            </h2>
+            <span className="text-xs text-muted-foreground tabular-nums">
+              {autoTrades.length} order{autoTrades.length === 1 ? "" : "s"}
+              {" · last 30d"}
+            </span>
+          </div>
+          <Card className="p-0 border-border/60 bg-card/50 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border/60 bg-muted/20 text-left text-xs text-muted-foreground">
+                    <th className="px-5 py-2 font-medium">Symbol</th>
+                    <th className="px-4 py-2 font-medium">Side</th>
+                    <th className="px-4 py-2 font-medium">Qty</th>
+                    <th className="px-4 py-2 font-medium">Status</th>
+                    <th className="px-4 py-2 font-medium">Fill</th>
+                    <th className="px-4 py-2 font-medium">Mode</th>
+                    <th className="px-4 py-2 font-medium">Submitted</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {autoTrades.map((t) => (
+                    <tr
+                      key={t.id}
+                      className="border-b border-border/40 last:border-0"
+                    >
+                      <td className="px-5 py-2.5 font-mono text-xs">
+                        {t.symbol}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <Badge
+                          variant="outline"
+                          className={
+                            t.side === "buy"
+                              ? "border-emerald-400/40 text-emerald-300 text-[10px] py-0 h-5"
+                              : "border-rose-400/40 text-rose-300 text-[10px] py-0 h-5"
+                          }
+                        >
+                          {t.side}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-2.5 tabular-nums">{t.qty}</td>
+                      <td className="px-4 py-2.5">
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] py-0 h-5 ${
+                            t.status === "filled"
+                              ? "border-emerald-400/40 text-emerald-300"
+                              : t.status === "rejected" ||
+                                  t.status === "canceled"
+                                ? "border-rose-400/40 text-rose-300"
+                                : "text-muted-foreground"
+                          }`}
+                        >
+                          {t.status}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-2.5 tabular-nums">
+                        {t.avg_fill_price != null
+                          ? `$${Number(t.avg_fill_price).toFixed(2)}`
+                          : "—"}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] py-0 h-5 ${
+                            t.mode === "live"
+                              ? "border-rose-400/40 text-rose-300"
+                              : "border-primary/40 text-primary"
+                          }`}
+                        >
+                          {t.mode}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                        {new Date(
+                          /(Z|[+\-]\d{2}:?\d{2})$/.test(t.submitted_at)
+                            ? t.submitted_at
+                            : `${t.submitted_at}Z`,
+                        ).toLocaleString([], {
+                          month: "short",
+                          day: "numeric",
+                          hour: "numeric",
+                          minute: "2-digit",
+                        })}
                       </td>
                     </tr>
                   ))}
