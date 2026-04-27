@@ -13,6 +13,7 @@ import {
   Check,
   Eye,
   MessageSquare,
+  Settings,
   ShieldCheck,
   Sparkles,
   Target,
@@ -363,6 +364,11 @@ function Features() {
       body: "Stocks, options, prediction markets — every alert ships with rationale, target ladder, stop-loss, and position size. Liquidity-filtered so thin tickers never reach you.",
     },
     {
+      icon: Sparkles,
+      title: "Conviction score per ticker",
+      body: "Every name on your watchlist gets a 0–100 score that blends multiple market signals into one number. Top conviction surfaces on the dashboard so you know where to look first. Refreshed throughout the trading day.",
+    },
+    {
       icon: Zap,
       title: "Auto-trade via Alpaca",
       body: "Connect Alpaca paper. Bot places bracket orders on qualifying signals. When price hits T1 the stop auto-moves to breakeven — near-winners close at zero, not full loss.",
@@ -370,12 +376,12 @@ function Features() {
     {
       icon: Eye,
       title: "Smart Money tracker",
-      body: "Form 4 insider buys (~2-day SEC latency, fastest legal smart-money signal), 13F holdings from Buffett, Burry, Dalio, Ackman, Tepper, Icahn, Klarman, and Congressional STOCK Act filings. Telegram pings when a CFO buys a ticker on your watchlist.",
+      body: "Form 4 insider buys (~2-day SEC latency, fastest legal smart-money signal), 13F holdings from Buffett, Burry, Dalio, Ackman, Tepper, Icahn, Klarman, and Congressional STOCK Act filings. Cluster alerts when multiple insiders buy the same ticker. Telegram pings when a CFO buys a name on your watchlist.",
     },
     {
       icon: BarChart3,
-      title: "Dashboard that earns its keep",
-      body: "Today's activity, open positions, 30-day win rate by setup type, portfolio concentration + theme warnings. Full trade history, no curated highlight reel.",
+      title: "Backtest dashboard",
+      body: "Public hit rate and average gain per signal type, refreshed nightly. Same numbers we use to grade your personal history — no hidden methodology, no curated highlight reel.",
     },
     {
       icon: Target,
@@ -386,6 +392,11 @@ function Features() {
       icon: ShieldCheck,
       title: "Regime-aware sizing",
       body: "VIX ≥ 25 or realized vol ≥ 1.5% / day automatically halves auto-trade position size. Extreme regimes quarter it. Confirmation lag + flicker detection prevent whipsaw.",
+    },
+    {
+      icon: Settings,
+      title: "Web + Telegram, your call",
+      body: "Edit preferences inline on the web — risk profile, strategy, watchlist, penny-stock policy. Or use the Telegram commands. Same source of truth, propagates to the running bot within a minute.",
     },
   ];
   return (
@@ -463,12 +474,12 @@ function WhyDifferent() {
     {
       icon: Eye,
       title: "Math, not personalities",
-      body: "Every signal ships with a 0–100 score, letter grade, and the 5 components that produced it: trend, volume, momentum, price action, triggers. You see the reasoning, not just the call.",
+      body: "Every signal ships with a 0–100 score, letter grade, and a plain-language rationale. You see why the bot fired, not just that it fired. Same conditions in, same signal out — no hot takes, no Discord drama.",
     },
     {
       icon: ShieldCheck,
       title: "Filtered before you see it",
-      body: "Thousands of tickers run through 5-factor scoring + multi-timeframe confirmation + regime gate + liquidity floor + earnings filter + your risk profile. Typically 1–5 signals a day. Quality, not flood.",
+      body: "Thousands of tickers run through multi-timeframe confirmation, volatility-regime gates, liquidity floors, earnings filters, and your personal risk profile. Typically 1–5 signals a day. Quality, not flood.",
     },
     {
       icon: Zap,
@@ -488,7 +499,7 @@ function WhyDifferent() {
     {
       icon: Sparkles,
       title: "Smart Money, not gut money",
-      body: "Form 4 insider buys (~2-day SEC latency) are a 30–90 day watchlist signal — when a CFO buys $500K of their own stock, you get most of their thesis window to participate. Plus 13F filings from Buffett, Burry, Dalio, Ackman, Tepper, Icahn, Klarman, and Congressional STOCK Act disclosures. Disclosed positions, not pundits.",
+      body: "Form 4 insider buys (~2-day SEC latency), 13F filings from Buffett, Burry, Dalio, Ackman, Tepper, Icahn, Klarman, and Congressional STOCK Act disclosures. Cluster alerts go louder when multiple insiders buy the same name. Disclosed positions, not pundits.",
     },
   ];
   return (
@@ -567,9 +578,12 @@ function Pricing() {
       highlights: [
         "Stock signals — only for tickers on your watchlist",
         "Up to 5 tickers on your watchlist",
+        "Conviction score (0–100) per watchlist ticker",
         "4 risk profiles + 6 strategy templates",
         "Volatility-regime-aware sizing on every alert",
         "Live position monitor + portfolio advisor",
+        "Edit preferences from web or Telegram — your call",
+        "Backtest dashboard: hit rate by signal type",
         "Earnings calendar alerts (Yahoo Finance-backed)",
         "Full analytics: /history · /performance · /portfolio",
       ],
@@ -587,13 +601,15 @@ function Pricing() {
       stripePlan: "elite" as "pro" | "elite" | null,
       highlights: [
         "Everything in Pro, plus:",
-        "Unlimited watchlist",
+        "Unlimited watchlist with conviction scoring on every ticker",
         "Whole-market discovery — not just your list",
-        "Relative-strength-vs-SPY scoring + $5M liquidity floor",
+        "Liquidity-floor + relative-strength filtering",
         "Options alerts (unusual volume, block prints, OTM spikes)",
-        "ETF call signals — directional SPY/QQQ trend setups when broad market is trending and vol regime is calm",
+        "ETF directional calls — broad-market trend setups + sector rotation plays",
         "Prediction markets (Kalshi + Polymarket)",
-        "Smart Money — Form 4 insider buys (~2-day latency), 13F filings (Buffett, Burry, Dalio, Ackman, Tepper, Icahn, Klarman), Congressional STOCK Act disclosures",
+        "Smart Money — Form 4 insider buys, 13F filings (Buffett, Burry, Dalio, Ackman, Tepper, Icahn, Klarman), Congressional STOCK Act disclosures",
+        "Insider cluster alerts — louder ping when multiple insiders buy the same name",
+        "13F position classification — see what funds added, trimmed, or exited each quarter",
         "Telegram alerts when an insider buys a ticker on your watchlist",
         "Alpaca auto-trade (paper) — bracket orders with breakeven-at-T1 monitor, kill switch",
       ],
@@ -759,17 +775,20 @@ function FeatureMatrix() {
     // --- Signal discovery ---------------------------------------
     { label: "Stock signals", free: "Whole market", pro: "Watchlist only", elite: "Whole market (discovery)" },
     { label: "Watchlist size", free: "5 tickers", pro: "5 tickers", elite: "Unlimited" },
+    { label: "Conviction score (0–100) per watchlist ticker", free: true, pro: true, elite: true },
     { label: "Relative strength vs SPY factor", free: true, pro: true, elite: true },
     { label: "Liquidity filter ($5M+ daily $-volume)", free: true, pro: true, elite: true },
     { label: "Penny-stock policy ($5 / $1 / $0 floor)", free: true, pro: true, elite: true },
     { label: "Grade + score + R/R gating", free: true, pro: true, elite: true },
     { label: "Options alerts (unusual vol · block · OTM)", free: true, pro: false, elite: true },
-    { label: "ETF call signals (SPY/QQQ trend setups)", free: true, pro: false, elite: true },
+    { label: "ETF directional calls (broad market + sector rotation)", free: true, pro: false, elite: true },
     { label: "Prediction markets (Kalshi · Polymarket)", free: true, pro: false, elite: true },
     { label: "HIGH CONVICTION cross-venue signals", free: true, pro: false, elite: true },
     // --- Smart Money ---------------------------------------------
     { label: "Smart Money — hedge fund 13F filings", free: true, pro: false, elite: true },
+    { label: "Smart Money — 13F position classification (new · add · trim · exit)", free: true, pro: false, elite: true },
     { label: "Smart Money — Form 4 insider buys (~2d latency)", free: true, pro: false, elite: true },
+    { label: "Smart Money — insider cluster alerts (multiple buyers, same name)", free: true, pro: false, elite: true },
     { label: "Smart Money — Congressional STOCK Act filings", free: true, pro: false, elite: true },
     { label: "Smart Money — Telegram alerts on watchlist matches", free: true, pro: false, elite: true },
     { label: "Smart Money mirror (auto-shadow trades)", free: false, pro: false, elite: "Add-on +$49.99/mo" },
@@ -787,9 +806,13 @@ function FeatureMatrix() {
     { label: "Live position monitor", free: true, pro: true, elite: true },
     { label: "Portfolio advisor (concentration · theme · streak)", free: true, pro: true, elite: true },
     { label: "Full trade history + win-rate analytics", free: true, pro: true, elite: true },
+    { label: "Backtest dashboard — public hit rate per signal type", free: true, pro: true, elite: true },
     { label: "Earnings calendar alerts", free: true, pro: "For watchlist", elite: "Whole market" },
     { label: "Session briefings (pre-market · EOD)", free: true, pro: true, elite: true },
     { label: "Glossary reference (/glossary)", free: true, pro: true, elite: true },
+    // --- Web + Telegram parity -----------------------------------
+    { label: "Edit risk profile / strategy / watchlist on web", free: true, pro: true, elite: true },
+    { label: "Telegram bot for every command", free: true, pro: true, elite: true },
     // --- Trial ---------------------------------------------------
     { label: "Trial length", free: "7 days", pro: "—", elite: "—" },
   ];
