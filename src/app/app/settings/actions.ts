@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { supabaseAdmin } from "@/lib/supabase/server";
+import { isEliteAccess, isProAccess } from "@/lib/access";
 
 // Settings server actions — straight column writes against
 // public.users. The bot's _user_sync_loop polls the same row every
@@ -49,7 +50,43 @@ const ALLOWED_MIN_PRICES = [0, 1, 5] as const;
 // Yahoo. BRK.B / GOOG.A / RDS.A type symbols still pass.
 const TICKER_RE = /^[A-Z]{1,5}(\.[A-Z])?$/;
 
-const WATCHLIST_MAX = 50;
+// Per-tier watchlist caps. Mirrors notifications/users.py constants
+// in the bot so a user gated at 25 by /watchlist on Telegram is also
+// gated at 25 by the web add button. Drift between bot and web caused
+// real confusion before (web at 50, bot at 5) — keeping these
+// matched is critical.
+//   Free trial: 25 (matches Pro so trial→Pro conversion is no downgrade)
+//   Pro:        25 (focused-list tier; signals limited to watchlist)
+//   Elite:     100 (whole-market discovery beyond it)
+const WATCHLIST_CAP_FREE = 25;
+const WATCHLIST_CAP_PRO = 25;
+const WATCHLIST_CAP_ELITE = 100;
+
+async function watchlistCapForUser(chatId: number): Promise<number> {
+  const sb = supabaseAdmin();
+  const { data } = await sb
+    .from("users")
+    .select("sub_plan, sub_status, role")
+    .eq("chat_id", chatId)
+    .maybeSingle();
+  return watchlistCapFromRow({
+    role: (data?.role as string | undefined) ?? undefined,
+    subPlan: (data?.sub_plan as string | undefined) ?? undefined,
+    subStatus: (data?.sub_status as string | undefined) ?? undefined,
+  });
+}
+
+// Pure tier→cap mapping. Used by both the server action and the
+// settings page (which already has the user row in hand).
+export function watchlistCapFromRow(accessUser: {
+  role?: string;
+  subPlan?: string;
+  subStatus?: string;
+}): number {
+  if (isEliteAccess(accessUser)) return WATCHLIST_CAP_ELITE;
+  if (isProAccess(accessUser)) return WATCHLIST_CAP_PRO;
+  return WATCHLIST_CAP_FREE;
+}
 
 // In-memory validation cache. Yahoo is generous but we still
 // shouldn't hammer it for repeat lookups (e.g. user adds AAPL,
@@ -197,8 +234,12 @@ export async function addWatchlistTicker(raw: string): Promise<ActionResult> {
     const existing: string[] = Array.isArray(row?.watchlist)
       ? row!.watchlist
       : [];
-    if (existing.length >= WATCHLIST_MAX) {
-      return { ok: false, error: `Watchlist is at the max of ${WATCHLIST_MAX}` };
+    const cap = await watchlistCapForUser(chatId);
+    if (existing.length >= cap) {
+      return {
+        ok: false,
+        error: `Watchlist is at your tier cap of ${cap} tickers. Upgrade for more.`,
+      };
     }
     if (existing.includes(ticker)) {
       return { ok: true };

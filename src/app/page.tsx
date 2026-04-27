@@ -565,7 +565,7 @@ function Pricing() {
   const tiers = [
     {
       name: "Free",
-      tag: "7-day trial — full Elite access",
+      tag: "7-day trial — Elite features unlocked",
       price: "$0",
       priceSub: "for 7 days",
       // Free tier CTA always goes to /login (Telegram signup flow) —
@@ -575,10 +575,11 @@ function Pricing() {
       ctaHref: "/login",
       stripePlan: null as "pro" | "elite" | null,
       highlights: [
-        "Full Elite features for 7 days",
-        "See every signal the bot can fire — stocks, options, predictions, smart money",
+        "All Elite features for 7 days — options, Smart Money, prediction markets, auto-trade",
+        "Watchlist up to 25 tickers",
+        "Stock signals limited to your watchlist (whole-market discovery is paid-Elite only)",
         "Web dashboard + Telegram bot",
-        "Pick Pro or Elite when the trial ends",
+        "Pick Pro or Elite when the trial ends — preferences carry over",
       ],
       featured: false,
       badge: null,
@@ -594,7 +595,7 @@ function Pricing() {
       stripePlan: "pro" as "pro" | "elite" | null,
       highlights: [
         "Stock signals — only for tickers on your watchlist",
-        "Watchlist up to 50 tickers",
+        "Watchlist up to 25 tickers",
         "Conviction score (0–100) per watchlist ticker",
         "3 risk profiles (Conservative · Moderate · Aggressive) + 6 strategy templates",
         "Volatility-regime-aware sizing on every alert",
@@ -618,8 +619,8 @@ function Pricing() {
       stripePlan: "elite" as "pro" | "elite" | null,
       highlights: [
         "Everything in Pro, plus:",
-        "Watchlist up to 50 tickers + whole-market discovery beyond",
-        "Whole-market discovery — not just your list",
+        "Watchlist up to 100 tickers + whole-market discovery beyond it",
+        "Whole-market discovery — signals on any qualifying ticker, not just yours",
         "Liquidity-floor + relative-strength filtering",
         "Options alerts (unusual volume, block prints, OTM spikes)",
         "ETF directional calls — broad-market trend setups + sector rotation plays",
@@ -790,8 +791,8 @@ function FeatureMatrix() {
     elite: string | boolean;
   }> = [
     // --- Signal discovery ---------------------------------------
-    { label: "Stock signals", free: "Whole market", pro: "Watchlist only", elite: "Whole market (discovery)" },
-    { label: "Watchlist size", free: "50 tickers", pro: "50 tickers", elite: "50 tickers" },
+    { label: "Stock signals", free: "Watchlist only", pro: "Watchlist only", elite: "Whole market (discovery)" },
+    { label: "Watchlist size", free: "25 tickers", pro: "25 tickers", elite: "100 tickers" },
     { label: "Conviction score (0–100) per watchlist ticker", free: true, pro: true, elite: true },
     { label: "Relative strength vs SPY factor", free: true, pro: true, elite: true },
     { label: "Liquidity filter ($5M+ daily $-volume)", free: true, pro: true, elite: true },

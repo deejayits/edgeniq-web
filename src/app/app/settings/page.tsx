@@ -18,6 +18,7 @@ import {
   MinPriceEditor,
   WatchlistEditor,
 } from "./editors";
+import { watchlistCapFromRow } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -76,6 +77,17 @@ export default async function SettingsPage() {
         ? "rose"
         : "muted";
 
+  // User's actual watchlist cap for the right-rail tile. Sourced
+  // from the same per-tier helper the addWatchlistTicker action
+  // uses, so the displayed "X of Y max" matches what the server
+  // would let them add.
+  const userRole = (session?.user as { role?: string } | undefined)?.role;
+  const watchlistCap = watchlistCapFromRow({
+    role: userRole,
+    subPlan: planLabel,
+    subStatus: statusLabel,
+  });
+
   return (
     <div className="space-y-10">
       <header className="flex flex-wrap items-end justify-between gap-6">
@@ -122,7 +134,7 @@ export default async function SettingsPage() {
           <HeaderStat
             label="Watchlist"
             value={`${watchlist.length}`}
-            sub={`of 50 max`}
+            sub={`of ${watchlistCap} max`}
             tone="muted"
           />
         </div>
