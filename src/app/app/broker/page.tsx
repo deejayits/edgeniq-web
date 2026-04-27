@@ -9,11 +9,11 @@ import { supabaseAdmin } from "@/lib/supabase/server";
 import { isEliteAccess } from "@/lib/access";
 import { HeaderStat } from "@/components/header-stat";
 import { ConnectForm } from "./connect-form";
-import { ConnectedHeader } from "./connected-header";
+import { ConnectionStrip } from "./connection-strip";
 import { RulesCard, type RuleRow } from "./rules-card";
 import { RiskRailsCard, type RiskRailsRow } from "./risk-rails-card";
-import { KillSwitchCard } from "./kill-switch-card";
 import { AutoTradeMasterToggle } from "./master-toggle";
+import { MasterKillSwitch } from "./master-kill-switch";
 import { LiveView, type LiveUserState, type LiveConnection } from "./live-view";
 
 export const dynamic = "force-dynamic";
@@ -239,12 +239,27 @@ export default async function BrokerPage({
           </p>
         </div>
         <div className="flex items-stretch gap-3">
-          <HeaderStat
-            label="Active mode"
-            value={activeMode === "live" ? "LIVE" : "Paper"}
-            sub={activeMode === "live" ? "real money" : "no risk"}
-            tone={activeMode === "live" ? "rose" : "primary"}
-          />
+          {/* Active Mode tile reflects what happens when a signal
+              fires RIGHT NOW. If no rules are auto/one_tap, nothing
+              fires regardless of routing target — the tile shows
+              "Off" so users don't get the false impression that
+              paper auto-trade is running just because paper is the
+              configured route. */}
+          {activeRulesCount === 0 ? (
+            <HeaderStat
+              label="Active mode"
+              value="Off"
+              sub="auto-trade disabled"
+              tone="muted"
+            />
+          ) : (
+            <HeaderStat
+              label="Active mode"
+              value={activeMode === "live" ? "LIVE" : "Paper"}
+              sub={activeMode === "live" ? "real money" : "no risk"}
+              tone={activeMode === "live" ? "rose" : "primary"}
+            />
+          )}
           <HeaderStat
             label="Active rules"
             value={`${activeRulesCount}`}
@@ -266,15 +281,32 @@ export default async function BrokerPage({
         </div>
       </header>
 
-      {/* Tabs — visual selector only. Picking a tab does NOT change
-          active_broker_mode. The mode-flip happens via explicit
-          confirm in the Live tab. Keeping visual + routing state
-          decoupled is intentional: a stray click on a tab can never
-          put real money at risk. */}
-      <ModeTabs activeMode={activeMode} visibleTab={visibleTab} />
+      {/* Tabs row — tabs on left for visual selection (does NOT
+          change active_broker_mode), master kill switch on right
+          (always reachable from any tab, kills both paper + live in
+          one click). Visual + routing state decoupled on purpose. */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <ModeTabs activeMode={activeMode} visibleTab={visibleTab} />
+        <MasterKillSwitch
+          engaged={rails?.kill_switch_engaged ?? false}
+          engagedAt={rails?.kill_switch_engaged_at ?? null}
+          reason={rails?.kill_switch_engaged_reason ?? null}
+        />
+      </div>
 
       {visibleTab === "live" ? (
-        <LiveView user={liveUserState} liveConn={liveConnSummary} />
+        <LiveView
+          user={liveUserState}
+          liveConn={liveConnSummary}
+          rulesContext={{
+            anyActive: rules.some(
+              (r) =>
+                r.execution_mode === "auto" || r.execution_mode === "one_tap",
+            ),
+            activeCount: activeRulesCount,
+            totalCount: rules.length || 2,
+          }}
+        />
       ) : !paperConn ? (
         <Card className="p-6 border-border/60 bg-card/40">
           <h2 className="font-medium mb-4">Connect Alpaca</h2>
@@ -282,7 +314,10 @@ export default async function BrokerPage({
         </Card>
       ) : (
         <>
-          <ConnectedHeader
+          {/* Compact connection strip (replaces the centered card) */}
+          <ConnectionStrip
+            mode="paper"
+            isActive={activeMode === "paper"}
             accountId={paperConn.account_id}
             accountStatus={paperConn.account_status}
             buyingPower={paperConn.buying_power_at_connect}
@@ -294,39 +329,28 @@ export default async function BrokerPage({
               <b className="text-foreground">Not financial advice.</b> You
               are responsible for every trade EdgeNiq submits on your
               behalf. Review your rules, set risk rails, and keep the
-              kill switch accessible.
+              kill switch accessible (top right).
             </AlertDescription>
           </Alert>
 
-          {/* Controls — side-by-side Auto-trade toggle + Kill switch.
-              Both gate whether orders go out; pairing them puts the
-              single "stop everything" action next to the master switch
-              so operators don't hunt. Grid cells stretch so the two
-              cards always match heights regardless of content. */}
+          {/* Auto-trade master toggle. Kill switch lives at page
+              level (next to the tabs) so it's reachable from any
+              tab. Pairing them in a grid here would duplicate the
+              kill control — drop the duplicate, keep the toggle
+              full-width since it's now solo. */}
           <section className="space-y-3">
             <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-              Controls
+              Auto-trade
             </h2>
-            <div className="grid md:grid-cols-2 gap-4 items-stretch">
-              <AutoTradeMasterToggle
-                anyActive={rules.some(
-                  (r) => r.execution_mode === "auto" || r.execution_mode === "one_tap",
-                )}
-                activeCount={
-                  rules.filter(
-                    (r) =>
-                      r.execution_mode === "auto" ||
-                      r.execution_mode === "one_tap",
-                  ).length
-                }
-                totalCount={rules.length || 2}
-              />
-              <KillSwitchCard
-                engaged={rails?.kill_switch_engaged ?? false}
-                engagedAt={rails?.kill_switch_engaged_at ?? null}
-                reason={rails?.kill_switch_engaged_reason ?? null}
-              />
-            </div>
+            <AutoTradeMasterToggle
+              anyActive={rules.some(
+                (r) =>
+                  r.execution_mode === "auto" ||
+                  r.execution_mode === "one_tap",
+              )}
+              activeCount={activeRulesCount}
+              totalCount={rules.length || 2}
+            />
           </section>
 
           <section className="space-y-3">

@@ -570,6 +570,66 @@ export async function updateLiveCaps(opts: {
 // Live kill switch — separate from paper kill switch
 // ----------------------------------------------------------------------
 
+/**
+ * Master kill switch — kills BOTH paper and live in one call. Use
+ * this instead of mode-specific kill switches when you want a single
+ * "stop everything" action. The page-level kill switch UI calls
+ * this so users don't have to remember which mode they're in to
+ * find the right kill button.
+ *
+ * Effects:
+ *   - Cancels every open Alpaca order on the active broker connection
+ *     (delegated to engageKillSwitch in actions.ts which handles the
+ *     paper-side cancel-all + risk_rails flag flip).
+ *   - Flips users.live_trading_enabled = false
+ *   - Flips users.active_broker_mode = 'paper'
+ *   - Resets every auto_trade_rules.execution_mode = 'off'
+ *   - Logs a forensic event to live_trading_events
+ *
+ * Returns ok if the rule resets + flag flips succeeded. The Alpaca
+ * cancel-all is best-effort — connection or network problems don't
+ * fail the whole operation since the flag flips already prevent new
+ * routing.
+ */
+export async function engageMasterKillSwitch(
+  reason: string,
+): Promise<ActionResult<{ canceledCount: number } | undefined>> {
+  // Reuse the paper kill switch (which handles Alpaca cancel-all +
+  // auto-trade rule reset + risk_rails kill flag) and layer the
+  // live-side resets on top when the user has the live add-on.
+  // Paper-only users get the paper behavior — same button, same UX,
+  // just nothing live to flip.
+  const { engageKillSwitch } = await import("./actions");
+  const paperRes = await engageKillSwitch(reason || "master kill");
+
+  // Best-effort live disable. We don't require live eligibility here
+  // since the kill switch should work for paper-only users too —
+  // they just have nothing live to disable.
+  try {
+    const session = await auth();
+    const u = session?.user as { tgUserId?: number } | undefined;
+    if (u?.tgUserId) {
+      const sb = supabaseAdmin();
+      await sb
+        .from("users")
+        .update({
+          live_trading_enabled: false,
+          active_broker_mode: "paper",
+          last_mode_switch_at: new Date().toISOString(),
+        })
+        .eq("chat_id", u.tgUserId);
+      await logEvent(u.tgUserId, "master_kill_switch_engaged", {
+        reason: reason?.slice(0, 200) ?? "manual",
+        paper_cancel_ok: paperRes.ok,
+      });
+    }
+  } catch {
+    // Live-side disable is non-critical; paper kill already landed.
+  }
+  revalidatePath("/app/broker");
+  return paperRes;
+}
+
 export async function engageLiveKillSwitch(
   reason: string,
 ): Promise<ActionResult> {

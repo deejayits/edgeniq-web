@@ -26,17 +26,14 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  AlertTriangle,
-  CheckCircle2,
-  Lock,
-  ShieldCheck,
-  Zap,
-} from "lucide-react";
+import { AlertTriangle, Lock } from "lucide-react";
 import { LiveDisclaimerCard } from "./live-disclaimer-card";
 import { LiveConnectForm } from "./live-connect-form";
 import { LiveCapsEditor } from "./live-caps-editor";
 import { LiveModeSwitcher } from "./live-mode-switcher";
+import { LiveCapsStrip } from "./live-caps-strip";
+import { ConnectionStrip } from "./connection-strip";
+import { AutoTradeMasterToggle } from "./master-toggle";
 import { LIVE_DISCLAIMER_VERSION } from "./live-config";
 
 export type LiveUserState = {
@@ -62,9 +59,19 @@ export type LiveConnection = {
 export function LiveView({
   user,
   liveConn,
+  rulesContext,
 }: {
   user: LiveUserState;
   liveConn: LiveConnection;
+  /** Auto-trade rule summary surfaced from the parent page so the
+      Live tab's master toggle reflects the same per-signal-type
+      rules the bot evaluates. Identical shape to what the paper
+      tab uses; rules table is shared between modes. */
+  rulesContext: {
+    anyActive: boolean;
+    activeCount: number;
+    totalCount: number;
+  };
 }) {
   // Resolve the state. Order matters — first matching condition wins.
   const state: "NO_ADDON" | "NEEDS_DISCLAIMER" | "NEEDS_CONNECTION" | "READY_TO_SWITCH" | "LIVE_ACTIVE" =
@@ -99,16 +106,58 @@ export function LiveView({
       {state === "NO_ADDON" && <NoAddonCard />}
       {state === "NEEDS_DISCLAIMER" && <LiveDisclaimerCard />}
       {state === "NEEDS_CONNECTION" && <LiveConnectForm />}
+
       {(state === "READY_TO_SWITCH" || state === "LIVE_ACTIVE") && (
         <>
-          <LiveConnectionSummary
-            conn={liveConn!}
+          {/* 1. Compact connection strip (replaces the old card) */}
+          <ConnectionStrip
+            mode="live"
             isActive={state === "LIVE_ACTIVE"}
+            accountId={liveConn!.account_id}
+            accountStatus={liveConn!.account_status}
+            buyingPower={liveConn!.buying_power_at_connect}
+            connectedAt={liveConn!.connected_at}
           />
-          <LiveModeSwitcher
-            activeMode={user.activeBrokerMode}
-            confirmationLevel={user.liveConfirmationLevel}
-          />
+
+          {/* 2. When LIVE is active, show caps strip + auto-trade
+                 master toggle. The kill switch lives at page level
+                 (next to the tabs) so it's reachable from any tab —
+                 we don't need a per-tab copy. */}
+          {state === "LIVE_ACTIVE" && (
+            <>
+              <LiveCapsStrip
+                positionUsd={user.liveMaxPositionUsd}
+                dailyLossUsd={user.liveMaxDailyLossUsd}
+                openPositions={user.liveMaxOpenPositions}
+                confirmationLevel={user.liveConfirmationLevel}
+              />
+              <section className="space-y-3">
+                <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                  Auto-trade
+                </h2>
+                <AutoTradeMasterToggle
+                  anyActive={rulesContext.anyActive}
+                  activeCount={rulesContext.activeCount}
+                  totalCount={rulesContext.totalCount}
+                />
+              </section>
+            </>
+          )}
+
+          {/* 3. When READY_TO_SWITCH (live connected but mode still
+                 paper), the dominant CTA is the mode switcher. Don't
+                 show controls + kill switch yet — nothing for them to
+                 do until live is the active routing target. */}
+          {state === "READY_TO_SWITCH" && (
+            <LiveModeSwitcher
+              activeMode={user.activeBrokerMode}
+              confirmationLevel={user.liveConfirmationLevel}
+            />
+          )}
+
+          {/* 4. Detailed caps editor — the strip above is read-only,
+                 this is where users adjust values. Below the fold is
+                 fine since users don't tweak caps every session. */}
           <LiveCapsEditor
             initial={{
               position_usd: user.liveMaxPositionUsd,
@@ -117,6 +166,17 @@ export function LiveView({
               confirmation_level: user.liveConfirmationLevel,
             }}
           />
+
+          {/* 5. When LIVE_ACTIVE, the switcher is the demote-to-paper
+                 path. Tucked at the bottom because it's a single-step
+                 operation and the connection strip already has the
+                 button. Kept here for users who prefer the formal CTA. */}
+          {state === "LIVE_ACTIVE" && (
+            <LiveModeSwitcher
+              activeMode={user.activeBrokerMode}
+              confirmationLevel={user.liveConfirmationLevel}
+            />
+          )}
         </>
       )}
     </div>
@@ -152,63 +212,3 @@ function NoAddonCard() {
   );
 }
 
-function LiveConnectionSummary({
-  conn,
-  isActive,
-}: {
-  conn: NonNullable<LiveConnection>;
-  isActive: boolean;
-}) {
-  return (
-    <Card
-      className={`p-5 ${
-        isActive
-          ? "border-rose-500/40 bg-rose-500/5"
-          : "border-border/60 bg-card/50"
-      }`}
-    >
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div className="flex items-start gap-3">
-          <div
-            className={`h-9 w-9 rounded-md flex items-center justify-center border ${
-              isActive
-                ? "bg-rose-500/15 border-rose-500/40"
-                : "bg-emerald-400/10 border-emerald-400/30"
-            }`}
-          >
-            {isActive ? (
-              <Zap className="h-4 w-4 text-rose-300" />
-            ) : (
-              <CheckCircle2 className="h-4 w-4 text-emerald-300" />
-            )}
-          </div>
-          <div>
-            <div className="text-sm font-medium">
-              Live Alpaca · {conn.account_status ?? "connected"}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1 font-mono">
-              {conn.account_id ?? "—"}
-            </div>
-            {conn.buying_power_at_connect != null && (
-              <div className="text-xs text-muted-foreground mt-0.5 tabular-nums">
-                Buying power at connect: $
-                {Number(conn.buying_power_at_connect).toLocaleString()}
-              </div>
-            )}
-          </div>
-        </div>
-        <Badge
-          variant="outline"
-          className={
-            isActive
-              ? "border-rose-400/40 text-rose-300 bg-rose-400/10"
-              : "border-border/60 text-muted-foreground"
-          }
-        >
-          <ShieldCheck className="h-3 w-3 mr-1" />
-          {isActive ? "Active" : "Connected, not active"}
-        </Badge>
-      </div>
-    </Card>
-  );
-}
