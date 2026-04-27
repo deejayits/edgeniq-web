@@ -173,7 +173,12 @@ export default async function BrokerPage({
   const conns = ((connsRes.data ?? []) as unknown) as BrokerConnection[];
   const paperConn = conns.find((c) => c.mode === "paper") ?? null;
   const liveConn = conns.find((c) => c.mode === "live") ?? null;
-  const rules = ((rulesRes.data ?? []) as unknown) as RuleRow[];
+  const allRules = ((rulesRes.data ?? []) as unknown) as RuleRow[];
+  // Partition rules per mode. The bot evaluates rules filtered by
+  // users.active_broker_mode; the web mirrors that — each tab edits
+  // its own rule set.
+  const paperRules = allRules.filter((r) => r.mode === "paper");
+  const liveRules = allRules.filter((r) => r.mode === "live");
   const rails = (railsRes.data as unknown) as RiskRailsRow | null;
   const trades = ((tradesRes.data ?? []) as unknown) as TradeRow[];
 
@@ -208,19 +213,33 @@ export default async function BrokerPage({
       }
     : null;
 
+  // Per-tab rule lookups. visibleTab determines which rule set the
+  // page renders; the OTHER tab's rules are intentionally untouched.
+  const tabRules = visibleTab === "live" ? liveRules : paperRules;
   const stockRule =
-    rules.find((r) => r.signal_type === "stocks") ?? defaultRule("stocks");
+    tabRules.find((r) => r.signal_type === "stocks") ??
+    defaultRule("stocks", visibleTab);
   const optionsRule =
-    rules.find((r) => r.signal_type === "options") ?? defaultRule("options");
+    tabRules.find((r) => r.signal_type === "options") ??
+    defaultRule("options", visibleTab);
 
-  // Right-rail stats for the header. Different stats based on
-  // connection state so the header always carries useful info:
-  //   not connected → "Status: Not connected" + Mode: Paper only
-  //   connected     → today's order count + active rule count
+  // Right-rail stats for the header. The "Active rules" count
+  // reflects rules in the *currently active routing mode* — that
+  // mirrors what the bot will actually evaluate when a signal fires.
   const todaysOrders = trades.length;
-  const activeRulesCount = rules.filter(
+  const activeModeRules = activeMode === "live" ? liveRules : paperRules;
+  const activeRulesCount = activeModeRules.filter(
     (r) => r.execution_mode === "auto" || r.execution_mode === "one_tap",
   ).length;
+  const activeModeTotal = activeModeRules.length || 2;
+  // Per-visible-tab counts so the AutoTradeMasterToggle inside each
+  // tab reflects only that tab's rules. Toggling Paper toggle never
+  // changes Live state and vice versa.
+  const tabActiveCount = tabRules.filter(
+    (r) => r.execution_mode === "auto" || r.execution_mode === "one_tap",
+  ).length;
+  const tabAnyActive = tabActiveCount > 0;
+  const tabTotal = tabRules.length || 2;
 
   return (
     <div className="space-y-10">
@@ -239,31 +258,33 @@ export default async function BrokerPage({
           </p>
         </div>
         <div className="flex items-stretch gap-3">
-          {/* Active Mode tile reflects what happens when a signal
-              fires RIGHT NOW. If no rules are auto/one_tap, nothing
-              fires regardless of routing target — the tile shows
-              "Off" so users don't get the false impression that
-              paper auto-trade is running just because paper is the
-              configured route. */}
-          {activeRulesCount === 0 ? (
-            <HeaderStat
-              label="Active mode"
-              value="Off"
-              sub="auto-trade disabled"
-              tone="muted"
-            />
-          ) : (
-            <HeaderStat
-              label="Active mode"
-              value={activeMode === "live" ? "LIVE" : "Paper"}
-              sub={activeMode === "live" ? "real money" : "no risk"}
-              tone={activeMode === "live" ? "rose" : "primary"}
-            />
-          )}
+          {/* Active Mode tile = the actual order-routing target
+              (users.active_broker_mode). It reflects WHERE orders go
+              when a signal fires, independent of whether any rule is
+              currently auto. The "Active rules" tile next to it
+              carries the on/off state of auto-trade itself; keeping
+              the two concepts visually separate stops the user from
+              reading "no rules running" as "live mode is off". */}
+          <HeaderStat
+            label="Active mode"
+            value={activeMode === "live" ? "LIVE" : "Paper"}
+            sub={
+              activeMode === "live"
+                ? "real money routing"
+                : "no risk routing"
+            }
+            tone={activeMode === "live" ? "rose" : "primary"}
+          />
           <HeaderStat
             label="Active rules"
-            value={`${activeRulesCount}`}
-            sub={`of ${rules.length || 2}`}
+            value={
+              activeRulesCount === 0 ? "Off" : `${activeRulesCount}`
+            }
+            sub={
+              activeRulesCount === 0
+                ? "auto-trade paused"
+                : `of ${activeModeTotal} on ${activeMode}`
+            }
             tone={activeRulesCount > 0 ? "primary" : "muted"}
           />
           <HeaderStat
@@ -299,12 +320,9 @@ export default async function BrokerPage({
           user={liveUserState}
           liveConn={liveConnSummary}
           rulesContext={{
-            anyActive: rules.some(
-              (r) =>
-                r.execution_mode === "auto" || r.execution_mode === "one_tap",
-            ),
-            activeCount: activeRulesCount,
-            totalCount: rules.length || 2,
+            anyActive: tabAnyActive,
+            activeCount: tabActiveCount,
+            totalCount: tabTotal,
           }}
         />
       ) : !paperConn ? (
@@ -343,13 +361,10 @@ export default async function BrokerPage({
               Auto-trade
             </h2>
             <AutoTradeMasterToggle
-              anyActive={rules.some(
-                (r) =>
-                  r.execution_mode === "auto" ||
-                  r.execution_mode === "one_tap",
-              )}
-              activeCount={activeRulesCount}
-              totalCount={rules.length || 2}
+              mode="paper"
+              anyActive={tabAnyActive}
+              activeCount={tabActiveCount}
+              totalCount={tabTotal}
             />
           </section>
 
@@ -452,10 +467,14 @@ function ModeTabs({
   );
 }
 
-function defaultRule(signalType: "stocks" | "options"): RuleRow {
+function defaultRule(
+  signalType: "stocks" | "options",
+  mode: "paper" | "live",
+): RuleRow {
   return {
     chat_id: 0,
     signal_type: signalType,
+    mode,
     execution_mode: "off",
     min_score: signalType === "options" ? 80 : 75,
     watchlist_only: true,

@@ -8,18 +8,22 @@ import { Badge } from "@/components/ui/badge";
 import { Power, Zap } from "lucide-react";
 import { setMasterAutoTrade } from "./actions";
 
-// Master auto-trade on/off switch. Reflects "is ANY rule currently
-// firing orders" — on if at least one rule has execution_mode='auto'
-// or 'one_tap', off if all rules are 'off'. Flipping it batches the
-// update across all rules for this user.
+// Master auto-trade on/off switch — scoped to ONE mode (paper or
+// live). Reflects "is ANY rule in this mode currently firing" — on
+// if at least one rule has execution_mode='auto' or 'one_tap' for
+// that mode, off if all are 'off'. Flipping it batches the update
+// across this mode's rules only. Toggling Paper does NOT touch Live
+// rules; toggling Live does NOT touch Paper rules.
 
 type Props = {
+  mode: "paper" | "live";
   anyActive: boolean;
   activeCount: number;
   totalCount: number;
 };
 
 export function AutoTradeMasterToggle({
+  mode,
   anyActive,
   activeCount,
   totalCount,
@@ -31,12 +35,13 @@ export function AutoTradeMasterToggle({
     // Optimistic: flip the visual immediately; revert on server error.
     setEnabled(next);
     startTransition(async () => {
-      const res = await setMasterAutoTrade(next);
+      const res = await setMasterAutoTrade(next, mode);
       if (res.ok) {
+        const modeLabel = mode === "live" ? "Live" : "Paper";
         toast.success(
           next
-            ? "Auto-trade ON — rules will execute as signals fire"
-            : "Auto-trade OFF — all rules paused",
+            ? `${modeLabel} auto-trade ON — rules will execute as signals fire`
+            : `${modeLabel} auto-trade OFF — ${modeLabel.toLowerCase()} rules paused`,
         );
       } else {
         setEnabled(!next); // revert

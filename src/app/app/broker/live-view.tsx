@@ -136,6 +136,7 @@ export function LiveView({
                   Auto-trade
                 </h2>
                 <AutoTradeMasterToggle
+                  mode="live"
                   anyActive={rulesContext.anyActive}
                   activeCount={rulesContext.activeCount}
                   totalCount={rulesContext.totalCount}

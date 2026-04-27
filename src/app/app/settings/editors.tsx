@@ -23,25 +23,84 @@ import {
   removeWatchlistTicker,
 } from "./actions";
 
-const RISK_OPTIONS: { value: string; label: string; tone: string }[] = [
-  { value: "conservative", label: "Conservative", tone: "text-emerald-300" },
-  { value: "moderate", label: "Moderate", tone: "text-primary" },
-  { value: "aggressive", label: "Aggressive", tone: "text-amber-300" },
+const RISK_OPTIONS: {
+  value: string;
+  label: string;
+  tone: string;
+  help: string;
+}[] = [
+  {
+    value: "conservative",
+    label: "Conservative",
+    tone: "text-emerald-300",
+    help: "Smallest sizing, most selective — only the highest-conviction signals reach you.",
+  },
+  {
+    value: "moderate",
+    label: "Moderate",
+    tone: "text-primary",
+    help: "Balanced sizing across most setups. Default — fits most users.",
+  },
+  {
+    value: "aggressive",
+    label: "Aggressive",
+    tone: "text-amber-300",
+    help: "Larger sizing, more signals including lower-confidence setups. More opportunities, more drawdown risk.",
+  },
 ];
 
-const STRATEGY_OPTIONS: { value: string; label: string }[] = [
-  { value: "balanced", label: "⚖️  Balanced" },
-  { value: "momentum_breakouts", label: "🚀  Momentum Breakouts" },
-  { value: "mean_reversion", label: "🔄  Mean Reversion" },
-  { value: "trend_following", label: "📈  Trend Following" },
-  { value: "post_earnings_drift", label: "📢  Post-Earnings Drift" },
-  { value: "high_conviction", label: "🎯  High Conviction Only" },
+const STRATEGY_OPTIONS: { value: string; label: string; help: string }[] = [
+  {
+    value: "balanced",
+    label: "⚖️  Balanced",
+    help: "All setup types — no filter. Recommended unless you have a specific edge.",
+  },
+  {
+    value: "momentum_breakouts",
+    label: "🚀  Momentum Breakouts",
+    help: "Only price-volume breakouts above resistance. Works best in trending markets.",
+  },
+  {
+    value: "mean_reversion",
+    label: "🔄  Mean Reversion",
+    help: "Only oversold pullbacks expected to bounce. Works best in range-bound markets.",
+  },
+  {
+    value: "trend_following",
+    label: "📈  Trend Following",
+    help: "Only signals aligned with the prevailing daily trend. Filters out chop and reversals.",
+  },
+  {
+    value: "post_earnings_drift",
+    label: "📢  Post-Earnings Drift",
+    help: "Only post-earnings continuation moves. Fewer signals, narrower window.",
+  },
+  {
+    value: "high_conviction",
+    label: "🎯  High Conviction Only",
+    help: "Strictest filter across all setup types — only top-tier conviction scores. Fewer signals, higher quality.",
+  },
 ];
 
-const PRICE_TIERS: { value: number; label: string; sub: string }[] = [
-  { value: 0, label: "$0", sub: "anything goes" },
-  { value: 1, label: "$1", sub: "low-priced US-listed allowed" },
-  { value: 5, label: "$5", sub: "SEC penny-stock floor (default)" },
+const PRICE_TIERS: { value: number; label: string; sub: string; help: string }[] = [
+  {
+    value: 0,
+    label: "$0",
+    sub: "anything goes",
+    help: "No floor — sub-dollar penny stocks included. Highest scam / liquidity risk.",
+  },
+  {
+    value: 1,
+    label: "$1",
+    sub: "low-priced US-listed allowed",
+    help: "Excludes sub-$1 stocks but still allows low-priced US-listed names.",
+  },
+  {
+    value: 5,
+    label: "$5",
+    sub: "SEC penny-stock floor (default)",
+    help: "Mirrors the SEC's penny-stock threshold. Recommended — filters out the riskiest tier.",
+  },
 ];
 
 function ErrorLine({ msg }: { msg: string | null }) {
@@ -76,39 +135,44 @@ export function RiskProfileEditor({ value }: { value: string }) {
   const current = RISK_OPTIONS.find((o) => o.value === optimistic) ?? RISK_OPTIONS[1];
 
   return (
-    <div className="flex items-center gap-2">
-      <ErrorLine msg={error} />
-      <div className="relative">
-        <select
-          value={optimistic}
-          disabled={pending}
-          onChange={(e) => {
-            const next = e.target.value;
-            const prev = optimistic;
-            setOptimistic(next);
-            setError(null);
-            startTransition(async () => {
-              const res = await updateRiskProfile(next);
-              if (!res.ok) {
-                setOptimistic(prev);
-                setError(res.error);
-              }
-            });
-          }}
-          className={`appearance-none pl-3 pr-7 py-1.5 rounded-md bg-card border border-border/60 text-sm font-medium ${current.tone} hover:border-border focus:outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer disabled:opacity-50`}
-        >
-          {RISK_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value} className="text-foreground">
-              {o.label}
-            </option>
-          ))}
-        </select>
-        {pending ? (
-          <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-muted-foreground pointer-events-none" />
-        ) : (
-          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-        )}
+    <div className="flex flex-col items-end gap-1.5 max-w-xs">
+      <div className="flex items-center gap-2">
+        <ErrorLine msg={error} />
+        <div className="relative">
+          <select
+            value={optimistic}
+            disabled={pending}
+            onChange={(e) => {
+              const next = e.target.value;
+              const prev = optimistic;
+              setOptimistic(next);
+              setError(null);
+              startTransition(async () => {
+                const res = await updateRiskProfile(next);
+                if (!res.ok) {
+                  setOptimistic(prev);
+                  setError(res.error);
+                }
+              });
+            }}
+            className={`appearance-none pl-3 pr-7 py-1.5 rounded-md bg-card border border-border/60 text-sm font-medium ${current.tone} hover:border-border focus:outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer disabled:opacity-50`}
+          >
+            {RISK_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value} className="text-foreground">
+                {o.label}
+              </option>
+            ))}
+          </select>
+          {pending ? (
+            <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-muted-foreground pointer-events-none" />
+          ) : (
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+          )}
+        </div>
       </div>
+      <p className="text-[11px] text-muted-foreground leading-snug text-right">
+        {current.help}
+      </p>
     </div>
   );
 }
@@ -118,41 +182,48 @@ export function StrategyEditor({ value }: { value: string }) {
   const [optimistic, setOptimistic] = useState<string>(value);
   const [error, setError] = useState<string | null>(null);
   useAutoClearError(error, setError);
+  const current =
+    STRATEGY_OPTIONS.find((o) => o.value === optimistic) ?? STRATEGY_OPTIONS[0];
 
   return (
-    <div className="flex items-center gap-2">
-      <ErrorLine msg={error} />
-      <div className="relative">
-        <select
-          value={optimistic}
-          disabled={pending}
-          onChange={(e) => {
-            const next = e.target.value;
-            const prev = optimistic;
-            setOptimistic(next);
-            setError(null);
-            startTransition(async () => {
-              const res = await updateStrategy(next);
-              if (!res.ok) {
-                setOptimistic(prev);
-                setError(res.error);
-              }
-            });
-          }}
-          className="appearance-none pl-3 pr-7 py-1.5 rounded-md bg-card border border-border/60 text-sm font-medium hover:border-border focus:outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer disabled:opacity-50"
-        >
-          {STRATEGY_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value} className="text-foreground">
-              {o.label}
-            </option>
-          ))}
-        </select>
-        {pending ? (
-          <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-muted-foreground pointer-events-none" />
-        ) : (
-          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-        )}
+    <div className="flex flex-col items-end gap-1.5 max-w-xs">
+      <div className="flex items-center gap-2">
+        <ErrorLine msg={error} />
+        <div className="relative">
+          <select
+            value={optimistic}
+            disabled={pending}
+            onChange={(e) => {
+              const next = e.target.value;
+              const prev = optimistic;
+              setOptimistic(next);
+              setError(null);
+              startTransition(async () => {
+                const res = await updateStrategy(next);
+                if (!res.ok) {
+                  setOptimistic(prev);
+                  setError(res.error);
+                }
+              });
+            }}
+            className="appearance-none pl-3 pr-7 py-1.5 rounded-md bg-card border border-border/60 text-sm font-medium hover:border-border focus:outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer disabled:opacity-50"
+          >
+            {STRATEGY_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value} className="text-foreground">
+                {o.label}
+              </option>
+            ))}
+          </select>
+          {pending ? (
+            <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-muted-foreground pointer-events-none" />
+          ) : (
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+          )}
+        </div>
       </div>
+      <p className="text-[11px] text-muted-foreground leading-snug text-right">
+        {current.help}
+      </p>
     </div>
   );
 }
@@ -162,9 +233,11 @@ export function MinPriceEditor({ value }: { value: number }) {
   const [optimistic, setOptimistic] = useState<number>(value);
   const [error, setError] = useState<string | null>(null);
   useAutoClearError(error, setError);
+  const current =
+    PRICE_TIERS.find((t) => t.value === optimistic) ?? PRICE_TIERS[2];
 
   return (
-    <div className="flex flex-col items-end gap-1">
+    <div className="flex flex-col items-end gap-1.5 max-w-xs">
       <ErrorLine msg={error} />
       <div className="inline-flex rounded-md border border-border/60 bg-card overflow-hidden">
         {PRICE_TIERS.map((t) => {
@@ -202,6 +275,9 @@ export function MinPriceEditor({ value }: { value: number }) {
           );
         })}
       </div>
+      <p className="text-[11px] text-muted-foreground leading-snug text-right">
+        {current.help}
+      </p>
     </div>
   );
 }

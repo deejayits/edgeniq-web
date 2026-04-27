@@ -20,6 +20,7 @@ import { updateRules, type RulesUpdate } from "./actions";
 export type RuleRow = {
   chat_id: number;
   signal_type: "stocks" | "options";
+  mode: "paper" | "live";
   execution_mode: "off" | "one_tap" | "auto";
   min_score: number;
   watchlist_only: boolean;
@@ -69,6 +70,7 @@ export function RulesCard({ rule, title, description }: {
     startTransition(async () => {
       const payload: RulesUpdate = {
         signalType: draft.signal_type,
+        mode: draft.mode,
         executionMode: draft.execution_mode,
         minScore: draft.min_score,
         watchlistOnly: draft.watchlist_only,

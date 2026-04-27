@@ -141,15 +141,22 @@ export async function saveAlpacaConnection(
 
   // Seed default rules + risk rails on first connect so the user has
   // a sane baseline to edit (all rules default to execution_mode='off',
-  // which means nothing auto-fires until they opt in).
+  // which means nothing auto-fires until they opt in). Seed BOTH
+  // paper and live rows so the Live tab is populated when the user
+  // first opts into live — no race where Live shows empty rules.
   await supabase
     .from("auto_trade_rules")
     .upsert(
       [
-        { chat_id: chatId, signal_type: "stocks" },
-        { chat_id: chatId, signal_type: "options" },
+        { chat_id: chatId, signal_type: "stocks", mode: "paper" },
+        { chat_id: chatId, signal_type: "options", mode: "paper" },
+        { chat_id: chatId, signal_type: "stocks", mode: "live" },
+        { chat_id: chatId, signal_type: "options", mode: "live" },
       ],
-      { onConflict: "chat_id,signal_type", ignoreDuplicates: true },
+      {
+        onConflict: "chat_id,signal_type,mode",
+        ignoreDuplicates: true,
+      },
     );
   await supabase
     .from("auto_trade_risk_rails")
@@ -184,6 +191,7 @@ export async function disconnectBroker(): Promise<ActionResult> {
 
 export type RulesUpdate = {
   signalType: "stocks" | "options";
+  mode: "paper" | "live";
   executionMode: "off" | "one_tap" | "auto";
   minScore: number;
   watchlistOnly: boolean;
@@ -195,6 +203,9 @@ export type RulesUpdate = {
 
 export async function updateRules(upd: RulesUpdate): Promise<ActionResult> {
   const chatId = await requireElite();
+  if (upd.mode !== "paper" && upd.mode !== "live") {
+    return { ok: false, error: "invalid mode" };
+  }
   if (upd.minScore < 50 || upd.minScore > 100) {
     return { ok: false, error: "min score must be between 50 and 100" };
   }
@@ -211,6 +222,7 @@ export async function updateRules(upd: RulesUpdate): Promise<ActionResult> {
       {
         chat_id: chatId,
         signal_type: upd.signalType,
+        mode: upd.mode,
         execution_mode: upd.executionMode,
         min_score: upd.minScore,
         watchlist_only: upd.watchlistOnly,
@@ -220,7 +232,7 @@ export async function updateRules(upd: RulesUpdate): Promise<ActionResult> {
         cooldown_minutes: upd.cooldownMinutes,
         updated_at: new Date().toISOString(),
       },
-      { onConflict: "chat_id,signal_type" },
+      { onConflict: "chat_id,signal_type,mode" },
     );
   if (error) return { ok: false, error: error.message };
   revalidatePath("/app/broker");
@@ -268,13 +280,19 @@ export async function updateRiskRails(
 // ----------------------------------------------------------------------
 
 // Master "auto-trade on/off" switch. Batch-sets execution_mode on
-// every auto_trade_rules row for this user. Needed because the rules
-// cards set modes per-signal-type and there was no single obvious
-// "stop/start auto-trade" control.
+// every auto_trade_rules row for this user IN ONE MODE. Caller
+// passes the mode of the tab they're on so toggling Paper auto-trade
+// doesn't silently flip Live rules (and vice versa). Each tab has
+// its own rules — that mutex is the whole point of the per-mode
+// rule architecture.
 export async function setMasterAutoTrade(
   enabled: boolean,
+  mode: "paper" | "live",
 ): Promise<ActionResult> {
   const chatId = await requireElite();
+  if (mode !== "paper" && mode !== "live") {
+    return { ok: false, error: "invalid mode" };
+  }
   const supabase = supabaseAdmin();
   // When enabling, flip OFF rules to 'auto'. Rules already on
   // 'one_tap' stay on one_tap so we don't steamroll someone's
@@ -284,13 +302,15 @@ export async function setMasterAutoTrade(
       .from("auto_trade_rules")
       .update({ execution_mode: "auto", updated_at: new Date().toISOString() })
       .eq("chat_id", chatId)
+      .eq("mode", mode)
       .eq("execution_mode", "off");
     if (error) return { ok: false, error: error.message };
   } else {
     const { error } = await supabase
       .from("auto_trade_rules")
       .update({ execution_mode: "off", updated_at: new Date().toISOString() })
-      .eq("chat_id", chatId);
+      .eq("chat_id", chatId)
+      .eq("mode", mode);
     if (error) return { ok: false, error: error.message };
   }
   revalidatePath("/app/broker");
