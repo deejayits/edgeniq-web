@@ -1,0 +1,24 @@
+{
+  "name": "EdgeNiq",
+  "short_name": "EdgeNiq",
+  "description": "Trading signals + auto-trade for the disciplined retail trader.",
+  "start_url": "/app",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "icons": [
+    {
+      "src": "/icon",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-icon",
+      "type": "image/png",
+      "sizes": "180x180",
+      "purpose": "any"
+    }
+  ]
+}

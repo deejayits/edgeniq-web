@@ -6,12 +6,14 @@ import { supabaseAdmin } from "@/lib/supabase/server";
 import {
   Activity,
   Bell,
+  BellRing,
   CalendarClock,
   Eye,
   Shield,
   Target,
   UserCircle,
 } from "lucide-react";
+import { PushSubscribeButton } from "@/components/push-subscribe-button";
 import {
   RiskProfileEditor,
   StrategyEditor,
@@ -213,6 +215,13 @@ export default async function SettingsPage() {
             }
           />
           <SettingRow
+            icon={BellRing}
+            tone="primary"
+            label="Browser alerts"
+            description="Get push notifications on this device when signals fire — same payload as Telegram. Per-device, opt-in."
+            rightSlot={<PushSubscribeButton />}
+          />
+          <SettingRow
             icon={CalendarClock}
             tone="rose"
             label="Session alerts"
@@ -352,6 +361,11 @@ const TONE_CLASSES: Record<
     bg: "bg-amber-400/10",
     border: "border-amber-400/30",
     text: "text-amber-300",
+  },
+  primary: {
+    bg: "bg-primary/10",
+    border: "border-primary/30",
+    text: "text-primary",
   },
   rose: {
     bg: "bg-rose-400/10",

@@ -18,6 +18,8 @@ export const metadata: Metadata = {
   title: "EdgeNiq — your trading signals, organized",
   description:
     "AI-scored signals for stocks, options, and prediction markets, delivered to Telegram. Smart Money tracking, personal target ladders, and one-tap auto-trade via Alpaca.",
+  manifest: "/manifest.json",
+  themeColor: "#000000",
 };
 
 export default function RootLayout({
