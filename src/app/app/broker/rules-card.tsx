@@ -32,6 +32,11 @@ export type RuleRow = {
   position_size_value: number;
   max_daily_orders: number;
   cooldown_minutes: number;
+  // Optional exit-strategy overrides. null = use the default for this
+  // signal type (stocks → signal-defined bracket; options → risk
+  // profile preset).
+  target_pct: number | null;
+  stop_pct: number | null;
 };
 
 const POSITION_SIZE_LABEL: Record<RuleRow["position_size_type"], string> = {
@@ -86,7 +91,9 @@ export function RulesCard({ rule, title, description }: {
     draft.position_size_type !== rule.position_size_type ||
     draft.position_size_value !== rule.position_size_value ||
     draft.max_daily_orders !== rule.max_daily_orders ||
-    draft.cooldown_minutes !== rule.cooldown_minutes;
+    draft.cooldown_minutes !== rule.cooldown_minutes ||
+    draft.target_pct !== rule.target_pct ||
+    draft.stop_pct !== rule.stop_pct;
 
   const handleSave = () => {
     startTransition(async () => {
@@ -100,6 +107,8 @@ export function RulesCard({ rule, title, description }: {
         positionSizeValue: draft.position_size_value,
         maxDailyOrders: draft.max_daily_orders,
         cooldownMinutes: draft.cooldown_minutes,
+        targetPct: draft.target_pct,
+        stopPct: draft.stop_pct,
       };
       const res = await updateRules(payload);
       if (res.ok) {
@@ -109,6 +118,16 @@ export function RulesCard({ rule, title, description }: {
       }
     });
   };
+
+  // Default exit-strategy hints shown as placeholders. Stocks: signal-
+  // defined bracket; options: risk-profile preset (30/30/40 stop and
+  // 30/50/100 target depending on conservative/moderate/aggressive).
+  const isOptions = draft.signal_type === "options";
+  const targetPlaceholder = isOptions ? "50 (your profile)" : "from signal";
+  const stopPlaceholder = isOptions ? "30 (your profile)" : "from signal";
+  const exitHelp = isOptions
+    ? "Override your risk profile's options target / stop. Leave blank to inherit (30/30/40 stop, 30/50/100 target on Conservative / Moderate / Aggressive)."
+    : "Override the signal's bracket targets. Leave blank to use the signal-defined T2 + stop. Most users leave these untouched.";
 
   return (
     <Card className="p-6 border-border/60 bg-card/40 space-y-5">
@@ -295,6 +314,59 @@ export function RulesCard({ rule, title, description }: {
             tilt-protection setting.
           </p>
         </div>
+      </div>
+
+      {/* Exit strategy override — optional. Leaving blank means the
+          rule inherits the default for its signal type. */}
+      <div className="space-y-2">
+        <Label className="text-xs">Exit strategy (optional override)</Label>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="relative">
+            <Input
+              type="number"
+              min={0}
+              max={500}
+              step={1}
+              placeholder={targetPlaceholder}
+              value={draft.target_pct ?? ""}
+              onChange={(e) => {
+                const raw = e.target.value;
+                setDraft({
+                  ...draft,
+                  target_pct: raw === "" ? null : Number(raw),
+                });
+              }}
+              className="h-9 pr-12"
+            />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+              % TP
+            </span>
+          </div>
+          <div className="relative">
+            <Input
+              type="number"
+              min={0}
+              max={90}
+              step={1}
+              placeholder={stopPlaceholder}
+              value={draft.stop_pct ?? ""}
+              onChange={(e) => {
+                const raw = e.target.value;
+                setDraft({
+                  ...draft,
+                  stop_pct: raw === "" ? null : Number(raw),
+                });
+              }}
+              className="h-9 pr-12"
+            />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+              % SL
+            </span>
+          </div>
+        </div>
+        <p className="text-[11px] text-muted-foreground leading-snug">
+          {exitHelp}
+        </p>
       </div>
 
       <div className="pt-2 flex justify-end">

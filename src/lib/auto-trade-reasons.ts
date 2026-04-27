@@ -41,9 +41,13 @@ const REASON_PATTERNS: ReadonlyArray<{
     },
   },
   {
-    match: /asset .* not tradable|not.tradable|symbol.*not found|invalid symbol/i,
+    // Alpaca code 42210000 = "asset is not tradable" (and the
+    // 5xx-truncated form of that message often ends mid-symbol so we
+    // can't rely on the literal "not tradable" suffix being present).
+    match: /asset .* not tradable|not.tradable|symbol.*not found|invalid symbol|42210000|"asset/i,
     reason: {
       label: "Symbol not tradable on Alpaca",
+      hint: "Some far-OTM / weekly options aren't enabled on every Alpaca account",
       actionable: false,
     },
   },

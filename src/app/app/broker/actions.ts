@@ -199,6 +199,11 @@ export type RulesUpdate = {
   positionSizeValue: number;
   maxDailyOrders: number;
   cooldownMinutes: number;
+  // Optional exit-strategy overrides. Pass null to clear (use the
+  // default for this signal type — signal-defined for stocks,
+  // risk-profile preset for options).
+  targetPct: number | null;
+  stopPct: number | null;
 };
 
 export async function updateRules(upd: RulesUpdate): Promise<ActionResult> {
@@ -215,6 +220,14 @@ export async function updateRules(upd: RulesUpdate): Promise<ActionResult> {
   if (upd.maxDailyOrders < 0 || upd.maxDailyOrders > 100) {
     return { ok: false, error: "max daily orders must be between 0 and 100" };
   }
+  // Mirror the DB-side check constraints — fail fast with a friendly
+  // message rather than letting Postgres throw a generic violation.
+  if (upd.targetPct !== null && (upd.targetPct <= 0 || upd.targetPct > 500)) {
+    return { ok: false, error: "Target % override must be between 0 and 500" };
+  }
+  if (upd.stopPct !== null && (upd.stopPct <= 0 || upd.stopPct > 90)) {
+    return { ok: false, error: "Stop % override must be between 0 and 90" };
+  }
   const supabase = supabaseAdmin();
   const { error } = await supabase
     .from("auto_trade_rules")
@@ -230,6 +243,8 @@ export async function updateRules(upd: RulesUpdate): Promise<ActionResult> {
         position_size_value: upd.positionSizeValue,
         max_daily_orders: upd.maxDailyOrders,
         cooldown_minutes: upd.cooldownMinutes,
+        target_pct: upd.targetPct,
+        stop_pct: upd.stopPct,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "chat_id,signal_type,mode" },

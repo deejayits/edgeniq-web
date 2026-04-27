@@ -527,6 +527,8 @@ function defaultRule(
     position_size_value: signalType === "options" ? 200 : 500,
     max_daily_orders: 5,
     cooldown_minutes: 0,
+    target_pct: null,
+    stop_pct: null,
   };
 }
 
