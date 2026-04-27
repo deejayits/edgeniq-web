@@ -15,6 +15,8 @@ import {
   setUserPlan,
   setUserStatus,
   expireUser,
+  grantTrial,
+  resetTrialEligibility,
 } from "./actions";
 
 export type AdminUserRowData = {
@@ -29,6 +31,7 @@ export type AdminUserRowData = {
   lastSeenAt: string | null;
   signalsReceived: number;
   watchlistCount: number;
+  trialUsedAt: string | null;
 };
 
 function relativeTime(iso: string | null): string {
@@ -94,6 +97,34 @@ export function AdminUserRow({ u }: { u: AdminUserRowData }) {
     });
   };
 
+  const handleGrantTrial = () => {
+    const label = u.username || `#${u.chatId}`;
+    const verb = u.trialUsedAt ? "Re-grant" : "Grant";
+    if (!confirm(`${verb} a fresh 7-day trial for ${label}?`)) return;
+    startTransition(async () => {
+      const res = await grantTrial(u.chatId);
+      toast[res.ok ? "success" : "error"](
+        res.ok ? "trial granted (7d)" : res.error ?? "failed",
+      );
+    });
+  };
+
+  const handleResetTrialEligibility = () => {
+    const label = u.username || `#${u.chatId}`;
+    if (
+      !confirm(
+        `Reset ${label}'s trial eligibility? They'll be able to /start their own trial again.`,
+      )
+    )
+      return;
+    startTransition(async () => {
+      const res = await resetTrialEligibility(u.chatId);
+      toast[res.ok ? "success" : "error"](
+        res.ok ? "trial eligibility cleared" : res.error ?? "failed",
+      );
+    });
+  };
+
   const days = trialDaysLeft(u.subExpiresAt);
 
   return (
@@ -130,15 +161,17 @@ export function AdminUserRow({ u }: { u: AdminUserRowData }) {
           <span className="text-xs text-muted-foreground">—</span>
         ) : (
           <Select
-            value={localPlan}
+            value={localPlan === "free" ? "" : localPlan}
             onValueChange={handlePlanChange}
             disabled={isPending}
           >
             <SelectTrigger className="h-8 w-[100px]">
-              <SelectValue />
+              <SelectValue placeholder="—" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="free">Free</SelectItem>
+              {/* Free is gone — to revoke access use Revoke; to give a
+                  fresh trial use Grant Trial. The plan dropdown is
+                  strictly the post-trial activation path. */}
               <SelectItem value="pro">Pro</SelectItem>
               <SelectItem value="elite">Elite</SelectItem>
             </SelectContent>
@@ -209,7 +242,33 @@ export function AdminUserRow({ u }: { u: AdminUserRowData }) {
       {/* Actions */}
       <td className="px-4 py-3">
         {!isAdmin && (
-          <div className="flex items-center gap-2 justify-end">
+          <div className="flex flex-wrap items-center gap-2 justify-end">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleGrantTrial}
+              disabled={isPending}
+              className="h-7 text-xs"
+              title={
+                u.trialUsedAt
+                  ? "User already used their trial — re-grant another 7d"
+                  : "Grant a fresh 7-day trial"
+              }
+            >
+              {u.trialUsedAt ? "Re-trial" : "Grant trial"}
+            </Button>
+            {u.trialUsedAt && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleResetTrialEligibility}
+                disabled={isPending}
+                className="h-7 text-xs"
+                title="Clear trial-used flag without granting a new trial right now — user can /start their own"
+              >
+                Clear flag
+              </Button>
+            )}
             {u.subStatus !== "expired" && (
               <Button
                 size="sm"

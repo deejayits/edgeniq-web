@@ -19,6 +19,7 @@ type UserRow = {
   signals_received: number | null;
   watchlist: string[] | null;
   deleted: boolean | null;
+  trial_used_at: string | null;
 };
 
 export default async function AdminUsersPage() {
@@ -30,7 +31,8 @@ export default async function AdminUsersPage() {
     .from("users")
     .select(
       "chat_id, username, name, status, role, sub_plan, sub_status, " +
-        "sub_expires_at, last_seen_at, signals_received, watchlist, deleted",
+        "sub_expires_at, last_seen_at, signals_received, watchlist, deleted, " +
+        "trial_used_at",
     )
     .or("deleted.is.null,deleted.eq.false")
     .order("last_seen_at", { ascending: false, nullsFirst: false })
@@ -67,6 +69,7 @@ export default async function AdminUsersPage() {
     lastSeenAt: u.last_seen_at,
     signalsReceived: u.signals_received ?? 0,
     watchlistCount: (u.watchlist ?? []).length,
+    trialUsedAt: u.trial_used_at,
   }));
 
   return (
