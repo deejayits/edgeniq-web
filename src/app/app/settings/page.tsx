@@ -187,9 +187,17 @@ export default async function SettingsPage() {
       >
         <div className="px-5 py-5 space-y-4">
           <p className="text-xs text-muted-foreground leading-relaxed max-w-4xl">
-            Conviction score blends trend, 52-week position, sector
-            relative strength, insider activity, and volatility regime.
-            Refreshed every 15 min during market hours.
+            Conviction score (the badge next to each ticker) blends
+            trend, 52-week position, sector relative strength, insider
+            activity, and volatility regime — a 0&ndash;100 ranking
+            updated every 15 min. <b className="text-foreground">It is
+            not the alert cadence.</b> Real-time price moves on these
+            tickers stream over Alpaca WebSocket and fire signals
+            within seconds; the whole-market REST scanner runs every
+            30s during regular hours; the position monitor checks
+            every open trade for target/stop hits every 30s. So an
+            entry or exit opportunity does not have to wait for the
+            next conviction refresh.
           </p>
           <WatchlistEditor
             initial={watchlist.map((t) => t.toUpperCase())}
