@@ -247,19 +247,27 @@ function DashboardPreview() {
         <p className="mt-4 text-muted-foreground">
           The dashboard shows your actual win rate by risk profile and
           setup type — no cherry-picking, no screenshots that conveniently
-          omit the losers.
+          omit the losers. Public backtest page has the live aggregate
+          win rate per signal type if you want the real numbers before
+          signing up.
         </p>
       </div>
       <Card className="border-border/60 bg-card/50 overflow-hidden">
-        <div className="border-b border-border/50 px-6 py-3 flex items-center gap-2">
+        <div className="border-b border-border/50 px-6 py-3 flex items-center gap-3 flex-wrap">
           <div className="flex gap-1.5">
             <span className="h-2.5 w-2.5 rounded-full bg-muted" />
             <span className="h-2.5 w-2.5 rounded-full bg-muted" />
             <span className="h-2.5 w-2.5 rounded-full bg-muted" />
           </div>
-          <div className="ml-3 text-xs font-mono text-muted-foreground">
+          <div className="ml-1 text-xs font-mono text-muted-foreground">
             app.edgeniq.com/app
           </div>
+          {/* Truth-in-advertising: this card shows the dashboard
+              SHAPE, not real EdgeNiq performance. Public backtest
+              page has actual win rates. */}
+          <span className="ml-auto text-[10px] uppercase tracking-wider font-mono text-muted-foreground/70 px-2 py-0.5 rounded border border-border/40">
+            Illustrative preview
+          </span>
         </div>
         <div className="p-6 md:p-8">
           <div className="grid md:grid-cols-3 gap-4 mb-6">
@@ -327,6 +335,15 @@ function DashboardPreview() {
           </div>
         </div>
       </Card>
+      <p className="mt-4 text-xs text-muted-foreground text-center">
+        Want the real aggregate numbers?{" "}
+        <Link
+          href="/app/backtest"
+          className="text-primary hover:underline"
+        >
+          See live backtest by signal type →
+        </Link>
+      </p>
     </section>
   );
 }
