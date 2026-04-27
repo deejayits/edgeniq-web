@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { supabaseAdmin } from "@/lib/supabase/server";
+import { sendBotDMFireAndForget } from "@/lib/telegram-notify";
 
 // All actions re-verify admin role before mutating. The outer layout
 // check is a UX gate, not a security boundary — server actions can be
@@ -40,6 +41,31 @@ export async function setUserPlan(
     .update({ sub_plan: plan, sub_status: "active" })
     .eq("chat_id", chatId);
   if (error) return { ok: false, error: error.message };
+  // Plan upgrade is the user's most material billing event — they
+  // need to know their access changed. Welcome them to the new
+  // tier with a quick orientation.
+  const headline =
+    plan === "elite"
+      ? "🎉 <b>Welcome to Elite</b>"
+      : plan === "pro"
+        ? "✅ <b>Welcome to Pro</b>"
+        : "✅ <b>Plan updated</b>";
+  const tierBenefits =
+    plan === "elite"
+      ? "All features unlocked: stocks (whole-market + watchlist), " +
+        "options, Smart Money, prediction markets, ETF directional " +
+        "calls, auto-trade with bracket orders + breakeven shift."
+      : plan === "pro"
+        ? "Stock signals for tickers on your watchlist · 3 risk presets " +
+          "+ custom · live position monitor · /today, /history, " +
+          "/portfolio, /mystats."
+        : `Your plan is now ${plan}.`;
+  sendBotDMFireAndForget(
+    chatId,
+    `${headline}\n\n${tierBenefits}\n\n` +
+      "<i>Plan changed by admin. /pricing for the full feature " +
+      "matrix · /help for the command list.</i>",
+  );
   revalidatePath("/app/admin/users");
   return { ok: true };
 }
@@ -74,6 +100,17 @@ export async function grantTrial(
     })
     .eq("chat_id", chatId);
   if (error) return { ok: false, error: error.message };
+  sendBotDMFireAndForget(
+    chatId,
+    "🎁 <b>Fresh 7-day trial granted</b>\n" +
+      "\n" +
+      "All Elite features unlocked: stocks (whole-market + " +
+      "watchlist), options, Smart Money, prediction markets, " +
+      "ETF directional calls, auto-trade.\n" +
+      "\n" +
+      "Trial expires in 7 days. /pricing to compare tiers when " +
+      "you're ready to pick one.",
+  );
   revalidatePath("/app/admin/users");
   return { ok: true };
 }
@@ -106,6 +143,17 @@ export async function expireUser(
     .update({ sub_status: "expired" })
     .eq("chat_id", chatId);
   if (error) return { ok: false, error: error.message };
+  sendBotDMFireAndForget(
+    chatId,
+    "🔒 <b>Access expired</b>\n" +
+      "\n" +
+      "Your EdgeNiq subscription has been deactivated. Signals will " +
+      "stop until a plan is reactivated.\n" +
+      "\n" +
+      "<i>Contact the admin if this was unexpected. Your watchlist " +
+      "+ preferences are preserved — they'll be active again the " +
+      "moment a plan is restored.</i>",
+  );
   revalidatePath("/app/admin/users");
   return { ok: true };
 }
@@ -122,6 +170,19 @@ export async function setUserStatus(
     .update({ status })
     .eq("chat_id", chatId);
   if (error) return { ok: false, error: error.message };
+  // Restore-only DM: sending a "you've been suspended" Telegram is
+  // intentionally skipped because the suspended user can't act on it
+  // and the bot will refuse their commands anyway. Restoring users
+  // DO get a heads-up so they know they can come back.
+  if (status === "active") {
+    sendBotDMFireAndForget(
+      chatId,
+      "✅ <b>Access restored</b>\n" +
+        "\n" +
+        "Your EdgeNiq access is active again. Signals will resume on " +
+        "the next scanner tick. /status for current state.",
+    );
+  }
   revalidatePath("/app/admin/users");
   return { ok: true };
 }

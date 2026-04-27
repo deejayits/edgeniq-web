@@ -25,6 +25,7 @@ import { supabaseAdmin } from "@/lib/supabase/server";
 import { encrypt, type EncryptedBlob } from "@/lib/crypto";
 import { AlpacaError, testConnection } from "@/lib/alpaca";
 import { LIVE_DISCLAIMER_VERSION } from "./live-config";
+import { sendBotDMFireAndForget } from "@/lib/telegram-notify";
 
 type ActionResult<T = undefined> =
   | { ok: true; data?: T }
@@ -355,6 +356,23 @@ export async function switchToLive(opts: {
     from: u.active_broker_mode,
     auto_rules_reset: false,
   });
+  // High-stakes state change → mirror to Telegram so the user has a
+  // chat-side audit row. Fire-and-forget; the action result already
+  // reflects success of the DB write.
+  sendBotDMFireAndForget(
+    chatId,
+    "🔴 <b>LIVE mode is ON</b>\n" +
+      "\n" +
+      "Auto-trade signals will now route to your real Alpaca live " +
+      "account. Per-order cap, daily loss cap, and pre-flight " +
+      "account check are all enforced.\n" +
+      "\n" +
+      "<b>If anything looks off:</b> /kill YES — cancels every open " +
+      "Alpaca order and disables auto-trade in one tap.\n" +
+      "\n" +
+      "<i>Confirmed via the web — flip back to paper anytime on " +
+      "https://www.edgeniq.com/app/broker.</i>",
+  );
   revalidatePath("/app/broker");
   return { ok: true };
 }
@@ -385,6 +403,17 @@ export async function switchToPaper(): Promise<ActionResult> {
   if (error) return { ok: false, error: error.message };
 
   await logEvent(chatId, "mode_switched_to_paper", { from: "live" });
+  sendBotDMFireAndForget(
+    chatId,
+    "🟢 <b>Switched back to PAPER</b>\n" +
+      "\n" +
+      "Auto-trade signals will route to your Alpaca paper account. " +
+      "No real money is at risk.\n" +
+      "\n" +
+      "<i>Existing live positions on Alpaca are NOT auto-closed by " +
+      "this switch — visit Alpaca to flatten them, or use /kill YES " +
+      "to cancel any pending orders.</i>",
+  );
   revalidatePath("/app/broker");
   return { ok: true };
 }

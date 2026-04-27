@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { encrypt, type EncryptedBlob } from "@/lib/crypto";
 import { AlpacaClient, AlpacaError, testConnection } from "@/lib/alpaca";
+import { sendBotDMFireAndForget } from "@/lib/telegram-notify";
 
 // Server actions for /app/broker. All actions re-verify the session
 // and enforce the Elite-tier gate server-side — never rely on the
@@ -386,6 +387,19 @@ export async function engageKillSwitch(
     console.error("kill switch: cancel-all failed (rails still engaged)", exc);
   }
 
+  // High-stakes change → Telegram audit row.
+  sendBotDMFireAndForget(
+    chatId,
+    "🛑 <b>Kill switch ENGAGED</b>\n" +
+      "\n" +
+      `Reason: ${reason || "manual"}\n` +
+      "Auto-trade execution is disabled. Open Alpaca orders were " +
+      "canceled.\n" +
+      "\n" +
+      "<i>Existing FILLED positions are not closed by the kill " +
+      "switch — flatten them on Alpaca if you need to. Release " +
+      "from /app/broker when ready to resume.</i>",
+  );
   revalidatePath("/app/broker");
   return { ok: true, data: { canceledCount } };
 }
@@ -403,6 +417,14 @@ export async function releaseKillSwitch(): Promise<ActionResult> {
     })
     .eq("chat_id", chatId);
   if (error) return { ok: false, error: error.message };
+  sendBotDMFireAndForget(
+    chatId,
+    "✅ <b>Kill switch released</b>\n" +
+      "\n" +
+      "Auto-trade is allowed to resume. Note: execution_mode on each " +
+      "rule is OFF after a kill — flip the rules you want back ON " +
+      "via /app/broker before signals will trade.",
+  );
   revalidatePath("/app/broker");
   return { ok: true };
 }
