@@ -157,14 +157,16 @@ export default async function PortfolioPage() {
     )
     .eq("chat_id", tgUserId)
     .gte("submitted_at", since30d.toISOString())
-    .in("status", ["filled", "partially_filled"])
+    // Show every status except known-failures. The bot writes
+    // Alpaca's INITIAL response status (usually "accepted") and
+    // doesn't go back to update the row when the order actually
+    // fills — so an earlier filter of status='filled' missed every
+    // real position. Inclusive filter (NOT IN failure states)
+    // captures the user's actual exposure regardless of whether
+    // the row's status field is stale.
+    .not("status", "in", '("rejected","canceled","expired")')
     .order("submitted_at", { ascending: false })
     .limit(50);
-  // Only show auto-trades that ACTUALLY became positions. Rejected /
-  // canceled / pending orders belong on /app/broker (where users
-  // debug what fired) — surfacing them on Portfolio looked like the
-  // user had 10 positions when really only 2 filled. Portfolio's job
-  // is "what do I own right now?"
   const autoTrades = (autoTradeRows ?? []) as AutoTradeRow[];
 
   // Join signal context in a single IN query so we don't fan out one
