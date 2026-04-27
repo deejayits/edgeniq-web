@@ -198,6 +198,21 @@ export default async function PortfolioPage() {
     active.map((t) => t.ticker),
   );
 
+  // Cross-reference Alpaca positions vs our DB. Anything Alpaca shows
+  // that we don't have a tracked record for is a position the user
+  // placed MANUALLY on Alpaca's side (not via a /confirm tap, not
+  // via the auto-trader). Without surfacing them, the user sees an
+  // incomplete /portfolio while their Alpaca dashboard tells the
+  // real story — exactly the gap the user reported.
+  const trackedSymbols = new Set<string>();
+  for (const t of trades) trackedSymbols.add(t.ticker.toUpperCase());
+  for (const t of optionsTrades) trackedSymbols.add(t.symbol.toUpperCase());
+  for (const t of autoTrades) trackedSymbols.add(t.symbol.toUpperCase());
+  const alpacaPositions = await fetchAlpacaPositions(tgUserId);
+  const manualPositions = alpacaPositions.filter(
+    (p) => !trackedSymbols.has(p.symbol.toUpperCase()),
+  );
+
   const activeEnriched: EnrichedTrade[] = active.map((t) => ({
     ...t,
     signal: signalsById.get(t.signal_id),
@@ -572,6 +587,87 @@ export default async function PortfolioPage() {
               </table>
             </div>
           </Card>
+        </section>
+      )}
+
+      {/* Manual / external Alpaca positions. These exist on Alpaca
+          but EdgeNiq's DB doesn't track them — typically because
+          the user placed them directly on Alpaca's UI. Surfacing
+          here closes the "/portfolio looks empty but Alpaca shows
+          fills" gap the user reported. */}
+      {manualPositions.length > 0 && (
+        <section className="space-y-3">
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+              Other Alpaca positions
+            </h2>
+            <span className="text-xs text-muted-foreground tabular-nums">
+              {manualPositions.length} position
+              {manualPositions.length === 1 ? "" : "s"}
+            </span>
+          </div>
+          <Card className="p-0 border-border/60 bg-card/40 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border/60 bg-muted/20 text-left text-xs text-muted-foreground">
+                    <th className="px-5 py-2 font-medium">Symbol</th>
+                    <th className="px-4 py-2 font-medium">Side</th>
+                    <th className="px-4 py-2 font-medium">Qty</th>
+                    <th className="px-4 py-2 font-medium">Avg entry</th>
+                    <th className="px-4 py-2 font-medium">Current</th>
+                    <th className="px-4 py-2 font-medium">Unrealized</th>
+                    <th className="px-4 py-2 font-medium">Mode</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {manualPositions.slice(0, 30).map((p) => {
+                    const pnlPct = Number(p.unrealized_plpc) * 100;
+                    const pnlTone =
+                      pnlPct > 0.5
+                        ? "text-emerald-300"
+                        : pnlPct < -0.5
+                          ? "text-rose-300"
+                          : "text-muted-foreground";
+                    return (
+                      <tr
+                        key={`${p.mode}:${p.symbol}`}
+                        className="border-b border-border/40 last:border-0"
+                      >
+                        <td className="px-5 py-2.5 text-xs">
+                          <div className="font-medium">{p.symbol}</div>
+                        </td>
+                        <td className="px-4 py-2.5 text-xs uppercase text-muted-foreground">
+                          {p.side}
+                        </td>
+                        <td className="px-4 py-2.5 tabular-nums">{p.qty}</td>
+                        <td className="px-4 py-2.5 tabular-nums">
+                          ${Number(p.avg_entry_price).toFixed(2)}
+                        </td>
+                        <td className="px-4 py-2.5 tabular-nums">
+                          ${Number(p.current_price).toFixed(2)}
+                        </td>
+                        <td className={`px-4 py-2.5 tabular-nums ${pnlTone}`}>
+                          {pnlPct >= 0 ? "+" : ""}
+                          {pnlPct.toFixed(2)}%
+                        </td>
+                        <td className="px-4 py-2.5 text-xs uppercase text-muted-foreground">
+                          {p.mode}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+          <p className="text-[11px] text-muted-foreground/70 leading-snug max-w-3xl">
+            Positions placed directly on Alpaca&rsquo;s UI (or
+            inherited from before EdgeNiq tracked them). EdgeNiq
+            won&rsquo;t auto-manage these — no T1/T2/stop monitor,
+            no breakeven shift, no EOD flatten. Use Alpaca to close
+            them, or place new EdgeNiq-managed trades by signal.
+          </p>
         </section>
       )}
 
@@ -1020,6 +1116,73 @@ function PnLBar({
 }
 
 // ---------- data helpers ----------
+
+type PortfolioPosition = {
+  symbol: string;
+  side: "long" | "short";
+  qty: string;
+  avg_entry_price: string;
+  current_price: string;
+  unrealized_plpc: string;
+  mode: "paper" | "live";
+};
+
+/**
+ * Pull positions from BOTH the user's paper and live Alpaca
+ * connections. Used by /portfolio to surface positions that exist
+ * on Alpaca but aren't tracked in our DB (i.e. manually placed by
+ * the user on Alpaca's UI). Best-effort: any failure on a single
+ * connection just returns whatever the other one returned. We
+ * never crash the page on a flaky Alpaca API.
+ */
+async function fetchAlpacaPositions(
+  chatId: number,
+): Promise<PortfolioPosition[]> {
+  const out: PortfolioPosition[] = [];
+  const db = supabaseAdmin();
+  const { data: conns } = await db
+    .from("broker_connections")
+    .select("encrypted_api_key, encrypted_api_secret, mode")
+    .eq("chat_id", chatId)
+    .eq("broker", "alpaca")
+    .eq("is_active", true);
+  if (!conns || conns.length === 0) return out;
+
+  await Promise.all(
+    conns.map(async (conn) => {
+      try {
+        const apiKey = decrypt(
+          conn.encrypted_api_key as unknown as EncryptedBlob,
+        );
+        const apiSecret = decrypt(
+          conn.encrypted_api_secret as unknown as EncryptedBlob,
+        );
+        const mode = (conn.mode === "live" ? "live" : "paper") as
+          | "paper"
+          | "live";
+        const client = new AlpacaClient(apiKey, apiSecret, mode);
+        const positions = await client.getPositions();
+        for (const p of positions) {
+          out.push({
+            symbol: p.symbol,
+            side: p.side,
+            qty: p.qty,
+            avg_entry_price: p.avg_entry_price,
+            current_price: p.current_price,
+            unrealized_plpc: p.unrealized_plpc,
+            mode,
+          });
+        }
+      } catch (exc) {
+        console.error(
+          "portfolio: getPositions failed for one connection",
+          exc,
+        );
+      }
+    }),
+  );
+  return out;
+}
 
 async function fetchLivePricesForActive(
   chatId: number,

@@ -34,6 +34,25 @@ export type AlpacaAccount = {
   account_blocked: boolean;
 };
 
+export type AlpacaPosition = {
+  asset_id: string;
+  symbol: string;
+  exchange: string;
+  asset_class: string;
+  qty: string;
+  qty_available: string;
+  side: "long" | "short";
+  market_value: string;
+  cost_basis: string;
+  unrealized_pl: string;
+  unrealized_plpc: string;
+  current_price: string;
+  avg_entry_price: string;
+  // Number of contracts for options; usually 100x notional vs stocks.
+  // Alpaca does not return this for stock positions — leave optional.
+  asset_marginable?: boolean;
+};
+
 export type AlpacaOrder = {
   id: string;
   client_order_id: string;
@@ -179,6 +198,17 @@ export class AlpacaClient {
 
   getOrder(orderId: string): Promise<AlpacaOrder> {
     return this.req<AlpacaOrder>(`/v2/orders/${orderId}`);
+  }
+
+  /**
+   * All open positions on the account. Used by /portfolio to surface
+   * positions that exist on Alpaca but aren't in our DB — typically
+   * trades the user placed manually on Alpaca's own UI. Without this,
+   * a user with manual + auto-traded positions would see a partial
+   * picture and assume the bot was "missing" trades.
+   */
+  getPositions(): Promise<AlpacaPosition[]> {
+    return this.req<AlpacaPosition[]>("/v2/positions");
   }
 
   /**
