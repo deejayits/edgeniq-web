@@ -289,10 +289,10 @@ export default async function TargetDetailPage({
         <Info className="h-4 w-4" />
         <AlertDescription className="text-sm leading-relaxed text-muted-foreground max-w-5xl">
           <b className="text-foreground">Not financial advice.</b> Data
-          sourced from public SEC EDGAR + Congressional disclosure
-          feeds. Congressional filings have a 30-45 day reporting
-          delay — you&rsquo;re seeing what they disclosed, not
-          real-time activity.
+          sourced from public SEC EDGAR feeds. 13F holdings are
+          quarterly with a 45-day filing lag; Form 4 insider
+          transactions are filed within 2 business days. You&rsquo;re
+          seeing what was disclosed, not real-time activity.
         </AlertDescription>
       </Alert>
     </div>

@@ -109,7 +109,7 @@ export function ComparePicker({
       {selected.length < 3 && (
         <div className="space-y-2">
           <Input
-            placeholder="Search politicians, funds, insiders…"
+            placeholder="Search funds, insiders…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="h-9"

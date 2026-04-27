@@ -60,8 +60,8 @@ export default function PrivacyPage() {
               submission. Supabase admins cannot read your keys.
             </li>
             <li>
-              <b>Smart Money follow state</b>: which politicians / funds
-              / insiders you follow and whether mirror mode is enabled.
+              <b>Smart Money follow state</b>: which funds and insiders
+              you follow and whether mirror mode is enabled.
             </li>
             <li>
               <b>Operational logs</b>: last seen timestamp, bot command

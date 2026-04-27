@@ -41,14 +41,14 @@ const RESEARCH: Command[] = [
     example: "/market bitcoin",
   },
   {
-    cmd: "/congress",
-    desc: "browse Smart Money — politicians + hedge funds + insiders",
+    cmd: "/smartmoney",
+    desc: "browse Smart Money — hedge funds + insiders",
     tier: "elite",
   },
   {
-    cmd: "/congress <name>",
+    cmd: "/smartmoney <name>",
     desc: "one target's recent trades + follow/unfollow inline",
-    example: "/congress pelosi",
+    example: "/smartmoney buffett",
     tier: "elite",
   },
   { cmd: "/marketstatus", desc: "current market conditions" },

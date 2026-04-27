@@ -734,7 +734,7 @@ function AddOnCard() {
             </li>
             <li className="flex items-start gap-2">
               <Check className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
-              <span>Enables Smart Money <b>mirror</b> mode (auto-shadow politicians &amp; funds)</span>
+              <span>Enables Smart Money <b>mirror</b> mode (auto-shadow funds &amp; insiders)</span>
             </li>
             <li className="flex items-start gap-2">
               <Check className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />

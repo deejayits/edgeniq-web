@@ -169,9 +169,9 @@ export default async function ComparePage({
             Compare portfolios
           </h1>
           <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-4xl">
-            Pick up to three politicians, funds, or insiders to see
-            side-by-side. Shared holdings show up below — that&rsquo;s
-            where consensus-driven edge lives.
+            Pick up to three funds or insiders to see side-by-side.
+            Shared holdings show up below — that&rsquo;s where
+            consensus-driven edge lives.
           </p>
         </div>
       </div>

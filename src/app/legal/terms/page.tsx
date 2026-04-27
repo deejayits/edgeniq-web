@@ -92,13 +92,13 @@ export default function TermsPage() {
 
         <Section title="Smart Money data">
           <p>
-            The Smart Money feature aggregates public filings
-            (Congressional disclosures, SEC 13F, Form 4, 13D/G) from
-            official government sources. These filings have inherent
-            reporting delays — typically 2 days (insider Form 4) to
-            45 days (13F quarterly). You acknowledge that information
-            surfaced via Smart Money is historical, not real-time, and
-            positions may have changed since filing.
+            The Smart Money feature aggregates public filings (SEC
+            13F holdings and Form 4 insider transactions) from official
+            government sources. These filings have inherent reporting
+            delays — typically 2 days (insider Form 4) to 45 days (13F
+            quarterly). You acknowledge that information surfaced via
+            Smart Money is historical, not real-time, and positions
+            may have changed since filing.
           </p>
           <p>
             The &ldquo;mirror&rdquo; sub-feature (requires Live Trading
