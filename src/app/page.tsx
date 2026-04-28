@@ -246,10 +246,9 @@ function DashboardPreview() {
         </h2>
         <p className="mt-4 text-muted-foreground leading-relaxed">
           The dashboard shows your actual win rate by risk profile and
-          setup type — no cherry-picking, no screenshots that conveniently
-          omit the losers. Public backtest page has the live aggregate
-          win rate per signal type if you want the real numbers before
-          signing up.
+          setup type. The public backtest page exposes the same
+          aggregate win rate per signal type — read it before signing
+          up if you want the numbers without any of the marketing.
         </p>
       </div>
       <Card className="border-border/60 bg-card/50 overflow-hidden">
@@ -496,12 +495,12 @@ function WhyDifferent() {
     {
       icon: ShieldCheck,
       title: "Filtered before you see it",
-      body: "Thousands of tickers run through multi-timeframe confirmation, volatility-regime gates, liquidity floors, earnings filters, and your personal risk profile. Typically 1–5 signals a day. Quality, not flood.",
+      body: "Top most-active tickers run through multi-timeframe confirmation, volatility-regime gates, a $5M+ daily-dollar-volume liquidity floor, earnings filters, and your personal risk profile. Quality over quantity — most days produce a handful of signals or fewer.",
     },
     {
       icon: Zap,
       title: "Auditable & deterministic",
-      body: "Same conditions produce the same signal, every time. /why explains the scanner's current state in real time. /history shows every closed trade — wins, stops, and expireds. No highlight reels.",
+      body: "Same conditions produce the same signal, every time. /why explains the scanner's current state in real time. /history shows every closed trade — wins, stops, and expireds.",
     },
     {
       icon: BellRing,
@@ -564,10 +563,10 @@ function WhyDifferent() {
 function Pricing() {
   const tiers = [
     {
-      name: "Free",
-      tag: "7-day trial — Elite features unlocked",
+      name: "Trial",
+      tag: "7 days · Elite features unlocked",
       price: "$0",
-      priceSub: "for 7 days",
+      priceSub: "for 7 days, no card",
       // Free tier CTA always goes to /login (Telegram signup flow) —
       // doesn't touch Stripe even when billing is live.
       cta: "Start free trial",
@@ -654,6 +653,14 @@ function Pricing() {
           at a fraction of that. Start with a free 7-day Elite
           trial — no card required.
         </p>
+        <div className="mt-6 mx-auto max-w-2xl rounded-md border border-amber-400/40 bg-amber-400/5 px-4 py-3 text-xs text-amber-100/85 leading-relaxed">
+          <span className="font-medium text-amber-200">
+            Pro &amp; Elite checkout is not yet live.
+          </span>{" "}
+          The 7-day trial works today — start there. Contact the admin
+          to activate Pro or Elite when your trial ends; self-serve
+          billing lands in a future release.
+        </div>
       </div>
       <div className="grid md:grid-cols-3 gap-6 mb-16">
         {tiers.map((tier) => (
@@ -846,7 +853,7 @@ function FeatureMatrix() {
                 <th className="text-left px-5 py-3 font-medium text-muted-foreground">
                   Feature
                 </th>
-                <th className="text-center px-4 py-3 font-medium">Free</th>
+                <th className="text-center px-4 py-3 font-medium">Trial</th>
                 <th className="text-center px-4 py-3 font-medium text-primary">
                   Pro
                 </th>
