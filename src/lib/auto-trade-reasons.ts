@@ -76,6 +76,20 @@ const REASON_PATTERNS: ReadonlyArray<{
     },
   },
   {
+    // Bot-side macro event blackout — the bot pauses entries 30 min
+    // before / 60 min after FOMC, CPI, or NFP releases. Reason
+    // string from auto_trader looks like:
+    //   "macro_blackout:fomc:FOMC rate decision at 14:00 ET ..."
+    // Surface it as a benign, expected pause rather than a fault.
+    match: /macro.blackout|macro_blackout/i,
+    reason: {
+      label: "Paused for macro event",
+      hint:
+        "FOMC / CPI / jobs windows produce whipsaws — bot resumes after the post-event cooldown",
+      actionable: false,
+    },
+  },
+  {
     match: /max_open_positions/i,
     reason: {
       label: "Max open positions reached",
