@@ -214,7 +214,7 @@ function TargetPill({ label, pct }: { label: string; pct: string }) {
 function StatsStrip() {
   const stats = [
     { label: "Scanners active", value: "10", hint: "24/7" },
-    { label: "Sources", value: "4", hint: "Alpaca · Kalshi · Polymarket · Smart Money" },
+    { label: "Sources", value: "3", hint: "Alpaca · Kalshi · Smart Money" },
     { label: "Signal horizon", value: "3–10d", hint: "Short to swing" },
     { label: "Data layer", value: "Postgres", hint: "Supabase" },
   ];
@@ -240,11 +240,11 @@ function StatsStrip() {
 function DashboardPreview() {
   return (
     <section className="mx-auto max-w-6xl px-6 py-20 border-t border-border/40">
-      <div className="max-w-2xl mb-12">
+      <div className="mb-12">
         <h2 className="text-3xl md:text-4xl font-semibold tracking-tight">
           See every trade, not just the ones that worked.
         </h2>
-        <p className="mt-4 text-muted-foreground">
+        <p className="mt-4 text-muted-foreground leading-relaxed">
           The dashboard shows your actual win rate by risk profile and
           setup type — no cherry-picking, no screenshots that conveniently
           omit the losers. Public backtest page has the live aggregate
@@ -521,7 +521,7 @@ function WhyDifferent() {
   ];
   return (
     <section className="mx-auto max-w-6xl px-6 py-20 border-t border-border/40">
-      <div className="max-w-2xl mb-12">
+      <div className="mb-12">
         <div className="text-xs font-mono text-muted-foreground uppercase tracking-wider mb-3">
           Why EdgeNiq
         </div>
@@ -624,7 +624,7 @@ function Pricing() {
         "Liquidity-floor + relative-strength filtering",
         "Options alerts (unusual volume, block prints, OTM spikes)",
         "ETF directional calls — broad-market trend setups + sector rotation plays",
-        "Prediction markets (Kalshi + Polymarket)",
+        "Prediction markets (Kalshi) with YES%/volume spike detection",
         "Smart Money — Form 4 insider buys + 13F filings (Buffett, Burry, Dalio, Ackman, Tepper, Icahn, Klarman)",
         "Insider cluster alerts — louder ping when multiple insiders buy the same name",
         "13F position classification — see what funds added, trimmed, or exited each quarter",
@@ -800,8 +800,7 @@ function FeatureMatrix() {
     { label: "Grade + score + R/R gating", free: true, pro: true, elite: true },
     { label: "Options alerts (unusual vol · block · OTM)", free: true, pro: false, elite: true },
     { label: "ETF directional calls (broad market + sector rotation)", free: true, pro: false, elite: true },
-    { label: "Prediction markets (Kalshi · Polymarket)", free: true, pro: false, elite: true },
-    { label: "HIGH CONVICTION cross-venue signals", free: true, pro: false, elite: true },
+    { label: "Prediction markets (Kalshi) with YES%/volume spike detection", free: true, pro: false, elite: true },
     // --- Smart Money ---------------------------------------------
     { label: "Smart Money — hedge fund 13F filings", free: true, pro: false, elite: true },
     { label: "Smart Money — 13F position classification (new · add · trim · exit)", free: true, pro: false, elite: true },
