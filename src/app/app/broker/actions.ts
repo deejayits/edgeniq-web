@@ -386,6 +386,78 @@ export async function updateRiskRails(
 }
 
 // ----------------------------------------------------------------------
+// EOD flatten preferences
+// ----------------------------------------------------------------------
+
+export type FlattenEodUpdate = {
+  enabled: boolean;
+  // Pass null to clear the threshold (flatten all when enabled).
+  // Otherwise positive number — only flatten positions losing more
+  // than this percentage.
+  minLossPct: number | null;
+};
+
+export async function updateFlattenEod(
+  upd: FlattenEodUpdate,
+): Promise<ActionResult> {
+  let chatId: number;
+  try {
+    chatId = await requireElite();
+  } catch (exc) {
+    return {
+      ok: false,
+      error: exc instanceof Error ? exc.message : "auth failed",
+    };
+  }
+  if (
+    upd.minLossPct !== null
+    && (upd.minLossPct < 0 || upd.minLossPct > 100)
+  ) {
+    return {
+      ok: false,
+      error: "Loss threshold must be between 0 and 100",
+    };
+  }
+  const supabase = supabaseAdmin();
+  const { error } = await supabase
+    .from("users")
+    .update({
+      flatten_eod_enabled: upd.enabled,
+      flatten_eod_min_loss_pct:
+        upd.minLossPct === null ? 0 : upd.minLossPct,
+    })
+    .eq("chat_id", chatId);
+  if (error) return { ok: false, error: error.message };
+  // Audit DM — flatten policy directly affects how much risk
+  // sleeps overnight, so the user should always have it in their
+  // chat history.
+  let body: string;
+  if (!upd.enabled) {
+    body =
+      "🌙 <b>EOD flatten OFF</b>\n\n" +
+      "Open auto-trade positions will hold overnight. Only the " +
+      "live stop-loss orders on Alpaca can close them automatically. " +
+      "Watch for theta decay + gap risk on short-dated options.\n\n" +
+      "<i>Re-enable any time on /app/broker or with /setflatten on.</i>";
+  } else if (upd.minLossPct && upd.minLossPct > 0) {
+    body =
+      "🌆 <b>EOD flatten — threshold mode</b>\n\n" +
+      `Only positions losing more than <b>-${upd.minLossPct.toFixed(0)}%` +
+      "</b> will close ~15 min before market close. Winners + " +
+      "smaller losers hold overnight.";
+  } else {
+    body =
+      "🌆 <b>EOD flatten ON</b>\n\n" +
+      "All open auto-trade positions will be market-closed ~15 min " +
+      "before market close to avoid overnight gap risk + theta " +
+      "decay on short-dated options.";
+  }
+  sendBotDMFireAndForget(chatId, body);
+  revalidatePath("/app/broker");
+  return { ok: true };
+}
+
+// ----------------------------------------------------------------------
 // Kill switch
 // ----------------------------------------------------------------------
 

@@ -12,6 +12,7 @@ import { ConnectForm } from "./connect-form";
 import { ConnectionStrip } from "./connection-strip";
 import { RulesCard, type RuleRow } from "./rules-card";
 import { RiskRailsCard, type RiskRailsRow } from "./risk-rails-card";
+import { EodFlattenCard, type EodFlattenRow } from "./eod-flatten-card";
 import { AutoTradeMasterToggle } from "./master-toggle";
 import { MasterKillSwitch } from "./master-kill-switch";
 import { InactiveModeBanner } from "./inactive-mode-banner";
@@ -101,6 +102,8 @@ export default async function BrokerPage({
     live_max_open_positions: number | null;
     live_confirmation_level: "strict" | "standard" | null;
     active_broker_mode: "paper" | "live" | null;
+    flatten_eod_enabled: boolean | null;
+    flatten_eod_min_loss_pct: number | null;
   };
 
   // Pull the full user row — we need many fields for live-mode gating.
@@ -110,7 +113,8 @@ export default async function BrokerPage({
       "sub_plan, sub_status, addon_live_trading, " +
         "live_trading_enabled, live_acknowledged_at, live_acknowledged_version, " +
         "live_max_position_usd, live_max_daily_loss_usd, live_max_open_positions, " +
-        "live_confirmation_level, active_broker_mode",
+        "live_confirmation_level, active_broker_mode, " +
+        "flatten_eod_enabled, flatten_eod_min_loss_pct",
     )
     .eq("chat_id", user.tgUserId)
     .maybeSingle();
@@ -416,6 +420,19 @@ export default async function BrokerPage({
                   max_daily_loss_pct: null,
                 }
               }
+            />
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+              End-of-day behavior
+            </h2>
+            <EodFlattenCard
+              initial={{
+                enabled: userRow?.flatten_eod_enabled ?? true,
+                minLossPct:
+                  Number(userRow?.flatten_eod_min_loss_pct ?? 0) || 0,
+              }}
             />
           </section>
 
