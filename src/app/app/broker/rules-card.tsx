@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -82,7 +82,7 @@ export function RulesCard({ rule, title, description }: {
 }) {
   // Local draft state — we only write on Save to keep round-trips low.
   const [draft, setDraft] = useState<RuleRow>(rule);
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
 
   const dirty =
     draft.execution_mode !== rule.execution_mode ||
@@ -95,34 +95,35 @@ export function RulesCard({ rule, title, description }: {
     draft.target_pct !== rule.target_pct ||
     draft.stop_pct !== rule.stop_pct;
 
-  const handleSave = () => {
-    startTransition(async () => {
-      const payload: RulesUpdate = {
-        signalType: draft.signal_type,
-        mode: draft.mode,
-        executionMode: draft.execution_mode,
-        minScore: draft.min_score,
-        watchlistOnly: draft.watchlist_only,
-        positionSizeType: draft.position_size_type,
-        positionSizeValue: draft.position_size_value,
-        maxDailyOrders: draft.max_daily_orders,
-        cooldownMinutes: draft.cooldown_minutes,
-        targetPct: draft.target_pct,
-        stopPct: draft.stop_pct,
-      };
-      try {
-        const res = await updateRules(payload);
-        if (res.ok) {
-          toast.success(`${title} rules saved`);
-        } else {
-          toast.error(res.error);
-        }
-      } catch (exc) {
-        toast.error(
-          exc instanceof Error ? exc.message : "Save failed — try again",
-        );
+  const handleSave = async () => {
+    const payload: RulesUpdate = {
+      signalType: draft.signal_type,
+      mode: draft.mode,
+      executionMode: draft.execution_mode,
+      minScore: draft.min_score,
+      watchlistOnly: draft.watchlist_only,
+      positionSizeType: draft.position_size_type,
+      positionSizeValue: draft.position_size_value,
+      maxDailyOrders: draft.max_daily_orders,
+      cooldownMinutes: draft.cooldown_minutes,
+      targetPct: draft.target_pct,
+      stopPct: draft.stop_pct,
+    };
+    setIsPending(true);
+    try {
+      const res = await updateRules(payload);
+      if (res.ok) {
+        toast.success(`${title} rules saved`);
+      } else {
+        toast.error(res.error);
       }
-    });
+    } catch (exc) {
+      toast.error(
+        exc instanceof Error ? exc.message : "Save failed — try again",
+      );
+    } finally {
+      setIsPending(false);
+    }
   };
 
   // Default exit-strategy hints shown as placeholders. Stocks: signal-

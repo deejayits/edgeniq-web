@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -31,9 +31,9 @@ export function RiskRailsCard({ rails }: { rails: RiskRailsRow }) {
   const [maxDailyLossPct, setMaxDailyLossPct] = useState<string>(
     rails.max_daily_loss_pct != null ? String(rails.max_daily_loss_pct) : "",
   );
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const upd: RiskRailsUpdate = {
       maxOpenPositions: maxPositions,
       maxAllocPerTickerPct: maxAllocPct,
@@ -42,20 +42,21 @@ export function RiskRailsCard({ rails }: { rails: RiskRailsRow }) {
       maxDailyLossPct:
         maxDailyLossPct.trim() === "" ? null : Number(maxDailyLossPct),
     };
-    startTransition(async () => {
-      try {
-        const res = await updateRiskRails(upd);
-        if (res.ok) {
-          toast.success("Risk rails saved");
-        } else {
-          toast.error(res.error);
-        }
-      } catch (exc) {
-        toast.error(
-          exc instanceof Error ? exc.message : "Save failed — try again",
-        );
+    setIsPending(true);
+    try {
+      const res = await updateRiskRails(upd);
+      if (res.ok) {
+        toast.success("Risk rails saved");
+      } else {
+        toast.error(res.error);
       }
-    });
+    } catch (exc) {
+      toast.error(
+        exc instanceof Error ? exc.message : "Save failed — try again",
+      );
+    } finally {
+      setIsPending(false);
+    }
   };
 
   return (

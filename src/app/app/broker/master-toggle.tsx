@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -38,37 +38,38 @@ export function AutoTradeMasterToggle({
   totalCount,
 }: Props) {
   const [enabled, setEnabled] = useState(anyActive);
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
   // When this tab is NOT the active routing mode, dim the visual
   // and surface a "config only" sub-label. Persisted state still
   // changes; bot still won't fire because routing target is
   // elsewhere.
   const isMuted = !isActiveRoutingMode;
 
-  const handleToggle = (next: boolean) => {
+  const handleToggle = async (next: boolean) => {
     // Optimistic: flip the visual immediately; revert on server error.
     setEnabled(next);
-    startTransition(async () => {
-      try {
-        const res = await setMasterAutoTrade(next, mode);
-        if (res.ok) {
-          const modeLabel = mode === "live" ? "Live" : "Paper";
-          toast.success(
-            next
-              ? `${modeLabel} auto-trade ON — rules will execute as signals fire`
-              : `${modeLabel} auto-trade OFF — ${modeLabel.toLowerCase()} rules paused`,
-          );
-        } else {
-          setEnabled(!next); // revert
-          toast.error(res.error);
-        }
-      } catch (exc) {
-        setEnabled(!next); // revert on unexpected throw
-        toast.error(
-          exc instanceof Error ? exc.message : "Save failed — try again",
+    setIsPending(true);
+    try {
+      const res = await setMasterAutoTrade(next, mode);
+      if (res.ok) {
+        const modeLabel = mode === "live" ? "Live" : "Paper";
+        toast.success(
+          next
+            ? `${modeLabel} auto-trade ON — rules will execute as signals fire`
+            : `${modeLabel} auto-trade OFF — ${modeLabel.toLowerCase()} rules paused`,
         );
+      } else {
+        setEnabled(!next); // revert
+        toast.error(res.error);
       }
-    });
+    } catch (exc) {
+      setEnabled(!next); // revert on unexpected throw
+      toast.error(
+        exc instanceof Error ? exc.message : "Save failed — try again",
+      );
+    } finally {
+      setIsPending(false);
+    }
   };
 
   // Visual variants:
