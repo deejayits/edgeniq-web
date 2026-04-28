@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { watchlistCapFromRow } from "@/lib/watchlist-caps";
+import { isProAccess } from "@/lib/access";
+import { sendBotDMFireAndForget } from "@/lib/telegram-notify";
 
 // Settings server actions — straight column writes against
 // public.users. The bot's _user_sync_loop polls the same row every
@@ -145,9 +147,60 @@ async function requireUser(): Promise<{ chatId: number }> {
   return { chatId: user.tgUserId };
 }
 
+// Subscription gate for settings writes. Mirrors the bot's
+// has_pro_access — admin / active pro / active elite / trial all pass.
+// Expired subscribers are blocked from making changes (their data is
+// preserved, but they can't shift sizing/strategy/watchlist while in
+// arrears). This prevents surprise behavior changes after billing
+// lapses and matches what the bot would also reject server-side.
+async function requireSubscriber(): Promise<
+  | { ok: true; chatId: number }
+  | { ok: false; error: string }
+> {
+  const { chatId } = await requireUser();
+  const sb = supabaseAdmin();
+  const { data, error } = await sb
+    .from("users")
+    .select("role, sub_plan, sub_status")
+    .eq("chat_id", chatId)
+    .maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  const accessUser = {
+    role: (data?.role as string | undefined) ?? undefined,
+    subPlan: (data?.sub_plan as string | undefined) ?? undefined,
+    subStatus: (data?.sub_status as string | undefined) ?? undefined,
+  };
+  if (!isProAccess(accessUser)) {
+    return {
+      ok: false,
+      error:
+        "Settings changes require an active subscription. Resubscribe " +
+        "from /app/account to resume edits.",
+    };
+  }
+  return { ok: true, chatId };
+}
+
+const RISK_LABELS: Record<string, string> = {
+  conservative: "Conservative",
+  moderate: "Moderate",
+  aggressive: "Aggressive",
+};
+
+const STRATEGY_LABELS: Record<string, string> = {
+  balanced: "Balanced",
+  momentum_breakouts: "Momentum Breakouts",
+  mean_reversion: "Mean Reversion",
+  trend_following: "Trend Following",
+  post_earnings_drift: "Post-Earnings Drift",
+  high_conviction: "High Conviction",
+};
+
 export async function updateRiskProfile(value: string): Promise<ActionResult> {
   try {
-    const { chatId } = await requireUser();
+    const gate = await requireSubscriber();
+    if (!gate.ok) return gate;
+    const { chatId } = gate;
     if (!VALID_RISK_PROFILES.includes(value as never)) {
       return { ok: false, error: "Invalid risk profile" };
     }
@@ -157,6 +210,12 @@ export async function updateRiskProfile(value: string): Promise<ActionResult> {
       .update({ risk_profile: value })
       .eq("chat_id", chatId);
     if (error) return { ok: false, error: error.message };
+    sendBotDMFireAndForget(
+      chatId,
+      `🛡️ <b>Risk profile updated</b>\n\n` +
+        `New profile: <b>${RISK_LABELS[value] ?? value}</b>\n\n` +
+        `<i>Sizing + signal selectivity adjust on the next scan.</i>`,
+    );
     revalidatePath("/app/settings");
     revalidatePath("/app");
     return { ok: true };
@@ -167,7 +226,9 @@ export async function updateRiskProfile(value: string): Promise<ActionResult> {
 
 export async function updateStrategy(value: string): Promise<ActionResult> {
   try {
-    const { chatId } = await requireUser();
+    const gate = await requireSubscriber();
+    if (!gate.ok) return gate;
+    const { chatId } = gate;
     if (!VALID_STRATEGIES.includes(value as never)) {
       return { ok: false, error: "Invalid strategy" };
     }
@@ -177,6 +238,12 @@ export async function updateStrategy(value: string): Promise<ActionResult> {
       .update({ strategy: value })
       .eq("chat_id", chatId);
     if (error) return { ok: false, error: error.message };
+    sendBotDMFireAndForget(
+      chatId,
+      `🎯 <b>Strategy updated</b>\n\n` +
+        `New filter: <b>${STRATEGY_LABELS[value] ?? value}</b>\n\n` +
+        `<i>Setup-type filter applies on the next scan.</i>`,
+    );
     revalidatePath("/app/settings");
     revalidatePath("/app");
     return { ok: true };
@@ -187,7 +254,9 @@ export async function updateStrategy(value: string): Promise<ActionResult> {
 
 export async function updateMinPrice(value: number): Promise<ActionResult> {
   try {
-    const { chatId } = await requireUser();
+    const gate = await requireSubscriber();
+    if (!gate.ok) return gate;
+    const { chatId } = gate;
     if (!ALLOWED_MIN_PRICES.includes(value as never)) {
       return { ok: false, error: "Invalid min price tier" };
     }
@@ -197,6 +266,12 @@ export async function updateMinPrice(value: number): Promise<ActionResult> {
       .update({ min_price: value })
       .eq("chat_id", chatId);
     if (error) return { ok: false, error: error.message };
+    sendBotDMFireAndForget(
+      chatId,
+      `🛡️ <b>Min share price updated</b>\n\n` +
+        `New floor: <b>$${value}</b>\n\n` +
+        `<i>Tickers below this price will be filtered from scans.</i>`,
+    );
     revalidatePath("/app/settings");
     return { ok: true };
   } catch (e) {
@@ -210,7 +285,9 @@ export async function updateMinPrice(value: number): Promise<ActionResult> {
 // the worst case is one ticker getting re-added or re-removed.
 export async function addWatchlistTicker(raw: string): Promise<ActionResult> {
   try {
-    const { chatId } = await requireUser();
+    const gate = await requireSubscriber();
+    if (!gate.ok) return gate;
+    const { chatId } = gate;
     const ticker = raw.trim().toUpperCase();
     if (!TICKER_RE.test(ticker) || RESERVED_TICKERS.has(ticker)) {
       return {
@@ -250,6 +327,13 @@ export async function addWatchlistTicker(raw: string): Promise<ActionResult> {
       .update({ watchlist: next })
       .eq("chat_id", chatId);
     if (error) return { ok: false, error: error.message };
+    sendBotDMFireAndForget(
+      chatId,
+      `👁 <b>Watchlist updated</b>\n\n` +
+        `Added: <code>${ticker}</code>\n` +
+        `Now tracking: <b>${next.length} / ${cap}</b>\n\n` +
+        `<i>The scanner will evaluate ${ticker} for entry signals on its next pass.</i>`,
+    );
     revalidatePath("/app/settings");
     revalidatePath("/app");
     return { ok: true };
@@ -260,7 +344,9 @@ export async function addWatchlistTicker(raw: string): Promise<ActionResult> {
 
 export async function removeWatchlistTicker(raw: string): Promise<ActionResult> {
   try {
-    const { chatId } = await requireUser();
+    const gate = await requireSubscriber();
+    if (!gate.ok) return gate;
+    const { chatId } = gate;
     const ticker = raw.trim().toUpperCase();
     if (!ticker) return { ok: false, error: "Empty ticker" };
     const sb = supabaseAdmin();
@@ -282,6 +368,13 @@ export async function removeWatchlistTicker(raw: string): Promise<ActionResult> 
       .update({ watchlist: next })
       .eq("chat_id", chatId);
     if (error) return { ok: false, error: error.message };
+    const cap = await watchlistCapForUser(chatId);
+    sendBotDMFireAndForget(
+      chatId,
+      `👁 <b>Watchlist updated</b>\n\n` +
+        `Removed: <code>${ticker}</code>\n` +
+        `Now tracking: <b>${next.length} / ${cap}</b>`,
+    );
     revalidatePath("/app/settings");
     revalidatePath("/app");
     return { ok: true };

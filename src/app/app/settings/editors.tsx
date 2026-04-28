@@ -12,8 +12,9 @@
 // either succeeds silently or shows the error inline. Smaller surface
 // = fewer cross-component coordination bugs.
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState } from "react";
 import { ChevronDown, Check, Plus, X, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { ConvictionBadge } from "@/components/conviction-badge";
 import { Slider } from "@/components/ui/slider";
 import {
@@ -129,7 +130,7 @@ function useAutoClearError(
 }
 
 export function RiskProfileEditor({ value }: { value: string }) {
-  const [pending, startTransition] = useTransition();
+  const [pending, setPending] = useState(false);
   const [optimistic, setOptimistic] = useState<string>(value);
   const [error, setError] = useState<string | null>(null);
   useAutoClearError(error, setError);
@@ -147,18 +148,29 @@ export function RiskProfileEditor({ value }: { value: string }) {
   );
   const current = RISK_OPTIONS[idx] ?? RISK_OPTIONS[1];
 
-  const handleChange = (next: string) => {
+  const handleChange = async (next: string) => {
     if (next === optimistic) return;
     const prev = optimistic;
     setOptimistic(next);
     setError(null);
-    startTransition(async () => {
+    setPending(true);
+    try {
       const res = await updateRiskProfile(next);
-      if (!res.ok) {
+      if (res.ok) {
+        toast.success(`Risk profile saved: ${RISK_OPTIONS.find((o) => o.value === next)?.label ?? next}`);
+      } else {
         setOptimistic(prev);
         setError(res.error);
+        toast.error(res.error);
       }
-    });
+    } catch (exc) {
+      setOptimistic(prev);
+      const msg = exc instanceof Error ? exc.message : "Save failed";
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setPending(false);
+    }
   };
 
   return (
@@ -221,7 +233,7 @@ export function RiskProfileEditor({ value }: { value: string }) {
 }
 
 export function StrategyEditor({ value }: { value: string }) {
-  const [pending, startTransition] = useTransition();
+  const [pending, setPending] = useState(false);
   const [optimistic, setOptimistic] = useState<string>(value);
   const [error, setError] = useState<string | null>(null);
   useAutoClearError(error, setError);
@@ -234,18 +246,36 @@ export function StrategyEditor({ value }: { value: string }) {
         <select
           value={optimistic}
           disabled={pending}
-          onChange={(e) => {
+          onChange={async (e) => {
             const next = e.target.value;
             const prev = optimistic;
             setOptimistic(next);
             setError(null);
-            startTransition(async () => {
+            setPending(true);
+            try {
               const res = await updateStrategy(next);
-              if (!res.ok) {
+              if (res.ok) {
+                toast.success(
+                  `Strategy saved: ${
+                    STRATEGY_OPTIONS.find((o) => o.value === next)?.label.replace(
+                      /^[^A-Za-z]+/,
+                      "",
+                    ).trim() ?? next
+                  }`,
+                );
+              } else {
                 setOptimistic(prev);
                 setError(res.error);
+                toast.error(res.error);
               }
-            });
+            } catch (exc) {
+              setOptimistic(prev);
+              const msg = exc instanceof Error ? exc.message : "Save failed";
+              setError(msg);
+              toast.error(msg);
+            } finally {
+              setPending(false);
+            }
           }}
           className="appearance-none w-full pl-3 pr-7 py-1.5 rounded-md bg-card border border-border/60 text-sm font-medium hover:border-border focus:outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer disabled:opacity-50"
         >
@@ -270,7 +300,7 @@ export function StrategyEditor({ value }: { value: string }) {
 }
 
 export function MinPriceEditor({ value }: { value: number }) {
-  const [pending, startTransition] = useTransition();
+  const [pending, setPending] = useState(false);
   const [optimistic, setOptimistic] = useState<number>(value);
   const [error, setError] = useState<string | null>(null);
   useAutoClearError(error, setError);
@@ -287,18 +317,29 @@ export function MinPriceEditor({ value }: { value: number }) {
               key={t.value}
               type="button"
               disabled={pending}
-              onClick={() => {
+              onClick={async () => {
                 if (active) return;
                 const prev = optimistic;
                 setOptimistic(t.value);
                 setError(null);
-                startTransition(async () => {
+                setPending(true);
+                try {
                   const res = await updateMinPrice(t.value);
-                  if (!res.ok) {
+                  if (res.ok) {
+                    toast.success(`Min share price saved: $${t.value}`);
+                  } else {
                     setOptimistic(prev);
                     setError(res.error);
+                    toast.error(res.error);
                   }
-                });
+                } catch (exc) {
+                  setOptimistic(prev);
+                  const msg = exc instanceof Error ? exc.message : "Save failed";
+                  setError(msg);
+                  toast.error(msg);
+                } finally {
+                  setPending(false);
+                }
               }}
               title={t.sub}
               className={`flex-1 px-3 py-1.5 text-sm font-mono border-r border-border/40 last:border-0 transition disabled:opacity-50 ${
@@ -333,13 +374,13 @@ export function WatchlistEditor({
   initial: string[];
   scoreByTicker: Record<string, number>;
 }) {
-  const [pending, startTransition] = useTransition();
+  const [pending, setPending] = useState(false);
   const [tickers, setTickers] = useState<string[]>(initial);
   const [draft, setDraft] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   useAutoClearError(error, setError);
 
-  function add() {
+  async function add() {
     const t = draft.trim().toUpperCase();
     if (!t) return;
     if (tickers.includes(t)) {
@@ -350,26 +391,48 @@ export function WatchlistEditor({
     setTickers([...prev, t]);
     setDraft("");
     setError(null);
-    startTransition(async () => {
+    setPending(true);
+    try {
       const res = await addWatchlistTicker(t);
-      if (!res.ok) {
+      if (res.ok) {
+        toast.success(`Added ${t} to watchlist`);
+      } else {
         setTickers(prev);
         setError(res.error);
+        toast.error(res.error);
       }
-    });
+    } catch (exc) {
+      setTickers(prev);
+      const msg = exc instanceof Error ? exc.message : "Save failed";
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setPending(false);
+    }
   }
 
-  function remove(t: string) {
+  async function remove(t: string) {
     const prev = tickers;
     setTickers(prev.filter((x) => x !== t));
     setError(null);
-    startTransition(async () => {
+    setPending(true);
+    try {
       const res = await removeWatchlistTicker(t);
-      if (!res.ok) {
+      if (res.ok) {
+        toast.success(`Removed ${t} from watchlist`);
+      } else {
         setTickers(prev);
         setError(res.error);
+        toast.error(res.error);
       }
-    });
+    } catch (exc) {
+      setTickers(prev);
+      const msg = exc instanceof Error ? exc.message : "Save failed";
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setPending(false);
+    }
   }
 
   return (
