@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, ShieldAlert, Clock } from "lucide-react";
 import { auth } from "@/auth";
 import { AppNav } from "@/components/app-nav";
 import { BrandLockup } from "@/components/brand";
@@ -8,6 +8,12 @@ import { CommandPalette } from "@/components/command-palette";
 import { UserMenu } from "@/components/user-menu";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { env } from "@/env";
+import {
+  computeMacroState,
+  macroEventLabel,
+  type MacroEventRow,
+  type MacroState,
+} from "@/lib/macro-blackout";
 
 // Protected dashboard shell. Middleware already gates /app/** but we
 // re-verify the session here so server components downstream can trust
@@ -30,29 +36,48 @@ export default async function AppLayout({
   };
   const isAdmin = user.role === "admin" || user.role === "primary_admin";
 
-  // Stale-terms detection. Acceptance is bot-side authoritative
-  // (the bot collects + stamps the version on /start), so the web
-  // can't accept on the user's behalf — but we CAN tell them their
-  // signals are paused and where to fix it. Skipped for admins
-  // since they're exempt from the bot-side stale-terms gate too.
+  // Stale-terms detection + macro blackout state, fetched in
+  // parallel from Supabase so layout overhead stays low.
   let staleTerms: { acked: string; current: string } | null = null;
-  if (user.tgUserId && !isAdmin) {
-    try {
-      const db = supabaseAdmin();
-      const { data } = await db
-        .from("users")
-        .select("terms_accepted_version")
-        .eq("chat_id", user.tgUserId)
-        .maybeSingle();
-      const acked = (data?.terms_accepted_version ?? "").trim();
-      const current = env.PRIVACY_VERSION;
-      if (current && acked !== current) {
-        staleTerms = { acked: acked || "—", current };
-      }
-    } catch {
-      // Network blip → don't block the page; bot-side gate is the
-      // authoritative consent enforcement, the banner is just UX.
+  let macro: MacroState = { phase: "clear" };
+  try {
+    const db = supabaseAdmin();
+    const [termsRes, eventsRes] = await Promise.all([
+      user.tgUserId && !isAdmin
+        ? db
+            .from("users")
+            .select("terms_accepted_version")
+            .eq("chat_id", user.tgUserId)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+      db
+        .from("macro_events")
+        .select("event_date, time_et, kind, weight, title")
+        .gte(
+          "event_date",
+          new Date(Date.now() - 24 * 3600_000).toISOString().slice(0, 10),
+        )
+        .order("event_date", { ascending: true })
+        .limit(20),
+    ]);
+    const acked = (
+      (termsRes as { data: { terms_accepted_version?: string } | null }).data
+        ?.terms_accepted_version ?? ""
+    ).trim();
+    const current = env.PRIVACY_VERSION;
+    if (
+      user.tgUserId
+      && !isAdmin
+      && current
+      && acked !== current
+    ) {
+      staleTerms = { acked: acked || "—", current };
     }
+    const rows = (eventsRes as { data: MacroEventRow[] | null }).data ?? [];
+    macro = computeMacroState(rows);
+  } catch {
+    // Network blip → leave both states empty; bot-side gates are
+    // the authoritative protections, banners are UX.
   }
 
   return (
@@ -96,6 +121,38 @@ export default async function AppLayout({
               >
                 Open the bot →
               </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {macro.phase === "blocked" && (
+        <div className="border-b border-rose-400/40 bg-rose-400/10">
+          <div className="mx-auto max-w-7xl px-6 py-3 flex items-start gap-3">
+            <ShieldAlert className="h-4 w-4 text-rose-300 mt-0.5 shrink-0" />
+            <div className="text-sm text-rose-100/90 leading-relaxed">
+              <span className="font-medium text-rose-200">
+                Auto-trade paused — {macroEventLabel(macro.event)} window.
+              </span>{" "}
+              Bot blocks new entries {macro.pre} min before / {macro.post}{" "}
+              min after this event ({macro.event.time_et} ET) to avoid
+              announcement-driven whipsaws. Manual signals continue to flow.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {macro.phase === "approaching" && (
+        <div className="border-b border-amber-400/30 bg-amber-400/5">
+          <div className="mx-auto max-w-7xl px-6 py-2.5 flex items-start gap-3">
+            <Clock className="h-4 w-4 text-amber-300 mt-0.5 shrink-0" />
+            <div className="text-xs text-amber-100/80 leading-relaxed">
+              Heads up:{" "}
+              <span className="font-medium text-amber-200">
+                {macroEventLabel(macro.event)}
+              </span>{" "}
+              at {macro.event.time_et} ET (in {macro.minutesUntil} min) —
+              auto-trade entries pause around the announcement.
             </div>
           </div>
         </div>
