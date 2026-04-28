@@ -165,7 +165,9 @@ function SignalMock() {
           </div>
           <div className="flex-1">
             <div className="text-sm font-medium">EdgeNiq Alerts</div>
-            <div className="text-xs text-muted-foreground">just now</div>
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80">
+              Example alert · format only
+            </div>
           </div>
           <Badge variant="outline" className="text-xs">
             A+
@@ -196,6 +198,10 @@ function SignalMock() {
             <span className="text-muted-foreground">Stop</span>
             <span className="text-destructive">$187.58 (-4%)</span>
           </div>
+          <p className="text-[10px] text-muted-foreground/70 italic pt-2 leading-relaxed">
+            Layout reflects what live alerts actually look like — the
+            ticker + numbers above are an illustration, not a past trade.
+          </p>
         </div>
       </Card>
     </div>
@@ -238,6 +244,37 @@ function StatsStrip() {
 }
 
 function DashboardPreview() {
+  // Section reframed 2026-04-28: the previous implementation rendered
+  // a browser-window mock with hand-picked win-rate numbers (64% /
+  // +2.1% / META / TSLA / SPY / PLTR rows). Even with an "Illustrative
+  // preview" badge, fabricated numbers next to a screenshot-style
+  // chrome reads as performance claim. Replaced with what each
+  // dashboard tile *tracks* (labels, no values) — the user fills it
+  // in by signing up. The public backtest page is the right place
+  // for aggregate numbers; this card describes the surface.
+  const tiles = [
+    {
+      icon: TrendingUp,
+      label: "Resolved (per profile · per setup)",
+      detail: "Win rate computed from your own history — no aggregates baked in",
+    },
+    {
+      icon: Target,
+      label: "Avg gain / signal",
+      detail: "Mean realized return after stops, broken out by signal type",
+    },
+    {
+      icon: BarChart3,
+      label: "Open positions",
+      detail: "Live ladders + auto-trade fills with progress toward each target",
+    },
+  ];
+  const trackedRows = [
+    "Per closed trade: ticker · setup · entry → exit · target hit OR stop · realized gain",
+    "Per signal: time fired · grade · score · whether you took it · what happened",
+    "Auto-trade rows: which Alpaca order, which target leg filled, realized P&L",
+    "Smart Money follows: what each tracked insider / fund did, with alerts on watchlist matches",
+  ];
   return (
     <section className="mx-auto max-w-6xl px-6 py-20 border-t border-border/40">
       <div className="mb-12">
@@ -245,92 +282,57 @@ function DashboardPreview() {
           See every trade, not just the ones that worked.
         </h2>
         <p className="mt-4 text-muted-foreground leading-relaxed">
-          The dashboard shows your actual win rate by risk profile and
-          setup type. The public backtest page exposes the same
-          aggregate win rate per signal type — read it before signing
-          up if you want the numbers without any of the marketing.
+          The dashboard tracks your actual win rate by risk profile
+          and setup type — your numbers, not ours. The public backtest
+          page exposes the aggregate hit rate per signal type if you
+          want to read the real data before you sign up.
         </p>
       </div>
       <Card className="border-border/60 bg-card/50 overflow-hidden">
-        <div className="border-b border-border/50 px-6 py-3 flex items-center gap-3 flex-wrap">
-          <div className="flex gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-muted" />
-            <span className="h-2.5 w-2.5 rounded-full bg-muted" />
-            <span className="h-2.5 w-2.5 rounded-full bg-muted" />
+        <div className="border-b border-border/50 px-6 py-3 flex items-center justify-between flex-wrap gap-3">
+          <div className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
+            What the dashboard tracks
           </div>
-          <div className="ml-1 text-xs font-mono text-muted-foreground">
-            app.edgeniq.com/app
-          </div>
-          {/* Truth-in-advertising: this card shows the dashboard
-              SHAPE, not real EdgeNiq performance. Public backtest
-              page has actual win rates. */}
-          <span className="ml-auto text-[10px] uppercase tracking-wider font-mono text-muted-foreground/70 px-2 py-0.5 rounded border border-border/40">
-            Illustrative preview
+          <span className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground/70 px-2 py-0.5 rounded border border-border/40">
+            Tile labels, no fake numbers
           </span>
         </div>
         <div className="p-6 md:p-8">
           <div className="grid md:grid-cols-3 gap-4 mb-6">
-            <MockStatCard
-              icon={TrendingUp}
-              label="Win rate (30d)"
-              value="64%"
-              hint="Stock signals"
-            />
-            <MockStatCard
-              icon={Target}
-              label="Avg gain / signal"
-              value="+2.1%"
-              hint="After stops"
-            />
-            <MockStatCard
-              icon={BarChart3}
-              label="Open positions"
-              value="4"
-              hint="Active ladders"
-            />
+            {tiles.map((t) => (
+              <div
+                key={t.label}
+                className="rounded-md border border-border/60 bg-background/60 p-4"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {t.label}
+                  </span>
+                  <t.icon className="h-3.5 w-3.5 text-muted-foreground" />
+                </div>
+                <div className="text-2xl font-semibold tabular-nums text-muted-foreground/40">
+                  —
+                </div>
+                <div className="text-xs text-muted-foreground/80 mt-1.5 leading-snug">
+                  {t.detail}
+                </div>
+              </div>
+            ))}
           </div>
           <div className="rounded-md border border-border/60 bg-background/60 overflow-hidden">
             <div className="px-4 py-3 border-b border-border/50 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              Recently resolved
+              What lands in your history
             </div>
-            <div className="divide-y divide-border/40">
-              {[
-                { t: "META", setup: "momentum breakout", pct: 2.0, outcome: "T1 hit", win: true },
-                { t: "TSLA", setup: "mean reversion", pct: -4.0, outcome: "stopped", win: false },
-                { t: "SPY", setup: "trend continuation", pct: 4.1, outcome: "T2 hit", win: true },
-                { t: "PLTR", setup: "volume spike", pct: 2.0, outcome: "T1 hit", win: true },
-              ].map((r) => (
-                <div
-                  key={r.t}
-                  className="px-4 py-3 flex items-center justify-between text-sm"
+            <ul className="divide-y divide-border/40">
+              {trackedRows.map((row) => (
+                <li
+                  key={row}
+                  className="px-4 py-3 text-sm text-muted-foreground leading-relaxed"
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="font-medium tabular-nums w-14">
-                      {r.t}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {r.setup}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] font-mono"
-                    >
-                      {r.outcome}
-                    </Badge>
-                    <span
-                      className={`font-mono tabular-nums ${
-                        r.win ? "text-emerald-400" : "text-destructive"
-                      }`}
-                    >
-                      {r.win ? "+" : ""}
-                      {r.pct.toFixed(2)}%
-                    </span>
-                  </div>
-                </div>
+                  {row}
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
         </div>
       </Card>
@@ -344,31 +346,6 @@ function DashboardPreview() {
         </Link>
       </p>
     </section>
-  );
-}
-
-function MockStatCard({
-  icon: Icon,
-  label,
-  value,
-  hint,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  value: string;
-  hint: string;
-}) {
-  return (
-    <div className="rounded-md border border-border/60 bg-background/60 p-4">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-          {label}
-        </span>
-        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-      </div>
-      <div className="text-2xl font-semibold tabular-nums">{value}</div>
-      <div className="text-xs text-muted-foreground mt-0.5">{hint}</div>
-    </div>
   );
 }
 
