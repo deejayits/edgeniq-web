@@ -1,9 +1,14 @@
 // Shared types for the Smart Money surface. Kept in a neutral file
 // so client + server components + server actions can all import
 // without triggering a "use server" / "use client" boundary.
+//
+// "politician" was removed in 2026-04-27 — FMP killed their free
+// Congressional endpoints and Quiver/clerk.house.gov scraping is
+// non-trivial. Decision: drop the scaffold entirely rather than
+// keep "Coming soon" tabs that never resolve. Re-add the type if a
+// data source ships.
 
 export type TargetType =
-  | "politician"
   | "fund_13f"
   | "insider"
   | "activist";
@@ -59,15 +64,12 @@ export type TargetWithStats = SmartMoneyTarget & {
 
 // Human-readable labels + colors for target type badges.
 export const TARGET_TYPE_LABEL: Record<TargetType, string> = {
-  politician: "Politician",
   fund_13f: "Hedge Fund",
   insider: "Insider",
   activist: "Activist",
 };
 
 export const TARGET_TYPE_DESC: Record<TargetType, string> = {
-  politician:
-    "STOCK Act disclosures. 30-45 day filing latency — use as conviction, not fresh signal.",
   fund_13f:
     "Quarterly 13F filings. 45-day delay means positions are at least 6-8 weeks old.",
   insider:

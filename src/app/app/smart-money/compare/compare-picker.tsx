@@ -15,7 +15,6 @@ import {
 } from "../types";
 
 const TYPE_ACCENT: Record<TargetType, string> = {
-  politician: "bg-violet-400/15 text-violet-300 border-violet-400/30",
   fund_13f: "bg-emerald-400/15 text-emerald-300 border-emerald-400/30",
   insider: "bg-primary/15 text-primary border-primary/30",
   activist: "bg-amber-400/15 text-amber-300 border-amber-400/30",

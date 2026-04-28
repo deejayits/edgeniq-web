@@ -38,7 +38,7 @@ export function ActivityChart({ trades, height = 200 }: Props) {
     // Bucket trades by calendar day for the last 90 days. 13F filings
     // are quarterly with a 45-day lag, so 90 days captures a full
     // quarter of activity. Three separate series:
-    //   buys / sells — directional trades (politicians, insiders)
+    //   buys / sells — directional trades (insiders, activists)
     //   positions     — 'other'-side entries (13F holdings snapshots)
     //   total         — sum of everything, used as the baseline line
     //                   so funds with only 'other' trades still show

@@ -19,7 +19,6 @@ import {
 // quick follow toggle; tap the card itself to drill into detail.
 
 const TYPE_ACCENT: Record<TargetType, string> = {
-  politician: "bg-violet-400/15 text-violet-300 border-violet-400/30",
   fund_13f: "bg-emerald-400/15 text-emerald-300 border-emerald-400/30",
   insider: "bg-primary/15 text-primary border-primary/30",
   activist: "bg-amber-400/15 text-amber-300 border-amber-400/30",
@@ -118,12 +117,6 @@ export function TargetCard({ target }: { target: TargetWithStats }) {
                     </span>
                   )}
                 </>
-              ) : target.target_type === "politician" ? (
-                // Politician data ingestion is currently paused — STOCK
-                // Act feeds were removed pending a more reliable source.
-                // Be honest about it instead of "coming soon" which
-                // implies imminent.
-                <span className="italic">Politician tracking paused</span>
               ) : target.target_type === "insider" ? (
                 // Form 4 ingestion IS live; an empty row here means the
                 // insider had no Form 4 buys in 90d, not that we don't

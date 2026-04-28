@@ -21,9 +21,10 @@ import {
 
 export const dynamic = "force-dynamic";
 
-// Smart Money — browse + follow politicians, hedge funds, insiders,
-// activists. Elite-tier feature. Mimic (auto-shadow-trade) requires
-// the Live Trading add-on on top of Elite.
+// Smart Money — browse + follow hedge funds (13F) and insiders
+// (SEC Form 4). Elite-tier feature. Mimic (auto-shadow-trade)
+// requires the Live Trading add-on on top of Elite. Activist
+// (13D/13G) is scaffolded but ingestion is still TODO.
 
 export default async function SmartMoneyPage({
   searchParams,
@@ -165,7 +166,6 @@ export default async function SmartMoneyPage({
     : withStats;
 
   const counts: Record<TargetType, number> = {
-    politician: 0,
     fund_13f: 0,
     insider: 0,
     activist: 0,

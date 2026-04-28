@@ -20,7 +20,6 @@ import {
 export const dynamic = "force-dynamic";
 
 const TYPE_ACCENT: Record<TargetType, string> = {
-  politician: "bg-violet-400/15 text-violet-300 border-violet-400/30",
   fund_13f: "bg-emerald-400/15 text-emerald-300 border-emerald-400/30",
   insider: "bg-primary/15 text-primary border-primary/30",
   activist: "bg-amber-400/15 text-amber-300 border-amber-400/30",
@@ -185,13 +184,11 @@ export default async function TargetDetailPage({
                 className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-2"
               >
                 <ExternalLink className="h-3 w-3" />
-                {target.target_type === "politician"
-                  ? "Official congress.gov profile"
-                  : target.target_type === "fund_13f"
-                    ? "SEC EDGAR filings"
-                    : target.target_type === "insider"
-                      ? "SEC Form 4 filings"
-                      : "Public filings"}
+                {target.target_type === "fund_13f"
+                  ? "SEC EDGAR filings"
+                  : target.target_type === "insider"
+                    ? "SEC Form 4 filings"
+                    : "Public filings"}
               </a>
             )}
           </div>
@@ -205,11 +202,7 @@ export default async function TargetDetailPage({
         <StatTile
           label="Est. total"
           value={fmtMoney(totalEstimate || null)}
-          hint={
-            target.target_type === "politician"
-              ? "approximate (House bucket midpoints)"
-              : "from disclosed fair value"
-          }
+          hint="from disclosed fair value"
         />
         <StatTile
           label="Last trade"
@@ -273,8 +266,8 @@ export default async function TargetDetailPage({
           directional trades have different data semantics:
             fund_13f: quarterly holdings snapshot. No buy/sell per
               row, but we can show % of total portfolio. Sort by size.
-            politician / insider / activist: directional (buy/sell)
-              with trade + filed dates. Show both dates.
+            insider / activist: directional (buy/sell) with trade +
+              filed dates. Show both dates.
        */}
       {target.target_type === "fund_13f" ? (
         <FundHoldingsTable
@@ -706,36 +699,27 @@ function DirectionalTradesTable({
   );
 }
 
-// Differentiated empty state for the trades table. Politicians get a
-// "Coming soon" treatment — we don't have a data source wired yet so
-// the empty isn't going to resolve on its own. Funds get a shorter
-// "Data ingestion pending" message — the SEC cron will populate on
-// its next run, so the empty is genuinely temporary.
+// Differentiated empty state for the trades table. Funds get a
+// shorter "Data ingestion pending" message — the SEC cron will
+// populate on its next run, so the empty is genuinely temporary.
+// Insider Form 4 ingestion is live; an empty here means no Form 4
+// buys in 90d, not unimplemented. Activist 13D/13G is still
+// roadmap.
 function EmptyTradesState({ targetType }: { targetType: TargetType }) {
-  if (targetType === "politician") {
+  if (targetType === "insider") {
     return (
       <div className="px-6 py-12 text-center space-y-3">
-        <div className="h-12 w-12 rounded-full bg-violet-400/10 border border-violet-400/30 flex items-center justify-center mx-auto">
-          <Clock className="h-5 w-5 text-violet-300" />
+        <div className="h-12 w-12 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center mx-auto">
+          <Clock className="h-5 w-5 text-primary" />
         </div>
-        <div>
-          <Badge className="bg-violet-400/15 text-violet-300 border border-violet-400/30 mb-2">
-            Coming soon
-          </Badge>
-          <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
-            Congressional trade ingestion is on the roadmap. Your
-            profile and follow button work today — alerts will turn
-            on once data lands.
-          </p>
-        </div>
-        <p className="text-[11px] text-muted-foreground max-w-sm mx-auto">
-          In the meantime, hedge fund 13F filings already populate —
-          browse those for live data.
+        <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
+          No Form 4 filings in the last 90 days. Insiders frequently
+          have quiet periods — this isn&rsquo;t a data gap.
         </p>
       </div>
     );
   }
-  if (targetType === "insider" || targetType === "activist") {
+  if (targetType === "activist") {
     return (
       <div className="px-6 py-12 text-center space-y-3">
         <div className="h-12 w-12 rounded-full bg-amber-400/10 border border-amber-400/30 flex items-center justify-center mx-auto">
@@ -746,9 +730,8 @@ function EmptyTradesState({ targetType }: { targetType: TargetType }) {
             Coming soon
           </Badge>
           <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
-            {targetType === "insider"
-              ? "Form 4 insider-trade ingestion is planned for a future release. Form 4 has a 2-day filing deadline so this would be our fastest-latency data source."
-              : "Activist 13D/13G filings — reported within 10 days of a 5%+ stake — are on the roadmap."}
+            Activist 13D/13G filings — reported within 10 days of a
+            5%+ stake — are on the roadmap.
           </p>
         </div>
       </div>
