@@ -60,11 +60,11 @@ export function EodFlattenCard({ initial }: { initial: EodFlattenRow }) {
         <div className="h-9 w-9 rounded-md bg-violet-500/15 border border-violet-500/30 flex items-center justify-center shrink-0">
           <Moon className="h-4 w-4 text-violet-300" />
         </div>
-        <div className="space-y-1">
+        <div className="space-y-1 flex-1 min-w-0">
           <h3 className="text-base font-semibold tracking-tight">
             End-of-day flatten
           </h3>
-          <p className="text-xs text-muted-foreground leading-snug max-w-prose">
+          <p className="text-xs text-muted-foreground leading-snug">
             ~15 min before market close, the bot can market-close
             every open auto-trade position to avoid overnight gap
             risk and theta decay on short-dated options. You always
