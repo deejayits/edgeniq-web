@@ -56,6 +56,15 @@ export const env = createEnv({
       .enum(["true", "false"])
       .default("false")
       .transform((v) => v === "true"),
+
+    // Privacy policy version — must match the Python bot's
+    // config.PRIVACY_VERSION. When the bot bumps this and gates
+    // signal delivery for stale-ack users, the web dashboard reads
+    // this same value and shows a banner pointing the user to
+    // Telegram to re-accept (acceptance is bot-side authoritative).
+    // Default 1.4 matches the bot's current default — bump in the
+    // env var on both sides when the policy changes.
+    PRIVACY_VERSION: z.string().default("1.4"),
   },
   client: {
     NEXT_PUBLIC_SUPABASE_URL: z.string().url(),

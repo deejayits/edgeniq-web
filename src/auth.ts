@@ -14,6 +14,20 @@ import { supabaseAdmin } from "@/lib/supabase/server";
 //   3. authorize() below re-verifies the hash (defense-in-depth) and
 //      upserts / links the user in Supabase
 //   4. Auth.js issues a session JWT with tgUserId + role claims
+//
+// COOKIE SCOPE — operational note:
+// Auth.js scopes its session cookie via the request URL Auth handles.
+// On Vercel preview deploys (preview-edgeniq-foo.vercel.app) the
+// preview domain mints its own cookies, separate from production
+// cookies on www.edgeniq.com. That's correct.
+// What to verify in the Vercel project settings:
+//   - Production env: NEXTAUTH_URL (or AUTH_URL) = https://www.edgeniq.com
+//   - Preview env: NEXTAUTH_URL = unset (Auth.js auto-detects per
+//     deploy URL) OR set to a preview-specific value
+// If a previous deploy hardcoded NEXTAUTH_URL=production-URL into
+// the preview env, preview deploys would mint cookies for the prod
+// domain — leakage risk. Audit at:
+//   vercel.com/<team>/<project>/settings/environment-variables
 export const {
   handlers,
   signIn,
