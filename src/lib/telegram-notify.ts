@@ -23,16 +23,52 @@ import { env } from "@/env";
 
 const TELEGRAM_API = "https://api.telegram.org/bot";
 
+// Marker in the message body that means "footer already appended."
+// Idempotent — if a caller pre-formats their own footer with this
+// emoji, we won't double-append. Mirrors the bot's _SIGNATURE_MARKER.
+const SIGNATURE_MARKER = "📅 sent";
+
 export type DmResult = { ok: boolean; error?: string };
+
+/**
+ * Append an ET sent-at footer to outgoing message bodies. Mirrors
+ * the bot-side `_append_signature` helper in notifier.py so DMs
+ * originating on the web carry the same `📅 sent <Mon> <D>, <H:MM>
+ * AM/PM ET` line every other bot response has. Without this,
+ * web-originated DMs (rule changes, kill-switch, plan upgrades)
+ * looked subtly different from native bot replies.
+ *
+ * Idempotent: if the body already contains the signature marker
+ * we leave it alone, so a caller pre-formatting their own footer
+ * doesn't get a doubled stamp.
+ */
+function appendSignature(html: string): string {
+  if (html.includes(SIGNATURE_MARKER)) return html;
+  let stamp: string;
+  try {
+    const fmt = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/New_York",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+    stamp = fmt.format(new Date());
+  } catch {
+    return html;
+  }
+  return `${html}\n\n<i>📅 sent ${stamp} ET</i>`;
+}
 
 /**
  * Send an HTML-formatted message to a user's Telegram chat.
  *
  * Mirrors the bot's send_to_user surface — same parse mode, same
- * disable-web-page-preview default. Returns {ok: false, error} on
- * failure but never throws; callers are typically in server actions
- * that don't want a notification failure to roll back the action
- * itself.
+ * disable-web-page-preview default, same ET sent-at footer.
+ * Returns {ok: false, error} on failure but never throws; callers
+ * are typically in server actions that don't want a notification
+ * failure to roll back the action itself.
  */
 export async function sendBotDM(
   chatId: number,
@@ -46,13 +82,14 @@ export async function sendBotDM(
   if (!token) {
     return { ok: false, error: "bot token not configured" };
   }
+  const stamped = appendSignature(html);
   try {
     const res = await fetch(`${TELEGRAM_API}${token}/sendMessage`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         chat_id: chatId,
-        text: html,
+        text: stamped,
         parse_mode: "HTML",
         disable_web_page_preview: opts?.disableWebPagePreview ?? true,
       }),

@@ -251,8 +251,43 @@ export async function updateRules(upd: RulesUpdate): Promise<ActionResult> {
       { onConflict: "chat_id,signal_type,mode" },
     );
   if (error) return { ok: false, error: error.message };
+  // Audit DM — every rule save shows up in the user's chat with the
+  // new values so they can scroll back and reconcile config drift
+  // without checking the web. Concise summary of the most consequen-
+  // tial fields; full row lives in Supabase.
+  sendBotDMFireAndForget(chatId, formatRulesUpdateDm(upd));
   revalidatePath("/app/broker");
   return { ok: true };
+}
+
+function formatRulesUpdateDm(upd: RulesUpdate): string {
+  const sizingLabel: Record<RulesUpdate["positionSizeType"], string> = {
+    dollar_fixed: "Fixed $",
+    pct_buying_power: "% buying power",
+    share_fixed: "# shares",
+    atr_based: "ATR-based",
+  };
+  const execLabel: Record<RulesUpdate["executionMode"], string> = {
+    off: "OFF",
+    one_tap: "One-tap",
+    auto: "AUTO",
+  };
+  const exitOverride =
+    upd.targetPct !== null || upd.stopPct !== null
+      ? `\nExit override: ${upd.targetPct ?? "—"}% TP · ${upd.stopPct ?? "—"}% SL`
+      : "\nExit: defaults (signal/profile-driven)";
+  return (
+    `⚙️ <b>Auto-trade rules saved</b> · ${upd.signalType.toUpperCase()} · ${upd.mode}\n` +
+    "\n" +
+    `Mode: <b>${execLabel[upd.executionMode]}</b>\n` +
+    `Min score: <b>${upd.minScore}</b>\n` +
+    `Watchlist-only: ${upd.watchlistOnly ? "ON" : "OFF"}\n` +
+    `Sizing: ${sizingLabel[upd.positionSizeType]} · ` +
+    `<b>${upd.positionSizeValue}</b>\n` +
+    `Max daily orders: ${upd.maxDailyOrders} · ` +
+    `Cooldown after loss: ${upd.cooldownMinutes}m` +
+    exitOverride
+  );
 }
 
 export type RiskRailsUpdate = {
@@ -287,6 +322,26 @@ export async function updateRiskRails(
       { onConflict: "chat_id" },
     );
   if (error) return { ok: false, error: error.message };
+  // Audit DM — rails are the account-wide guardrail, so a change
+  // here is the highest-stakes config edit. Pinging the chat lets
+  // the user (or anyone watching shared admin chat) catch a stray
+  // edit before the next session opens.
+  const lossDollar =
+    upd.maxDailyLossUsd != null ? `$${upd.maxDailyLossUsd}` : "disabled";
+  const lossPct =
+    upd.maxDailyLossPct != null ? `${upd.maxDailyLossPct}%` : "disabled";
+  sendBotDMFireAndForget(
+    chatId,
+    "🛡️ <b>Risk rails saved</b>\n" +
+      "\n" +
+      `Max open positions: <b>${upd.maxOpenPositions}</b>\n` +
+      `Max allocation per ticker: <b>${upd.maxAllocPerTickerPct}%</b>\n` +
+      `Max daily loss ($): ${lossDollar}\n` +
+      `Max daily loss (%): ${lossPct}\n` +
+      "\n" +
+      "<i>Rails evaluate before per-rule gates. A tripped rail " +
+      "blocks every order regardless of signal score.</i>",
+  );
   revalidatePath("/app/broker");
   return { ok: true };
 }
@@ -329,6 +384,25 @@ export async function setMasterAutoTrade(
       .eq("mode", mode);
     if (error) return { ok: false, error: error.message };
   }
+  // Audit DM — master toggle is the single most consequential
+  // single-tap change, so it always pings the chat regardless of
+  // tab. Mode label so the user knows whether paper or live just
+  // flipped.
+  sendBotDMFireAndForget(
+    chatId,
+    enabled
+      ? `▶️ <b>Auto-trade ENABLED</b> · ${mode}\n` +
+        "\n" +
+        "Rules previously OFF for this mode are now AUTO. Rules " +
+        "already on One-tap stay One-tap.\n" +
+        "\n" +
+        "<i>Risk rails still apply. /kill from Telegram or the " +
+        "broker page to halt entries.</i>"
+      : `⏸ <b>Auto-trade DISABLED</b> · ${mode}\n` +
+        "\n" +
+        "All rules in this mode set to OFF. New signals won't " +
+        "submit orders until you re-enable.",
+  );
   revalidatePath("/app/broker");
   return { ok: true };
 }
