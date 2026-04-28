@@ -110,11 +110,17 @@ export function RulesCard({ rule, title, description }: {
         targetPct: draft.target_pct,
         stopPct: draft.stop_pct,
       };
-      const res = await updateRules(payload);
-      if (res.ok) {
-        toast.success(`${title} rules saved`);
-      } else {
-        toast.error(res.error);
+      try {
+        const res = await updateRules(payload);
+        if (res.ok) {
+          toast.success(`${title} rules saved`);
+        } else {
+          toast.error(res.error);
+        }
+      } catch (exc) {
+        toast.error(
+          exc instanceof Error ? exc.message : "Save failed — try again",
+        );
       }
     });
   };

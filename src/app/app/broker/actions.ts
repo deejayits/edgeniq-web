@@ -49,7 +49,14 @@ export async function testAlpacaConnection(
   apiKey: string,
   apiSecret: string,
 ): Promise<ActionResult<{ accountId: string; buyingPower: string; status: string }>> {
-  await requireElite();
+  try {
+    await requireElite();
+  } catch (exc) {
+    return {
+      ok: false,
+      error: exc instanceof Error ? exc.message : "auth failed",
+    };
+  }
   if (!apiKey?.trim() || !apiSecret?.trim()) {
     return { ok: false, error: "API key and secret are required" };
   }
@@ -86,7 +93,15 @@ export async function saveAlpacaConnection(
   apiKey: string,
   apiSecret: string,
 ): Promise<ActionResult> {
-  const chatId = await requireElite();
+  let chatId: number;
+  try {
+    chatId = await requireElite();
+  } catch (exc) {
+    return {
+      ok: false,
+      error: exc instanceof Error ? exc.message : "auth failed",
+    };
+  }
   if (!apiKey?.trim() || !apiSecret?.trim()) {
     return { ok: false, error: "API key and secret are required" };
   }
@@ -170,7 +185,15 @@ export async function saveAlpacaConnection(
 }
 
 export async function disconnectBroker(): Promise<ActionResult> {
-  const chatId = await requireElite();
+  let chatId: number;
+  try {
+    chatId = await requireElite();
+  } catch (exc) {
+    return {
+      ok: false,
+      error: exc instanceof Error ? exc.message : "auth failed",
+    };
+  }
   const supabase = supabaseAdmin();
   // Scoped to mode='paper' so disconnecting your paper account
   // doesn't accidentally tear down a live connection too. Live has
@@ -208,7 +231,15 @@ export type RulesUpdate = {
 };
 
 export async function updateRules(upd: RulesUpdate): Promise<ActionResult> {
-  const chatId = await requireElite();
+  let chatId: number;
+  try {
+    chatId = await requireElite();
+  } catch (exc) {
+    return {
+      ok: false,
+      error: exc instanceof Error ? exc.message : "auth failed",
+    };
+  }
   if (upd.mode !== "paper" && upd.mode !== "live") {
     return { ok: false, error: "invalid mode" };
   }
@@ -300,7 +331,15 @@ export type RiskRailsUpdate = {
 export async function updateRiskRails(
   upd: RiskRailsUpdate,
 ): Promise<ActionResult> {
-  const chatId = await requireElite();
+  let chatId: number;
+  try {
+    chatId = await requireElite();
+  } catch (exc) {
+    return {
+      ok: false,
+      error: exc instanceof Error ? exc.message : "auth failed",
+    };
+  }
   if (upd.maxOpenPositions < 1 || upd.maxOpenPositions > 100) {
     return { ok: false, error: "max open positions must be between 1 and 100" };
   }
@@ -360,7 +399,15 @@ export async function setMasterAutoTrade(
   enabled: boolean,
   mode: "paper" | "live",
 ): Promise<ActionResult> {
-  const chatId = await requireElite();
+  let chatId: number;
+  try {
+    chatId = await requireElite();
+  } catch (exc) {
+    return {
+      ok: false,
+      error: exc instanceof Error ? exc.message : "auth failed",
+    };
+  }
   if (mode !== "paper" && mode !== "live") {
     return { ok: false, error: "invalid mode" };
   }
@@ -410,7 +457,15 @@ export async function setMasterAutoTrade(
 export async function engageKillSwitch(
   reason: string = "manual",
 ): Promise<ActionResult<{ canceledCount: number }>> {
-  const chatId = await requireElite();
+  let chatId: number;
+  try {
+    chatId = await requireElite();
+  } catch (exc) {
+    return {
+      ok: false,
+      error: exc instanceof Error ? exc.message : "auth failed",
+    };
+  }
   const supabase = supabaseAdmin();
 
   // Flip kill switch first so new orders get blocked immediately even
@@ -484,7 +539,15 @@ export async function engageKillSwitch(
 }
 
 export async function releaseKillSwitch(): Promise<ActionResult> {
-  const chatId = await requireElite();
+  let chatId: number;
+  try {
+    chatId = await requireElite();
+  } catch (exc) {
+    return {
+      ok: false,
+      error: exc instanceof Error ? exc.message : "auth failed",
+    };
+  }
   const supabase = supabaseAdmin();
   const { error } = await supabase
     .from("auto_trade_risk_rails")

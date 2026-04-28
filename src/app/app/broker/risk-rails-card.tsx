@@ -43,11 +43,17 @@ export function RiskRailsCard({ rails }: { rails: RiskRailsRow }) {
         maxDailyLossPct.trim() === "" ? null : Number(maxDailyLossPct),
     };
     startTransition(async () => {
-      const res = await updateRiskRails(upd);
-      if (res.ok) {
-        toast.success("Risk rails saved");
-      } else {
-        toast.error(res.error);
+      try {
+        const res = await updateRiskRails(upd);
+        if (res.ok) {
+          toast.success("Risk rails saved");
+        } else {
+          toast.error(res.error);
+        }
+      } catch (exc) {
+        toast.error(
+          exc instanceof Error ? exc.message : "Save failed — try again",
+        );
       }
     });
   };

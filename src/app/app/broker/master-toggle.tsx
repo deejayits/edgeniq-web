@@ -49,17 +49,24 @@ export function AutoTradeMasterToggle({
     // Optimistic: flip the visual immediately; revert on server error.
     setEnabled(next);
     startTransition(async () => {
-      const res = await setMasterAutoTrade(next, mode);
-      if (res.ok) {
-        const modeLabel = mode === "live" ? "Live" : "Paper";
-        toast.success(
-          next
-            ? `${modeLabel} auto-trade ON — rules will execute as signals fire`
-            : `${modeLabel} auto-trade OFF — ${modeLabel.toLowerCase()} rules paused`,
+      try {
+        const res = await setMasterAutoTrade(next, mode);
+        if (res.ok) {
+          const modeLabel = mode === "live" ? "Live" : "Paper";
+          toast.success(
+            next
+              ? `${modeLabel} auto-trade ON — rules will execute as signals fire`
+              : `${modeLabel} auto-trade OFF — ${modeLabel.toLowerCase()} rules paused`,
+          );
+        } else {
+          setEnabled(!next); // revert
+          toast.error(res.error);
+        }
+      } catch (exc) {
+        setEnabled(!next); // revert on unexpected throw
+        toast.error(
+          exc instanceof Error ? exc.message : "Save failed — try again",
         );
-      } else {
-        setEnabled(!next); // revert
-        toast.error(res.error);
       }
     });
   };
