@@ -90,6 +90,19 @@ const REASON_PATTERNS: ReadonlyArray<{
     },
   },
   {
+    // News-headline circuit breaker — war / halt / fraud / Fed
+    // emergency keyword fired in the news ingest. Same "mechanical,
+    // not preference" framing as macro blackouts; the user needs to
+    // know it's the bot being defensive, not a fault.
+    match: /circuit.breaker|circuit_breaker/i,
+    reason: {
+      label: "Paused — news circuit breaker",
+      hint:
+        "A breaking-news keyword (war / halt / fraud / Fed emergency) triggered a defensive pause. Manual signals still flow.",
+      actionable: false,
+    },
+  },
+  {
     match: /max_open_positions/i,
     reason: {
       label: "Max open positions reached",
